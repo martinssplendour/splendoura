@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: splendoura-api
+    env: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    plan: starter
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: REFRESH_TOKEN_EXPIRE_MINUTES
+        value: "43200"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "60"
+      - key: WEB_CONCURRENCY
+        value: "2"
+      - key: LOG_LEVEL
+        value: "info"
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: "production"
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: "0.05"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: AUTO_CREATE_TABLES
+        value: "false"
+      - key: NUDITY_PROVIDER
+        value: "nudenet"
+      - key: NUDITY_MIN_CONFIDENCE
+        value: "0.35"
