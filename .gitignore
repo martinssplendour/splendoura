@@ -1,0 +1,14 @@
+
+node_modules/
+**/node_modules/
+.env
+.env.*
+
+.env
+.env.*
+**/__pycache__/
+**/*.pyc
+backend/uploads/
+node_modules/
+**/node_modules/
+mobile/.expo/

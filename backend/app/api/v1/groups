@@ -1,0 +1,18 @@
+{
+  "title": "Weekend in Ibiza",
+  "activity_type": "vacation",
+  "destination": "Ibiza, Spain",
+  "cost_type": "shared",
+  "requirements": [
+    {
+      "applies_to": "all",
+      "min_age": 21,
+      "max_age": 40,
+      "consent_flags": {
+        "share_expenses": true,
+        "valid_passport": true
+      }
+    }
+  ],
+  "visibility": "public"
+}
