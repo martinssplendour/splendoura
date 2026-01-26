@@ -18,6 +18,12 @@ from .group_extras import (
     GroupPollVote,
 )
 from .membership import Membership, MembershipCreate, JoinRequest
-from .token import Token, TokenPayload, RefreshTokenRequest
+from .token import (
+    Token,
+    TokenPayload,
+    RefreshTokenRequest,
+    PasswordResetRequest,
+    PasswordResetConfirm,
+)
 from .report import Report, ReportCreate
 from .message import GroupMessage, GroupMessageCreate, GroupMessageReadRequest
