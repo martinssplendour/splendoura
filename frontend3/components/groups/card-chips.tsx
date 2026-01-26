@@ -9,11 +9,12 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import type { SwipeGroup } from "@/components/groups/types";
 
 interface Chip {
   label: string;
-  icon: JSX.Element;
+  icon: ReactNode;
 }
 
 const COST_LABELS: Record<string, string> = {
