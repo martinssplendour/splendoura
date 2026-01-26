@@ -2,6 +2,7 @@ import { Sora } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import Navbar from "@/components/navbar";
+import LayoutShell from "@/components/layout-shell";
 // CHANGE THIS IMPORT:
 import { Toaster } from "@/components/ui/sonner"; 
 
@@ -14,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <div className="relative flex min-h-screen flex-col">
             <Navbar />
-            <main className="flex-1 container mx-auto px-4 py-8 pb-24 md:pb-8">{children}</main>
+            <LayoutShell>{children}</LayoutShell>
             {/* The component name is usually the same, but verified it is using the new import */}
             <Toaster />
           </div>

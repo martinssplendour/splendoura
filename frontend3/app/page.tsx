@@ -31,20 +31,16 @@ export default function LandingPage() {
     <div className={`${sora.variable} ${playfair.variable} min-h-screen bg-slate-950 text-white`}>
       <div className="relative overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-center opacity-70"
           style={{ backgroundImage: "url('/brand/hero.jpg')" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/80 via-slate-900/40 to-emerald-400/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/65 via-slate-900/35 to-slate-900/20" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.2),_transparent_45%)]" />
 
         <header className="relative z-10 flex items-center justify-between px-6 py-6 md:px-12">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white/15 ring-1 ring-white/30">
               <Image src="/brand/icon.png" alt="Splendoura icon" width={40} height={40} />
-            </div>
-            <div>
-              <p className="text-lg font-semibold tracking-wide">Splendoura</p>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/70">Plan together</p>
             </div>
           </div>
           <div className="flex items-center gap-4 text-sm">
@@ -58,22 +54,25 @@ export default function LandingPage() {
         </header>
 
         <section className="relative z-10 mx-auto flex max-w-5xl flex-col items-center px-6 pb-32 pt-10 text-center md:pt-16">
-          <Image
-            src="/brand/logo.png"
-            alt="Splendoura logo"
-            width={320}
-            height={140}
-            className="mb-6 w-44 md:w-56"
-          />
+          <div className="mb-6 rounded-[30px] bg-white/10 p-3 shadow-[0_24px_60px_rgba(0,0,0,0.35)] ring-1 ring-white/25 backdrop-blur-md">
+            <div className="relative overflow-hidden rounded-[22px]">
+              <Image
+                src="/brand/logo.png"
+                alt="Splendoura logo"
+                width={320}
+                height={140}
+                className="w-44 md:w-56"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,_rgba(255,255,255,0.6),_transparent_55%)]" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/10" />
+            </div>
+          </div>
           <h1
             className="text-4xl font-semibold leading-tight md:text-6xl"
             style={{ fontFamily: "var(--font-playfair)" }}
           >
-            Splendoura
-          </h1>
-          <p className="mt-3 text-2xl font-semibold md:text-4xl">
             Plan Dates. Plan Vacations.
-          </p>
+          </h1>
           <p className="mt-5 max-w-2xl text-base text-white/80 md:text-lg">
             The social platform for connecting people through shared experiences. Find travel
             buddies, dinner groups, or club companions safely and transparently.

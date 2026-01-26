@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     # Token expire time (60 minutes * 24 hours * 8 days)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30
+    RESET_TOKEN_EXPIRE_MINUTES: int = 30
     RATE_LIMIT_PER_MINUTE: int = 60
     REDIS_URL: str | None = None
     CORS_ORIGINS: str | None = None
@@ -32,6 +33,7 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str | None = None
     ADMIN_USERNAME: str | None = None
     ADMIN_PASSWORD: str | None = None
+    RESET_TOKEN_DEBUG: bool = False
 
     model_config = SettingsConfigDict(
         case_sensitive=True,

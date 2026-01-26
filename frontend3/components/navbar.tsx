@@ -15,6 +15,10 @@ export default function Navbar() {
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`);
 
+  if (pathname === "/") {
+    return null;
+  }
+
   return (
     <nav className="border-b border-slate-200 bg-white">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">

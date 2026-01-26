@@ -1,5 +1,7 @@
 # backend/app/api/v1/endpoints/auth.py
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from hashlib import sha256
+from secrets import token_urlsafe
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -61,6 +63,59 @@ def login_access_token(
         ),
         "token_type": "bearer",
     }
+
+@router.post("/forgot-password", dependencies=[Depends(deps.rate_limit)])
+def forgot_password(
+    payload: schemas.PasswordResetRequest,
+    db: Session = Depends(deps.get_db),
+) -> Any:
+    """Generate a password reset token (email delivery to be integrated)."""
+    user = crud.user.get_by_email(db, email=payload.email)
+    reset_token = None
+
+    if user:
+        reset_token = token_urlsafe(32)
+        user.password_reset_token_hash = sha256(reset_token.encode("utf-8")).hexdigest()
+        user.password_reset_expires_at = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.RESET_TOKEN_EXPIRE_MINUTES
+        )
+        db.add(user)
+        db.commit()
+
+    response: dict[str, Any] = {
+        "detail": "If an account exists, a reset link has been sent."
+    }
+    if settings.RESET_TOKEN_DEBUG and reset_token:
+        response["reset_token"] = reset_token
+    return response
+
+@router.post("/reset-password", dependencies=[Depends(deps.rate_limit)])
+def reset_password(
+    payload: schemas.PasswordResetConfirm,
+    db: Session = Depends(deps.get_db),
+) -> Any:
+    """Reset a user's password using a valid token."""
+    token_hash = sha256(payload.token.encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+    user = (
+        db.query(models.User)
+        .filter(models.User.password_reset_token_hash == token_hash)
+        .filter(models.User.password_reset_expires_at.is_not(None))
+        .filter(models.User.password_reset_expires_at > now)
+        .first()
+    )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token is invalid or expired.",
+        )
+
+    user.hashed_password = security.get_password_hash(payload.new_password)
+    user.password_reset_token_hash = None
+    user.password_reset_expires_at = None
+    db.add(user)
+    db.commit()
+    return {"detail": "Password updated successfully."}
 
 @router.post("/refresh", response_model=schemas.Token, dependencies=[Depends(deps.rate_limit)])
 def refresh_access_token(
