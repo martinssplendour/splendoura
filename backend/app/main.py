@@ -73,29 +73,42 @@ def check_database_connection() -> None:
     if settings.ADMIN_EMAIL and settings.ADMIN_PASSWORD and settings.ADMIN_USERNAME:
         db = SessionLocal()
         try:
-            user = db.query(User).filter(User.email == settings.ADMIN_EMAIL).first()
+            email_user = db.query(User).filter(User.email == settings.ADMIN_EMAIL).first()
+            username_user = db.query(User).filter(User.username == settings.ADMIN_USERNAME).first()
+            user = email_user or username_user
+
             if user:
                 user.role = UserRole.ADMIN
                 user.verification_status = VerificationStatus.VERIFIED
                 user.verified_at = datetime.utcnow()
-                if not user.username:
+                if not user.username and settings.ADMIN_USERNAME:
+                    # Only set if empty to avoid unique conflicts.
                     user.username = settings.ADMIN_USERNAME
                 db.add(user)
                 db.commit()
             else:
-                user = User(
-                    email=settings.ADMIN_EMAIL,
-                    username=settings.ADMIN_USERNAME,
-                    hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
-                    full_name="admin",
-                    age=30,
-                    gender=Gender.OTHER,
-                    verification_status=VerificationStatus.VERIFIED,
-                    verified_at=datetime.utcnow(),
-                    role=UserRole.ADMIN,
+                # Avoid crashing startup if username already exists with another account.
+                existing_username = (
+                    db.query(User).filter(User.username == settings.ADMIN_USERNAME).first()
                 )
-                db.add(user)
-                db.commit()
+                if existing_username:
+                    print(
+                        "[ADMIN] Username already exists; skipping admin bootstrap."
+                    )
+                else:
+                    user = User(
+                        email=settings.ADMIN_EMAIL,
+                        username=settings.ADMIN_USERNAME,
+                        hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
+                        full_name="admin",
+                        age=30,
+                        gender=Gender.OTHER,
+                        verification_status=VerificationStatus.VERIFIED,
+                        verified_at=datetime.utcnow(),
+                        role=UserRole.ADMIN,
+                    )
+                    db.add(user)
+                    db.commit()
         finally:
             db.close()
 
