@@ -3,7 +3,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/
 export const API_HOST = BASE_URL.replace(/\/api\/v1\/?$/, "");
 
 interface RequestOptions extends RequestInit {
-  token?: string;
+  token?: string | null;
 }
 
 export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
