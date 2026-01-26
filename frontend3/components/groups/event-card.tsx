@@ -5,9 +5,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import type { SwipeGroup } from "@/components/groups/types";
 import CardChips from "@/components/groups/card-chips";
-
-const API_HOST =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") || "http://127.0.0.1:8000";
+import { resolveMediaUrl } from "@/lib/api";
 
 interface EventCardProps {
   group: SwipeGroup;
@@ -38,7 +36,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
         <div className="relative h-56 w-full sm:h-72">
           {group.cover_image_url ? (
             <img
-              src={`${API_HOST}${group.cover_image_url}`}
+              src={resolveMediaUrl(group.cover_image_url)}
               alt={group.title}
               className="h-full w-full object-cover"
             />

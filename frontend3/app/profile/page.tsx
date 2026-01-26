@@ -1,12 +1,9 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-
-const API_HOST =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") || "http://127.0.0.1:8000";
 
 const ORIENTATION_OPTIONS = [
   "straight",
@@ -516,7 +513,7 @@ export default function ProfilePage() {
             photos.map((photo) => (
               <img
                 key={photo}
-                src={`${API_HOST}${photo}`}
+                src={resolveMediaUrl(photo)}
                 alt="Profile"
                 className="h-24 w-24 rounded-2xl object-cover"
               />

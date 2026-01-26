@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
@@ -27,9 +27,6 @@ interface RequestItem {
   user_id: number;
   user?: UserSummary;
 }
-
-const API_HOST =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") || "http://127.0.0.1:8000";
 
 export default function RequestsPage() {
   const { accessToken, user } = useAuth();
@@ -154,7 +151,7 @@ export default function RequestsPage() {
                 <div className="flex items-center gap-3">
                   {request.user?.profile_image_url ? (
                     <img
-                      src={`${API_HOST}${request.user.profile_image_url}`}
+                      src={resolveMediaUrl(request.user.profile_image_url)}
                       alt={displayName}
                       className="h-12 w-12 rounded-full object-cover"
                     />

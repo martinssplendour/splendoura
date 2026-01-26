@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
@@ -15,9 +15,6 @@ interface ChatGroup {
   max_participants?: number | null;
   cover_image_url?: string | null;
 }
-
-const API_HOST =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") || "http://127.0.0.1:8000";
 
 export default function ChatPage() {
   const { accessToken } = useAuth();
@@ -64,7 +61,7 @@ export default function ChatPage() {
             >
               {group.cover_image_url ? (
                 <img
-                  src={`${API_HOST}${group.cover_image_url}`}
+                  src={resolveMediaUrl(group.cover_image_url)}
                   alt={group.title}
                   className="h-12 w-12 rounded-xl object-cover"
                 />

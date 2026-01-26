@@ -18,6 +18,7 @@ from app.models.message import GroupMessageRead
 from app.api import deps
 from app.core.push import get_group_member_ids, get_push_tokens, send_expo_push
 from app.core.realtime import realtime_manager, serialize_message
+from app.core.storage import supabase_storage_enabled, upload_bytes_to_supabase
 
 router = APIRouter()
 
@@ -175,6 +176,14 @@ def create_message(
                     "provider": "heuristic",
                 }
             nudity_info = detection
+        if supabase_storage_enabled():
+            attachment_url = upload_bytes_to_supabase(
+                prefix=f"messages/{id}",
+                filename=file.filename,
+                content_type=attachment_type,
+                data=file_bytes,
+            )
+        elif attachment_type.startswith("image/"):
             blob = MediaBlob(
                 content_type=attachment_type,
                 filename=file.filename,

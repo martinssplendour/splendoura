@@ -18,7 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
-import { apiFetch, API_HOST } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { buildFormFile, type UploadAsset } from "@/lib/uploads";
 
@@ -283,7 +283,7 @@ export default function OnboardingScreen() {
             <Text style={styles.helper}>Profiles with photos get more requests.</Text>
             {user?.profile_image_url ? (
               <Image
-                source={{ uri: `${API_HOST}${user.profile_image_url}` }}
+                source={{ uri: resolveMediaUrl(user.profile_image_url) }}
                 style={styles.photo}
               />
             ) : null}

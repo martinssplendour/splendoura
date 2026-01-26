@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import JoinRequestButton, { GroupRequirement } from "@/components/groups/join-request-button";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -108,9 +108,6 @@ interface GroupMemberProfile {
   username?: string | null;
   profile_image_url?: string | null;
 }
-
-const API_HOST =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") || "http://127.0.0.1:8000";
 
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DAY_SLOTS = ["morning", "afternoon", "evening", "night"];
@@ -483,7 +480,7 @@ export default function GroupDetailPage() {
           <div className="mt-3 flex flex-wrap items-center gap-4">
             {creator.profile_image_url ? (
               <img
-                src={`${API_HOST}${creator.profile_image_url}`}
+                src={resolveMediaUrl(creator.profile_image_url)}
                 alt={creator.full_name}
                 className="h-16 w-16 rounded-2xl object-cover"
               />
@@ -577,7 +574,7 @@ export default function GroupDetailPage() {
               <div key={member.id} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3">
                 {member.profile_image_url ? (
                   <img
-                    src={`${API_HOST}${member.profile_image_url}`}
+                    src={resolveMediaUrl(member.profile_image_url)}
                     alt={member.full_name}
                     className="h-12 w-12 rounded-xl object-cover"
                   />
@@ -603,9 +600,9 @@ export default function GroupDetailPage() {
             {mediaItems.map((media) => (
               <div key={media.id} className="relative overflow-hidden rounded-xl border border-slate-100">
                 {media.media_type === "image" ? (
-                  <img src={`${API_HOST}${media.url}`} alt="Group media" className="h-48 w-full object-cover" />
+                  <img src={resolveMediaUrl(media.url)} alt="Group media" className="h-48 w-full object-cover" />
                 ) : (
-                  <video controls className="h-48 w-full object-cover" src={`${API_HOST}${media.url}`} />
+                  <video controls className="h-48 w-full object-cover" src={resolveMediaUrl(media.url)} />
                 )}
                 {user?.id === group.creator_id ? (
                   <button

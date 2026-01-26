@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     NUDITY_PROVIDER: str = "nudenet"
     NUDITY_MIN_CONFIDENCE: float = 0.35
 
+    SUPABASE_URL: str | None = None
+    SUPABASE_SERVICE_ROLE_KEY: str | None = None
+    SUPABASE_STORAGE_BUCKET: str | None = None
+    SUPABASE_STORAGE_PUBLIC: bool = True
+
     SENTRY_DSN: str | None = None
     SENTRY_ENVIRONMENT: str = "production"
     SENTRY_TRACES_SAMPLE_RATE: float = 0.05

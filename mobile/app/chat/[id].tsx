@@ -22,7 +22,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { Button } from "@/components/ui/Button";
-import { apiFetch, API_HOST } from "@/lib/api";
+import { apiFetch, API_HOST, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -712,14 +712,14 @@ export default function ChatThreadScreen() {
                                     !isLastInRow ? styles.galleryItemSpacer : null,
                                   ]}
                                   onPress={() =>
-                                    setFullScreenImage(`${API_HOST}${message.attachment_url}`)
+                                    setFullScreenImage(resolveMediaUrl(message.attachment_url))
                                   }
                                   hitSlop={6}
                                   accessibilityRole="button"
                                   accessibilityLabel="View image"
                                 >
                                   <Image
-                                    source={{ uri: `${API_HOST}${message.attachment_url}` }}
+                                    source={{ uri: resolveMediaUrl(message.attachment_url) }}
                                     style={styles.galleryImage}
                                     resizeMode="cover"
                                   />
@@ -764,14 +764,14 @@ export default function ChatThreadScreen() {
                               return (
                                 <Pressable
                                   onPress={() =>
-                                    setFullScreenImage(`${API_HOST}${item.message.attachment_url}`)
+                                    setFullScreenImage(resolveMediaUrl(item.message.attachment_url))
                                   }
                                   hitSlop={6}
                                   accessibilityRole="button"
                                   accessibilityLabel="View image"
                                 >
                                   <Image
-                                    source={{ uri: `${API_HOST}${item.message.attachment_url}` }}
+                                    source={{ uri: resolveMediaUrl(item.message.attachment_url) }}
                                     style={styles.attachmentImage}
                                     resizeMode="cover"
                                   />
@@ -783,7 +783,7 @@ export default function ChatThreadScreen() {
                               style={styles.audioCard}
                               onPress={() =>
                                 handlePlayAudio(
-                                  `${API_HOST}${item.message.attachment_url}`,
+                                  resolveMediaUrl(item.message.attachment_url),
                                   item.message.id
                                 )
                               }
@@ -795,7 +795,7 @@ export default function ChatThreadScreen() {
                           ) : (
                             <Pressable
                               onPress={() =>
-                                Linking.openURL(`${API_HOST}${item.message.attachment_url}`)
+                                Linking.openURL(resolveMediaUrl(item.message.attachment_url))
                               }
                             >
                               <Text style={styles.attachmentLink}>Open attachment</Text>

@@ -17,7 +17,7 @@ import {
 
 import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav";
 import { Button } from "@/components/ui/Button";
-import { apiFetch, API_HOST } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -674,7 +674,7 @@ export default function ProfileScreen() {
                       {photos.map((photo) => (
                         <Image
                           key={photo}
-                          source={{ uri: `${API_HOST}${photo}` }}
+                          source={{ uri: resolveMediaUrl(photo) }}
                           style={styles.photo}
                           resizeMode="contain"
                         />

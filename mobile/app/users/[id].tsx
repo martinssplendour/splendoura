@@ -13,7 +13,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
-import { apiFetch, API_HOST } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 interface UserProfile {
@@ -141,7 +141,7 @@ export default function UserProfileScreen() {
           <View style={styles.profileRow}>
             {profile.profile_image_url ? (
               <Image
-                source={{ uri: `${API_HOST}${profile.profile_image_url}` }}
+                source={{ uri: resolveMediaUrl(profile.profile_image_url) }}
                 style={styles.avatar}
               />
             ) : (
@@ -217,7 +217,7 @@ export default function UserProfileScreen() {
               {photos.map((photo) => (
                 <Image
                   key={photo}
-                  source={{ uri: `${API_HOST}${photo}` }}
+                  source={{ uri: resolveMediaUrl(photo) }}
                   style={styles.photo}
                   resizeMode="contain"
                 />

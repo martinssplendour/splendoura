@@ -11,7 +11,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/ui/Button";
-import { apiFetch, API_HOST } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 interface PendingUser {
@@ -129,12 +129,12 @@ export default function VerificationAdminScreen() {
               <View style={styles.cardRow}>
                 {entry.profile_media?.photo_verification_url ? (
                   <Image
-                    source={{ uri: `${API_HOST}${entry.profile_media.photo_verification_url}` }}
+                    source={{ uri: resolveMediaUrl(entry.profile_media.photo_verification_url) }}
                     style={styles.avatar}
                   />
                 ) : entry.profile_image_url ? (
                   <Image
-                    source={{ uri: `${API_HOST}${entry.profile_image_url}` }}
+                    source={{ uri: resolveMediaUrl(entry.profile_image_url) }}
                     style={styles.avatar}
                   />
                 ) : null}
@@ -165,7 +165,7 @@ export default function VerificationAdminScreen() {
               <View key={`id-${entry.id}`} style={styles.card}>
                 <View style={styles.cardRow}>
                   {idUrl ? (
-                    <Image source={{ uri: `${API_HOST}${idUrl}` }} style={styles.avatar} />
+                    <Image source={{ uri: resolveMediaUrl(idUrl) }} style={styles.avatar} />
                   ) : null}
                   <View style={styles.cardBody}>
                     <Text style={styles.cardTitle}>{entry.full_name}</Text>

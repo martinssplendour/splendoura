@@ -11,6 +11,7 @@ from app.models.group_extras import GroupMedia
 from app.models.media import MediaBlob
 from app.models.membership import JoinStatus
 from app.models.user import VerificationStatus
+from app.core.storage import supabase_storage_enabled, upload_bytes_to_supabase
 
 router = APIRouter()
 
@@ -141,15 +142,23 @@ def upload_profile_photo(
         raise HTTPException(status_code=400, detail="Only image uploads are allowed.")
 
     file_bytes = file.file.read()
-    blob = MediaBlob(
-        content_type=file.content_type or "image/jpeg",
-        filename=file.filename,
-        data=file_bytes,
-        created_by=current_user.id,
-    )
-    db.add(blob)
-    db.flush()
-    photo_url = f"/api/v1/media/{blob.id}"
+    if supabase_storage_enabled():
+        photo_url = upload_bytes_to_supabase(
+            prefix=f"users/{current_user.id}",
+            filename=file.filename,
+            content_type=file.content_type,
+            data=file_bytes,
+        )
+    else:
+        blob = MediaBlob(
+            content_type=file.content_type or "image/jpeg",
+            filename=file.filename,
+            data=file_bytes,
+            created_by=current_user.id,
+        )
+        db.add(blob)
+        db.flush()
+        photo_url = f"/api/v1/media/{blob.id}"
     current_user.profile_image_url = current_user.profile_image_url or photo_url
     media = current_user.profile_media or {}
     photos = media.get("photos") or []
@@ -177,15 +186,23 @@ def upload_photo_verification(
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only image uploads are allowed.")
     file_bytes = file.file.read()
-    blob = MediaBlob(
-        content_type=file.content_type or "image/jpeg",
-        filename=file.filename,
-        data=file_bytes,
-        created_by=current_user.id,
-    )
-    db.add(blob)
-    db.flush()
-    photo_url = f"/api/v1/media/{blob.id}"
+    if supabase_storage_enabled():
+        photo_url = upload_bytes_to_supabase(
+            prefix=f"users/{current_user.id}",
+            filename=file.filename,
+            content_type=file.content_type,
+            data=file_bytes,
+        )
+    else:
+        blob = MediaBlob(
+            content_type=file.content_type or "image/jpeg",
+            filename=file.filename,
+            data=file_bytes,
+            created_by=current_user.id,
+        )
+        db.add(blob)
+        db.flush()
+        photo_url = f"/api/v1/media/{blob.id}"
     media = current_user.profile_media or {}
     media["photo_verification_url"] = photo_url
     media["photo_verified"] = False
@@ -209,15 +226,23 @@ def upload_id_verification(
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only image uploads are allowed.")
     file_bytes = file.file.read()
-    blob = MediaBlob(
-        content_type=file.content_type or "image/jpeg",
-        filename=file.filename,
-        data=file_bytes,
-        created_by=current_user.id,
-    )
-    db.add(blob)
-    db.flush()
-    id_url = f"/api/v1/media/{blob.id}"
+    if supabase_storage_enabled():
+        id_url = upload_bytes_to_supabase(
+            prefix=f"users/{current_user.id}",
+            filename=file.filename,
+            content_type=file.content_type,
+            data=file_bytes,
+        )
+    else:
+        blob = MediaBlob(
+            content_type=file.content_type or "image/jpeg",
+            filename=file.filename,
+            data=file_bytes,
+            created_by=current_user.id,
+        )
+        db.add(blob)
+        db.flush()
+        id_url = f"/api/v1/media/{blob.id}"
     details = current_user.profile_details or {}
     details["id_verification_url"] = id_url
     details["id_verification_status"] = "pending"

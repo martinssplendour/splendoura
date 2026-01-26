@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 
 import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav";
 import { Button } from "@/components/ui/Button";
-import { apiFetch, API_HOST } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 interface ChatGroup {
@@ -96,7 +96,7 @@ export default function ChatListScreen() {
               <View key={group.id} style={styles.card}>
                 {group.cover_image_url ? (
                   <Image
-                    source={{ uri: `${API_HOST}${group.cover_image_url}` }}
+                    source={{ uri: resolveMediaUrl(group.cover_image_url) }}
                     style={styles.avatar}
                   />
                 ) : (

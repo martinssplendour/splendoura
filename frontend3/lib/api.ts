@@ -1,5 +1,6 @@
 // lib/api.ts
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+export const API_HOST = BASE_URL.replace(/\/api\/v1\/?$/, "");
 
 interface RequestOptions extends RequestInit {
   token?: string;
@@ -27,4 +28,12 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
   }
 
   return response;
+}
+
+export function resolveMediaUrl(url?: string | null) {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  return `${API_HOST}${url}`;
 }

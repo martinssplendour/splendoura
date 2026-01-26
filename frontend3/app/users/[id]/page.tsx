@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
@@ -28,9 +28,6 @@ interface UserProfile {
   } | null;
   profile_details?: Record<string, unknown> | null;
 }
-
-const API_HOST =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") || "http://127.0.0.1:8000";
 
 export default function UserProfilePage() {
   const params = useParams();
@@ -97,7 +94,7 @@ export default function UserProfilePage() {
         <div className="flex flex-wrap items-center gap-4">
           {profile.profile_image_url ? (
             <img
-              src={`${API_HOST}${profile.profile_image_url}`}
+              src={resolveMediaUrl(profile.profile_image_url)}
               alt={profile.full_name || "User profile"}
               className="h-20 w-20 rounded-2xl object-cover"
             />
@@ -167,7 +164,7 @@ export default function UserProfilePage() {
             {photos.map((photo) => (
               <img
                 key={photo}
-                src={`${API_HOST}${photo}`}
+                src={resolveMediaUrl(photo)}
                 alt="Profile"
                 className="h-40 w-full rounded-2xl object-cover"
               />

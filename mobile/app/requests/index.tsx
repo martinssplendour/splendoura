@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 
 import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav";
 import { Button } from "@/components/ui/Button";
-import { apiFetch, API_HOST } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 interface MembershipItem {
@@ -181,7 +181,7 @@ export default function RequestsScreen() {
                   <View style={styles.cardRow}>
                     {request.user?.profile_image_url ? (
                       <Image
-                        source={{ uri: `${API_HOST}${request.user.profile_image_url}` }}
+                        source={{ uri: resolveMediaUrl(request.user.profile_image_url) }}
                         style={styles.avatar}
                       />
                     ) : (

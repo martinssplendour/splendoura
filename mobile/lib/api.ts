@@ -4,6 +4,14 @@ const BASE_URL =
 export const API_BASE_URL = BASE_URL;
 export const API_HOST = BASE_URL.replace(/\/api\/v1\/?$/, "");
 
+export function resolveMediaUrl(url?: string | null) {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  return `${API_HOST}${url}`;
+}
+
 interface RequestOptions extends RequestInit {
   token?: string | null;
 }

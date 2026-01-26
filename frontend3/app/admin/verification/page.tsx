@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
@@ -13,9 +13,6 @@ interface PendingUser {
   profile_image_url?: string | null;
   verification_status?: string | null;
 }
-
-const API_HOST =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") || "http://127.0.0.1:8000";
 
 export default function VerificationAdminPage() {
   const { accessToken, user } = useAuth();
@@ -72,7 +69,7 @@ export default function VerificationAdminPage() {
               <div className="flex flex-wrap items-center gap-4">
                 {entry.profile_image_url ? (
                   <img
-                    src={`${API_HOST}${entry.profile_image_url}`}
+                    src={resolveMediaUrl(entry.profile_image_url)}
                     alt={entry.full_name}
                     className="h-16 w-16 rounded-2xl object-cover"
                   />

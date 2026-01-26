@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app import crud, models, schemas
 from app.api import deps
 from app.core.push import get_group_member_ids, get_push_tokens, send_expo_push
+from app.core.storage import supabase_storage_enabled, upload_bytes_to_supabase
 from app.models.group import AppliesTo, Group, GroupCategory, GroupRequirement, GroupStatus, GroupVisibility
 from app.models.group_extras import (
     GroupAvailability,
@@ -686,7 +687,14 @@ def upload_group_media(
             GroupMedia.is_cover.is_(True),
             GroupMedia.deleted_at.is_(None),
         ).update({GroupMedia.is_cover: False})
-    if media_type == GroupMediaType.IMAGE:
+    if supabase_storage_enabled():
+        url = upload_bytes_to_supabase(
+            prefix=f"groups/{id}",
+            filename=file.filename,
+            content_type=content_type,
+            data=file_bytes,
+        )
+    elif media_type == GroupMediaType.IMAGE:
         blob = MediaBlob(
             content_type=content_type or "image/jpeg",
             filename=file.filename,

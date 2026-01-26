@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
@@ -33,9 +33,6 @@ interface MemberProfile {
   username?: string | null;
   full_name?: string | null;
 }
-
-const API_HOST =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") || "http://127.0.0.1:8000";
 
 export default function ChatThreadPage() {
   const params = useParams();
@@ -211,14 +208,14 @@ export default function ChatThreadPage() {
                   {message.attachment_url ? (
                     message.attachment_type?.startsWith("image/") ? (
                       <img
-                        src={`${API_HOST}${message.attachment_url}`}
+                        src={resolveMediaUrl(message.attachment_url)}
                         alt="attachment"
                         className="mt-2 max-h-48 rounded-xl object-cover"
                       />
                     ) : (
                       <a
                         className={`mt-2 inline-flex text-xs font-semibold underline ${linkClass}`}
-                        href={`${API_HOST}${message.attachment_url}`}
+                        href={resolveMediaUrl(message.attachment_url)}
                         target="_blank"
                         rel="noreferrer"
                       >

@@ -20,7 +20,7 @@ import * as ImagePicker from "expo-image-picker";
 
 import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav";
 import { Button } from "@/components/ui/Button";
-import { apiFetch, API_HOST } from "@/lib/api";
+import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { buildFormFile, type UploadAsset } from "@/lib/uploads";
 
@@ -197,9 +197,8 @@ const formatLastActive = (value?: string | null) => {
 };
 
 const toAbsoluteUrl = (value?: string | null) => {
-  if (!value) return null;
-  if (value.startsWith("http")) return value;
-  return `${API_HOST}${value}`;
+  const resolved = resolveMediaUrl(value);
+  return resolved || null;
 };
 
 export default function GroupDetailScreen() {
