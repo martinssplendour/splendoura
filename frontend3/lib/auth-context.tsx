@@ -16,6 +16,11 @@ export interface User {
   full_name: string;
   age: number;
   gender: string;
+  sexual_orientation?: string;
+  location_city?: string | null;
+  location_country?: string | null;
+  location_lat?: number | null;
+  location_lng?: number | null;
   verification_status?: string;
   role?: string;
   bio?: string;
