@@ -36,7 +36,9 @@ export default function OnboardingPage() {
     setLocationCity(user.location_city || "");
     setLocationCountry(user.location_country || "");
     setInterests((user.interests || []).join(", "));
-    const existingPrompts = (user.profile_media?.prompts || []).slice(0, 3);
+    const rawPrompts = (user.profile_media as Record<string, unknown> | null)?.prompts;
+    const promptList = Array.isArray(rawPrompts) ? rawPrompts : [];
+    const existingPrompts = promptList.slice(0, 3).map((prompt) => String(prompt));
     while (existingPrompts.length < 3) existingPrompts.push("");
     setPrompts(existingPrompts);
     const safetySettings =
