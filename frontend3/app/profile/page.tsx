@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import Link from "next/link";
 import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,8 @@ export default function ProfilePage() {
   const [dob, setDob] = useState("");
   const [locationCity, setLocationCity] = useState("");
   const [locationCountry, setLocationCountry] = useState("");
+  const [locationLat, setLocationLat] = useState("");
+  const [locationLng, setLocationLng] = useState("");
 
   const [heightCm, setHeightCm] = useState("");
   const [workoutHabits, setWorkoutHabits] = useState("");
@@ -134,12 +137,22 @@ export default function ProfilePage() {
   const [videoLoops, setVideoLoops] = useState("");
   const [anthem, setAnthem] = useState("");
   const [prompts, setPrompts] = useState<string[]>(["", "", ""]);
+  const [availabilityWindows, setAvailabilityWindows] = useState("");
+  const [blockNudity, setBlockNudity] = useState(false);
+  const [trustedContacts, setTrustedContacts] = useState<{ name: string; contact: string }[]>(
+    []
+  );
+  const [trustedName, setTrustedName] = useState("");
+  const [trustedContact, setTrustedContact] = useState("");
+  const [idVerificationStatus, setIdVerificationStatus] = useState<string | null>(null);
+  const [idVerified, setIdVerified] = useState(false);
 
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoVerified, setPhotoVerified] = useState(false);
   const [createdGroups, setCreatedGroups] = useState<CreatedGroup[]>([]);
   const [createdLoading, setCreatedLoading] = useState(false);
   const [createdError, setCreatedError] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     const details = (user?.profile_details as Record<string, unknown>) || {};
@@ -155,6 +168,8 @@ export default function ProfilePage() {
     setDob((details.dob as string) || "");
     setLocationCity(user?.location_city || "");
     setLocationCountry(user?.location_country || "");
+    setLocationLat(user?.location_lat != null ? String(user.location_lat) : "");
+    setLocationLng(user?.location_lng != null ? String(user.location_lng) : "");
 
     setHeightCm(String(details.height_cm ?? ""));
     setWorkoutHabits((details.workout_habits as string) || "");
@@ -199,6 +214,14 @@ export default function ProfilePage() {
     setPrompts((media.prompts as string[]) || ["", "", ""]);
     setPhotos((media.photos as string[]) || []);
     setPhotoVerified(Boolean(media.photo_verified));
+    setAvailabilityWindows(((details.availability_windows as string[]) || []).join(", "));
+    const safetySettings = (details.safety_settings as Record<string, unknown>) || {};
+    setBlockNudity(Boolean(safetySettings.block_nudity));
+    setTrustedContacts(
+      (details.safety_contacts as { name: string; contact: string }[] | undefined) || []
+    );
+    setIdVerificationStatus((details.id_verification_status as string) || null);
+    setIdVerified(Boolean(details.id_verified));
   }, [user]);
 
   useEffect(() => {
@@ -232,7 +255,7 @@ export default function ProfilePage() {
       gender,
       sexualOrientation,
       lookingFor,
-      locationCity || locationCountry,
+      locationCity || locationCountry || locationLat || locationLng,
       heightCm,
       workoutHabits,
       smoking,
@@ -269,6 +292,8 @@ export default function ProfilePage() {
       anthem,
       prompts.filter(Boolean),
       photos,
+      availabilityWindows,
+      trustedContacts,
     ];
     const filled = completionValues.filter(hasValue).length;
     const total = completionValues.length;
@@ -293,6 +318,8 @@ export default function ProfilePage() {
     languages,
     locationCity,
     locationCountry,
+    locationLat,
+    locationLng,
     lookingFor,
     pets,
     personalityType,
@@ -314,6 +341,8 @@ export default function ProfilePage() {
     user?.profile_image_url,
     videoLoops,
     videoUrl,
+    availabilityWindows,
+    trustedContacts,
     wantsChildren,
     workoutHabits,
     zodiacSign,
@@ -358,6 +387,62 @@ export default function ProfilePage() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleAddTrustedContact = () => {
+    const name = trustedName.trim();
+    const contact = trustedContact.trim();
+    if (!name || !contact) return;
+    setTrustedContacts((prev) => [...prev, { name, contact }]);
+    setTrustedName("");
+    setTrustedContact("");
+  };
+
+  const handleRemoveTrustedContact = (index: number) => {
+    setTrustedContacts((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const uploadVerificationAsset = async (endpoint: string, label: string, file: File) => {
+    if (!accessToken) {
+      setProfileStatus("Please sign in to upload verification.");
+      return;
+    }
+    setIsVerifying(true);
+    setProfileStatus(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await apiFetch(endpoint, {
+        method: "POST",
+        token: accessToken,
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.detail || `${label} upload failed.`);
+      }
+      await refreshSession();
+      setProfileStatus(`${label} submitted for review.`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : `${label} upload failed.`;
+      setProfileStatus(message);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handlePhotoVerification = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await uploadVerificationAsset("/users/me/photo-verification", "Photo verification", file);
+    event.target.value = "";
+  };
+
+  const handleIdVerification = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await uploadVerificationAsset("/users/me/id-verification", "ID verification", file);
+    event.target.value = "";
   };
 
   const handleDeleteGroup = async (groupId: number) => {
@@ -413,6 +498,11 @@ export default function ProfilePage() {
       relationship_preference: relationshipPreference || undefined,
       casual_dating: casualDating,
       kink_friendly: kinkFriendly,
+      availability_windows: parseList(availabilityWindows),
+      safety_settings: {
+        block_nudity: blockNudity,
+      },
+      safety_contacts: trustedContacts,
     };
 
     const discoverySettings = {
@@ -440,6 +530,8 @@ export default function ProfilePage() {
       sexual_orientation: sexualOrientation || undefined,
       location_city: locationCity || undefined,
       location_country: locationCountry || undefined,
+      location_lat: locationLat ? Number(locationLat) : undefined,
+      location_lng: locationLng ? Number(locationLng) : undefined,
       profile_video_url: videoUrl.trim() || undefined,
       interests: parseList(interests),
       age: computedAge ?? user?.age,
@@ -621,6 +713,24 @@ export default function ProfilePage() {
               onChange={(event) => setLocationCountry(event.target.value)}
               className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
               placeholder="Country"
+            />
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            Location latitude
+            <input
+              value={locationLat}
+              onChange={(event) => setLocationLat(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+              placeholder="37.7749"
+            />
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            Location longitude
+            <input
+              value={locationLng}
+              onChange={(event) => setLocationLng(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+              placeholder="-122.4194"
             />
           </label>
           <label className="text-sm font-semibold text-slate-700 md:col-span-2">
@@ -1000,6 +1110,76 @@ export default function ProfilePage() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-slate-900">Safety & availability</h2>
+          <Button asChild variant="outline" className="h-9">
+            <Link href="/safety">Open Safety Center</Link>
+          </Button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="text-sm font-semibold text-slate-700 md:col-span-2">
+            Availability windows
+            <input
+              value={availabilityWindows}
+              onChange={(event) => setAvailabilityWindows(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+              placeholder="Weeknights, weekends, mornings"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <input
+              type="checkbox"
+              checked={blockNudity}
+              onChange={(event) => setBlockNudity(event.target.checked)}
+            />
+            Block nudity in chat
+          </label>
+        </div>
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-slate-700">Trusted contacts</p>
+          <div className="grid gap-2 md:grid-cols-2">
+            <input
+              value={trustedName}
+              onChange={(event) => setTrustedName(event.target.value)}
+              className="rounded-xl border border-slate-200 p-3 text-sm"
+              placeholder="Contact name"
+            />
+            <input
+              value={trustedContact}
+              onChange={(event) => setTrustedContact(event.target.value)}
+              className="rounded-xl border border-slate-200 p-3 text-sm"
+              placeholder="Phone or email"
+            />
+          </div>
+          <Button variant="outline" size="sm" onClick={handleAddTrustedContact}>
+            Add contact
+          </Button>
+          {trustedContacts.length > 0 ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {trustedContacts.map((contact, index) => (
+                <div
+                  key={`${contact.name}-${index}`}
+                  className="flex items-center justify-between rounded-xl border border-slate-100 p-3 text-sm"
+                >
+                  <div>
+                    <p className="font-semibold text-slate-800">{contact.name}</p>
+                    <p className="text-xs text-slate-500">{contact.contact}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-rose-500"
+                    onClick={() => handleRemoveTrustedContact(index)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Media & interaction</h2>
         <label className="text-sm font-semibold text-slate-700">
           Interests
@@ -1076,6 +1256,34 @@ export default function ProfilePage() {
             <span className="text-sm font-semibold text-emerald-600">Verified</span>
           )}
         </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-slate-100 p-4">
+            <p className="text-sm font-semibold text-slate-700">Photo verification</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {photoVerified ? "Photo verified" : "Verification pending"}
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoVerification}
+              disabled={isVerifying}
+              className="mt-3 w-full text-xs"
+            />
+          </div>
+          <div className="rounded-xl border border-slate-100 p-4">
+            <p className="text-sm font-semibold text-slate-700">ID verification</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {idVerified ? "ID verified" : idVerificationStatus || "Verification pending"}
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleIdVerification}
+              disabled={isVerifying}
+              className="mt-3 w-full text-xs"
+            />
+          </div>
+        </div>
         {profileStatus ? <p className="text-sm text-slate-600">{profileStatus}</p> : null}
       </div>
 
@@ -1103,7 +1311,7 @@ export default function ProfilePage() {
                   <p className="mt-1 text-xs text-slate-500">
                     {group.cost_type ? group.cost_type.replace("_", " ") : "Custom"}
                     {group.max_participants
-                      ? ` • ${Math.max(
+                      ? ` - ${Math.max(
                           group.max_participants - (group.approved_members ?? 0),
                           0
                         )} spots left`

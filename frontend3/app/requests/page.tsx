@@ -12,6 +12,8 @@ interface MembershipItem {
   group_id: number;
   join_status: "requested" | "approved" | "rejected";
   role: "creator" | "member";
+  request_message?: string | null;
+  request_tier?: string | null;
 }
 
 interface UserSummary {
@@ -26,6 +28,8 @@ interface RequestItem {
   group_title: string;
   user_id: number;
   user?: UserSummary;
+  request_message?: string | null;
+  request_tier?: string | null;
 }
 
 export default function RequestsPage() {
@@ -65,6 +69,8 @@ export default function RequestsPage() {
               group_title: group.title,
               user_id: member.user_id,
               user: nextUsers[member.user_id],
+              request_message: member.request_message,
+              request_tier: member.request_tier,
             });
             continue;
           }
@@ -77,12 +83,16 @@ export default function RequestsPage() {
               group_title: group.title,
               user_id: member.user_id,
               user: userSummary,
+              request_message: member.request_message,
+              request_tier: member.request_tier,
             });
           } else {
             nextRequests.push({
               group_id: group.id,
               group_title: group.title,
               user_id: member.user_id,
+              request_message: member.request_message,
+              request_tier: member.request_tier,
             });
           }
         }
@@ -158,16 +168,24 @@ export default function RequestsPage() {
                   ) : (
                     <div className="h-12 w-12 rounded-full bg-slate-200" />
                   )}
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {displayName} wants to join{" "}
-                      <span className="text-slate-900">{request.group_title}</span>
-                    </p>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {displayName} wants to join{" "}
+                    <span className="text-slate-900">{request.group_title}</span>
+                  </p>
+                  {request.request_tier === "superlike" ? (
+                    <span className="mt-2 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                      Superlike
+                    </span>
+                  ) : null}
+                  {request.request_message ? (
+                    <p className="mt-2 text-xs text-slate-600">{request.request_message}</p>
+                  ) : null}
                     <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
                       <Link href={`/groups/${request.group_id}`} className="text-blue-600">
                         View group
                       </Link>
-                      <span>•</span>
+                      <span className="text-slate-400">|</span>
                       <Link href={`/users/${request.user_id}`} className="text-blue-600">
                         View profile
                       </Link>

@@ -71,7 +71,7 @@ export default function ChatPage() {
               <div className="flex-1">
                 <p className="text-sm font-semibold text-slate-800">{group.title}</p>
                 <p className="text-xs text-slate-500">
-                  {group.activity_type} · {group.location || "Flexible"}
+                  {group.activity_type} - {group.location || "Flexible"}
                 </p>
                 <p className="text-xs text-slate-400">
                   {group.approved_members ?? 0}/{group.max_participants ?? "--"} members

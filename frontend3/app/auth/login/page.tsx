@@ -100,7 +100,20 @@ export default function LoginPage() {
 
       const user = await userResponse.json();
       console.log("User profile loaded", user?.id);
-      const redirectTo = user?.verification_status === "verified" ? "/groups" : "/profile";
+      const skipped = localStorage.getItem("onboarding_skipped");
+      const prompts = (user?.profile_media as Record<string, unknown> | null)?.prompts;
+      const hasPrompts = Array.isArray(prompts) && prompts.length > 0;
+      const needsOnboarding =
+        !user?.profile_image_url ||
+        !user?.bio ||
+        !(user?.interests && user.interests.length > 0) ||
+        !hasPrompts;
+      const redirectTo =
+        needsOnboarding && !skipped
+          ? "/onboarding"
+          : user?.verification_status === "verified"
+            ? "/groups"
+            : "/profile";
       login(
         { access_token: tokenData.access_token, refresh_token: tokenData.refresh_token, user },
         redirectTo

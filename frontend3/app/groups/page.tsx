@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Filter } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -17,10 +18,14 @@ const DEFAULT_FILTERS: GroupFilters = {
   activity: "",
   minAge: "",
   maxAge: "",
+  distance: "",
   cost: "",
+  creatorVerified: false,
 };
 
 export default function BrowseGroups() {
+  const searchParams = useSearchParams();
+  const creatorId = searchParams.get("creator_id");
   const [groups, setGroups] = useState<SwipeGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<GroupFilters>(DEFAULT_FILTERS);
@@ -29,25 +34,60 @@ export default function BrowseGroups() {
   const [activeCategory, setActiveCategory] = useState<
     "mutual_benefits" | "friendship" | "dating"
   >("friendship");
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
+
+  useEffect(() => {
+    if (!user) return;
+    setFilters((prev) => {
+      const discovery = (user.discovery_settings as Record<string, unknown>) || {};
+      const next = { ...prev };
+      if (!prev.location && user.location_city) {
+        next.location = user.location_city;
+      }
+      if (!prev.distance && discovery.distance_km != null) {
+        next.distance = String(discovery.distance_km);
+      }
+      if (!prev.minAge && discovery.age_min != null) {
+        next.minAge = String(discovery.age_min);
+      }
+      if (!prev.maxAge && discovery.age_max != null) {
+        next.maxAge = String(discovery.age_max);
+      }
+      return next;
+    });
+  }, [user]);
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
+    if (creatorId) params.set("creator_id", creatorId);
     if (filters.location.trim()) params.set("location", filters.location.trim());
     if (filters.activity.trim()) params.set("activity_type", filters.activity.trim());
     if (filters.minAge.trim()) params.set("min_age", filters.minAge.trim());
     if (filters.maxAge.trim()) params.set("max_age", filters.maxAge.trim());
+    const distanceValue = Number.parseFloat(filters.distance.trim());
+    if (!Number.isNaN(distanceValue) && distanceValue > 0) {
+      if (user?.location_lat != null && user?.location_lng != null) {
+        params.set("lat", String(user.location_lat));
+        params.set("lng", String(user.location_lng));
+        params.set("radius_km", String(distanceValue));
+      }
+    }
     if (filters.cost) params.set("cost_type", filters.cost);
+    if (filters.creatorVerified) params.set("creator_verified", "true");
     if (sort) params.set("sort", sort);
     return params;
-  }, [filters, sort]);
+  }, [creatorId, filters, sort, user?.location_lat, user?.location_lng]);
 
   useEffect(() => {
     async function loadGroups() {
       setLoading(true);
       const endpoint = accessToken ? "/groups/discover" : "/groups";
       const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
-      const res = await apiFetch(url, accessToken ? { token: accessToken } : undefined);
+      let res = await apiFetch(url, accessToken ? { token: accessToken } : undefined);
+      if (res.status === 401 && accessToken) {
+        const fallbackUrl = queryParams.toString() ? `/groups?${queryParams.toString()}` : "/groups";
+        res = await apiFetch(fallbackUrl);
+      }
       if (res.ok) {
         const data: SwipeGroup[] = await res.json();
         setGroups(data);
@@ -103,6 +143,9 @@ export default function BrowseGroups() {
             filters={filters}
             onChange={setFilters}
             onReset={() => setFilters(DEFAULT_FILTERS)}
+            showDistanceHelper={Boolean(
+              filters.distance.trim() && (user?.location_lat == null || user?.location_lng == null)
+            )}
           />
         </div>
 
@@ -199,6 +242,9 @@ export default function BrowseGroups() {
         onChange={setFilters}
         onReset={() => setFilters(DEFAULT_FILTERS)}
         onClose={() => setDrawerOpen(false)}
+        showDistanceHelper={Boolean(
+          filters.distance.trim() && (user?.location_lat == null || user?.location_lng == null)
+        )}
       />
     </div>
   );

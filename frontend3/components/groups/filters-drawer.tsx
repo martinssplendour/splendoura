@@ -9,6 +9,8 @@ interface FiltersDrawerProps {
   onChange: (filters: GroupFilters) => void;
   onClose: () => void;
   onReset: () => void;
+  showDistanceHelper?: boolean;
+  distanceHelperText?: string;
 }
 
 export default function FiltersDrawer({
@@ -17,6 +19,8 @@ export default function FiltersDrawer({
   onChange,
   onClose,
   onReset,
+  showDistanceHelper,
+  distanceHelperText = "Add location coordinates in your profile.",
 }: FiltersDrawerProps) {
   if (!open) return null;
 
@@ -79,6 +83,19 @@ export default function FiltersDrawer({
           </div>
 
           <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase text-slate-400">Distance (km)</p>
+            <input
+              value={filters.distance}
+              onChange={(event) => onChange({ ...filters, distance: event.target.value })}
+              placeholder="25"
+              className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm"
+            />
+            {showDistanceHelper ? (
+              <p className="text-xs text-slate-400">{distanceHelperText}</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-2">
             <p className="text-xs font-semibold uppercase text-slate-400">Cost</p>
             <select
               value={filters.cost}
@@ -91,6 +108,21 @@ export default function FiltersDrawer({
               <option value="fully_paid">Fully paid</option>
               <option value="custom">Custom</option>
             </select>
+          </div>
+
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <div>
+              <p className="text-xs font-semibold uppercase text-slate-400">Verification</p>
+              <p className="text-sm font-semibold text-slate-700">Verified creators only</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={filters.creatorVerified}
+              onChange={(event) =>
+                onChange({ ...filters, creatorVerified: event.target.checked })
+              }
+              className="h-4 w-4 accent-slate-900"
+            />
           </div>
         </div>
 

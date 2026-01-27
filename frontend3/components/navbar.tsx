@@ -13,7 +13,10 @@ export default function Navbar() {
   const { user, logout } = useAuth() || {};
   const pathname = usePathname();
 
-  const isActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`);
+  const isActive = (href: string, aliases: string[] = []) =>
+    pathname === href ||
+    pathname?.startsWith(`${href}/`) ||
+    aliases.some((alias) => pathname === alias || pathname?.startsWith(`${alias}/`));
 
   if (pathname === "/") {
     return null;
@@ -44,8 +47,8 @@ export default function Navbar() {
               <Link href="/chat">
                 <Button variant="ghost">Chat</Button>
               </Link>
-              <Link href="/requests">
-                <Button variant="ghost">Requests</Button>
+              <Link href="/notifications">
+                <Button variant="ghost">Notifications</Button>
               </Link>
               {user.role === "admin" ? (
                 <Link href="/admin/verification">
@@ -91,13 +94,13 @@ export default function Navbar() {
               <span className="sr-only">Chat</span>
             </Link>
             <Link
-              href="/requests"
+              href="/notifications"
               className={`flex items-center justify-center ${
-                isActive("/requests") ? "text-blue-600" : "text-slate-500"
+                isActive("/notifications", ["/requests"]) ? "text-blue-600" : "text-slate-500"
               }`}
             >
               <Inbox className="h-6 w-6" />
-              <span className="sr-only">Requests</span>
+              <span className="sr-only">Notifications</span>
             </Link>
             <Link
               href="/profile"

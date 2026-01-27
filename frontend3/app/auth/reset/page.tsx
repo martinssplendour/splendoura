@@ -8,7 +8,7 @@ export default function ResetPasswordPage() {
         <Suspense
           fallback={
             <div className="space-y-3 text-center text-sm text-slate-600">
-              <p>Loading reset form…</p>
+              <p>Loading reset form...</p>
             </div>
           }
         >

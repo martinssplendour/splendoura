@@ -23,11 +23,26 @@ interface UserProfile {
   interests?: string[] | null;
   badges?: string[] | null;
   verification_status?: string | null;
+  last_active_at?: string | null;
   profile_media?: {
     photos?: string[];
+    photo_verified?: boolean;
   } | null;
   profile_details?: Record<string, unknown> | null;
 }
+
+const formatLastActive = (value?: string | null) => {
+  if (!value) return "Active recently";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Active recently";
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 10) return "Active now";
+  if (diffMinutes < 60) return `Active ${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `Active ${diffHours}h ago`;
+  return `Active ${date.toLocaleDateString()}`;
+};
 
 export default function UserProfilePage() {
   const params = useParams();
@@ -69,8 +84,8 @@ export default function UserProfilePage() {
     return (
       <div className="text-center">
         <p className="text-lg font-semibold text-slate-700">User not found.</p>
-        <Link href="/requests" className="text-sm text-blue-600">
-          Back to requests
+        <Link href="/notifications" className="text-sm text-blue-600">
+          Back to notifications
         </Link>
       </div>
     );
@@ -78,12 +93,14 @@ export default function UserProfilePage() {
 
   const details = profile.profile_details || {};
   const photos = profile.profile_media?.photos || [];
+  const photoVerified = Boolean(profile.profile_media?.photo_verified);
+  const idVerified = Boolean((profile.profile_details as Record<string, unknown> | null)?.id_verified);
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <div className="flex items-center justify-between">
-        <Link href="/requests" className="text-sm text-blue-600">
-          &lt;- Back to requests
+        <Link href="/notifications" className="text-sm text-blue-600">
+          &lt;- Back to notifications
         </Link>
         <Button asChild className="bg-blue-600 text-white hover:bg-blue-700">
           <Link href={`/groups?creator_id=${profile.id}`}>View user groups</Link>
@@ -111,6 +128,21 @@ export default function UserProfilePage() {
             <p className="text-xs text-slate-500">
               {profile.verification_status === "verified" ? "Verified" : "Not verified"}
             </p>
+            {photoVerified || idVerified ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {photoVerified ? (
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    Photo verified
+                  </span>
+                ) : null}
+                {idVerified ? (
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    ID verified
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            <p className="mt-2 text-xs text-slate-500">{formatLastActive(profile.last_active_at)}</p>
           </div>
         </div>
         {profile.bio ? <p className="mt-4 text-sm text-slate-600">{profile.bio}</p> : null}
@@ -118,10 +150,10 @@ export default function UserProfilePage() {
           <div className="rounded-2xl border border-slate-100 p-4">
             <p className="text-xs uppercase text-slate-400">Basics</p>
             <p className="mt-2 text-sm text-slate-700">
-              Age: {profile.age ?? "—"} • Gender: {profile.gender ?? "—"}
+              Age: {profile.age ?? "n/a"} | Gender: {profile.gender ?? "n/a"}
             </p>
             <p className="text-sm text-slate-700">
-              Orientation: {profile.sexual_orientation ?? "—"}
+              Orientation: {profile.sexual_orientation ?? "n/a"}
             </p>
           </div>
           <div className="rounded-2xl border border-slate-100 p-4">
@@ -176,6 +208,12 @@ export default function UserProfilePage() {
       {Object.keys(details).length > 0 ? (
         <div className="rounded-3xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-900">Profile details</h2>
+          {Array.isArray((details as Record<string, unknown>).availability_windows) ? (
+            <p className="mt-3 text-sm text-slate-600">
+              Availability:{" "}
+              {((details as Record<string, unknown>).availability_windows as string[]).join(", ")}
+            </p>
+          ) : null}
           <pre className="mt-3 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
             {JSON.stringify(details, null, 2)}
           </pre>
