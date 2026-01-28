@@ -41,7 +41,7 @@ export default function ChatPage() {
       <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
         <div>
           <p className="text-xs font-semibold uppercase text-slate-400">Chats</p>
-          <h2 className="text-lg font-semibold text-slate-900">Your Groups</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Conversations</h2>
         </div>
         <Button variant="outline" size="sm" onClick={loadGroups}>
           Refresh
