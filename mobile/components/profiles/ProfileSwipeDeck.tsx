@@ -72,8 +72,9 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
   const [sentTo, setSentTo] = useState<Record<number, boolean>>({});
   const swipe = useRef(new Animated.ValueXY()).current;
 
-  const deckWidth = Math.round(width * 1.08);
-  const deckHeight = Math.max(Math.round(height * 0.62), 520);
+  const DECK_SCALE = 0.9;
+  const deckWidth = Math.round(width * 1.08 * DECK_SCALE);
+  const deckHeight = Math.round(Math.max(Math.round(height * 0.62), 520) * DECK_SCALE);
 
   const current = profiles[index];
   const upcoming = profiles.slice(index + 1, index + 3);

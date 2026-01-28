@@ -48,8 +48,11 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
   const [creatorAvatar, setCreatorAvatar] = useState<string | null>(null);
   const swipe = useRef(new Animated.ValueXY()).current;
 
-  const deckWidth = Math.round(width * 1.08);
-  const deckHeight = Math.max(Math.round(612 * 0.9), Math.round(height * 0.595 * 0.9));
+  const DECK_SCALE = 0.9;
+  const deckWidth = Math.round(width * 1.08 * DECK_SCALE);
+  const deckHeight = Math.round(
+    Math.max(Math.round(612 * 0.9), Math.round(height * 0.595 * 0.9)) * DECK_SCALE
+  );
 
   const current = groups[index];
   const upcoming = groups.slice(index + 1, index + 3);
@@ -440,8 +443,7 @@ const styles = StyleSheet.create({
     gap: 14,
     justifyContent: "center",
     width: "100%",
-    marginTop: 0,
-    transform: [{ translateY: -6 }],
+    marginTop: 8,
   },
   actionButton: {
     width: 52,

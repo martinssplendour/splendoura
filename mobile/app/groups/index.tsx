@@ -562,11 +562,11 @@ const styles = StyleSheet.create({
   categoryRow: {
     flexDirection: "row",
     flexWrap: "nowrap",
-    gap: 4,
+    gap: 5,
   },
   categoryChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#e2e8f0",
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     borderColor: "#1e293b",
   },
   categoryChipText: {
-    fontSize: 6,
+    fontSize: 8,
     fontWeight: "600",
     color: "#475569",
   },
