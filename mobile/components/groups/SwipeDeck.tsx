@@ -419,7 +419,7 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: 12,
+    gap: 4,
     alignSelf: "center",
     alignItems: "center",
     marginTop: 0,
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     gap: 14,
     justifyContent: "center",
     width: "100%",
-    marginTop: 8,
+    marginTop: 0,
   },
   actionButton: {
     width: 52,

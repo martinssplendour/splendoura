@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -76,54 +77,65 @@ export default function ChatListScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.page}>
-        <ScrollView contentContainerStyle={[styles.container, styles.containerWithNav]}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Your Groups</Text>
-            <Button variant="outline" onPress={loadGroups}>
-              Refresh
-            </Button>
-          </View>
-          {loading ? (
-            <ActivityIndicator size="large" color="#2563eb" />
-          ) : groups.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.status}>Join a group to start chatting.</Text>
-            </View>
-          ) : (
-            groups.map((group) => (
-              <View key={group.id} style={styles.card}>
-                {group.cover_image_url ? (
-                  <Image
-                    source={{ uri: resolveMediaUrl(group.cover_image_url) }}
-                    style={styles.avatar}
-                  />
-                ) : (
-                  <View style={styles.avatarPlaceholder} />
-                )}
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle}>{group.title}</Text>
-                  <Text style={styles.cardMeta}>
-                    {group.activity_type} - {group.location || "Flexible"}
-                  </Text>
-                  <Text style={styles.cardMeta}>
-                    {group.approved_members ?? 0}/{group.max_participants ?? "--"} members
-                  </Text>
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.page}>
+          <ScrollView contentContainerStyle={[styles.container, styles.containerWithNav]}>
+            <View style={styles.panel}>
+              <View style={styles.header}>
+                <View>
+                  <Text style={styles.kicker}>Chats</Text>
+                  <Text style={styles.title}>Conversations</Text>
                 </View>
-                <Button size="sm" onPress={() => router.push(`/chat/${group.id}`)}>
-                  Open
+                <Button variant="outline" size="sm" onPress={loadGroups}>
+                  Refresh
                 </Button>
               </View>
-            ))
-          )}
-          {status ? <Text style={styles.status}>{status}</Text> : null}
-        </ScrollView>
-        <BottomNav />
-      </View>
-    </SafeAreaView>
-  );
-}
+              <View style={styles.list}>
+                {loading ? (
+                  <ActivityIndicator size="large" color="#2563eb" />
+                ) : groups.length === 0 ? (
+                  <View style={styles.empty}>
+                    <Text style={styles.emptyText}>Join a group to start chatting.</Text>
+                  </View>
+                ) : (
+                  groups.map((group) => (
+                    <Pressable
+                      key={group.id}
+                      onPress={() => router.push(`/chat/${group.id}`)}
+                      style={({ pressed }) => [
+                        styles.card,
+                        pressed ? styles.cardPressed : null,
+                      ]}
+                    >
+                      {group.cover_image_url ? (
+                        <Image
+                          source={{ uri: resolveMediaUrl(group.cover_image_url) }}
+                          style={styles.avatar}
+                        />
+                      ) : (
+                        <View style={styles.avatarPlaceholder} />
+                      )}
+                      <View style={styles.cardBody}>
+                        <Text style={styles.cardTitle}>{group.title}</Text>
+                        <Text style={styles.cardMeta}>
+                          {group.activity_type} - {group.location || "Flexible"}
+                        </Text>
+                        <Text style={styles.cardMetaMuted}>
+                          {group.approved_members ?? 0}/{group.max_participants ?? "--"} members
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))
+                )}
+                {status ? <Text style={styles.status}>{status}</Text> : null}
+              </View>
+            </View>
+          </ScrollView>
+          <BottomNav />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
 const styles = StyleSheet.create({
   safe: {
@@ -140,25 +152,52 @@ const styles = StyleSheet.create({
   containerWithNav: {
     paddingBottom: BOTTOM_NAV_HEIGHT + 16,
   },
+  panel: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#ffffff",
+    overflow: "hidden",
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
+  },
+  kicker: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    color: "#94a3b8",
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: "#0f172a",
+  },
+  list: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 10,
   },
   card: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     padding: 12,
-    borderRadius: 16,
+    borderRadius: 14,
     backgroundColor: "#ffffff",
     borderWidth: 1,
+    borderColor: "transparent",
+  },
+  cardPressed: {
     borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
   },
   avatar: {
     width: 48,
@@ -176,24 +215,34 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
     color: "#0f172a",
   },
   cardMeta: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#64748b",
+  },
+  cardMetaMuted: {
+    fontSize: 10,
+    color: "#94a3b8",
   },
   empty: {
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
+    borderStyle: "dashed",
     borderColor: "#e2e8f0",
     backgroundColor: "#ffffff",
     alignItems: "center",
   },
+  emptyText: {
+    fontSize: 12,
+    color: "#64748b",
+    textAlign: "center",
+  },
   status: {
-    fontSize: 13,
+    fontSize: 12,
     color: "#64748b",
     textAlign: "center",
   },

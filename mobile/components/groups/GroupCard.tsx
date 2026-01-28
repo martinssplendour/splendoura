@@ -65,25 +65,18 @@ const buildChips = (group: SwipeGroup) => {
     chips.push(`${spotsLeft} spots left`);
   }
   const offersList = offerings
-    .map((offer) => trimLabel(offer, 22))
+    .map((offer) => String(offer).trim())
     .filter(Boolean)
     .slice(0, 3)
     .join(", ");
-  if (offersList) {
-    chips.push(`Offers: ${offersList}`);
-  }
-  if (expectationsText) {
-    const expectationItems = expectationsText
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .slice(0, 3)
-      .map((item) => trimLabel(item, 26))
-      .join(", ");
-    if (expectationItems) {
-      chips.push(`Expectations: ${expectationItems}`);
-    }
-  }
+  const expectationsList = expectationsText
+    ? expectationsText
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(", ")
+    : "";
   if (group.location) {
     chips.push(trimLabel(group.location, 24));
   }
@@ -97,7 +90,11 @@ const buildChips = (group: SwipeGroup) => {
     chips.push(`Shared: ${group.shared_tags[0]}`);
   }
 
-  return chips.slice(0, 6);
+  return {
+    chips: chips.slice(0, 6),
+    offersLine: offersList ? `Offers: ${offersList}` : "",
+    expectationsLine: expectationsList ? `Expectations: ${expectationsList}` : "",
+  };
 };
 
 const resolveUrl = (url: string) => (url.startsWith("http") ? url : `${API_HOST}${url}`);
@@ -132,7 +129,7 @@ export default function GroupCard({
   const costLabel = group.cost_type.replace("_", " ");
   const metaLine = spotsLeft != null ? `${costLabel} · ${spotsLeft} spots left` : costLabel;
   const locationLine = group.location || group.activity_type || "";
-  const chips = buildChips(group);
+  const { chips, offersLine, expectationsLine } = buildChips(group);
   const discoveryLabels = group.discovery_labels || [];
 
   return (
@@ -247,6 +244,8 @@ export default function GroupCard({
             </View>
           ))}
         </View>
+        {offersLine ? <Text style={styles.detailLine}>{offersLine}</Text> : null}
+        {expectationsLine ? <Text style={styles.detailLine}>{expectationsLine}</Text> : null}
       </View>
     </View>
   );
@@ -405,7 +404,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   body: {
-    flex: 1,
+    flex: 1.2,
     padding: 6,
     gap: 4,
     backgroundColor: "#ffffff",
@@ -413,7 +412,7 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
   },
   description: {
-    fontSize: 9,
+    fontSize: 10.8,
     color: "#475569",
   },
   chips: {
@@ -430,7 +429,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   discoveryTitle: {
-    fontSize: 8,
+    fontSize: 9.6,
     fontWeight: "700",
     color: "#0f172a",
     textTransform: "uppercase",
@@ -445,7 +444,7 @@ const styles = StyleSheet.create({
     borderColor: "#a5f3fc",
   },
   discoveryText: {
-    fontSize: 7,
+    fontSize: 8.4,
     fontWeight: "700",
     color: "#0e7490",
     textTransform: "uppercase",
@@ -457,8 +456,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
   },
   chipText: {
-    fontSize: 7,
+    fontSize: 8.4,
     fontWeight: "600",
     color: "#475569",
+  },
+  detailLine: {
+    fontSize: 9.6,
+    color: "#475569",
+    lineHeight: 14,
+    width: "100%",
   },
 });

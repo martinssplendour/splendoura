@@ -565,8 +565,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   categoryChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 9.6,
+    paddingVertical: 4.8,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#e2e8f0",
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     borderColor: "#1e293b",
   },
   categoryChipText: {
-    fontSize: 8,
+    fontSize: 9.6,
     fontWeight: "600",
     color: "#475569",
   },
