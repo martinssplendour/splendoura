@@ -1141,7 +1141,6 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
   },
   composerSection: {
-    transform: [{ translateY: -85 }],
   },
   composer: {
     flexDirection: "row",
