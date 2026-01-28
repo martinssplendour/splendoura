@@ -230,16 +230,14 @@ export default function GroupsScreen() {
               <Text style={styles.title}>Discover plans and swipe to join</Text>
             </View>
             <View style={styles.headerActions}>
-              <Button variant="ghost" size="sm" onPress={() => router.push("/groups/create")}>
-                Create
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onPress={() => setShowFilters((prev) => !prev)}
-              >
-                {showFilters ? "Hide filters" : "Filters"}
-              </Button>
+              <View style={styles.headerActionRow}>
+                <Button variant="outline" size="sm" onPress={() => setShowFilters((prev) => !prev)}>
+                  {showFilters ? "Hide filters" : "Filters"}
+                </Button>
+                <Button variant="ghost" size="sm" onPress={() => router.push("/groups/create")}>
+                  Create group
+                </Button>
+              </View>
               <Button size="sm" onPress={() => setFindTypeOpen(true)}>
                 Find my type
               </Button>
@@ -410,11 +408,15 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   headerActions: {
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: 6,
+    marginTop: 2,
+  },
+  headerActionRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 2,
-    flexWrap: "wrap",
   },
   appNameWrap: {
     alignSelf: "flex-start",

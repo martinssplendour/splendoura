@@ -52,73 +52,73 @@ export default function CardChips({ group }: { group: SwipeGroup }) {
       ? [
           {
             label: CATEGORY_LABELS[group.category] || group.category,
-            icon: <Heart className="h-3 w-3" />,
+            icon: <Heart className="h-2.5 w-2.5" />,
           },
         ]
       : []),
     {
       label: COST_LABELS[group.cost_type] || "Shared",
-      icon: <Wallet className="h-3 w-3" />,
+      icon: <Wallet className="h-2.5 w-2.5" />,
     },
   ];
 
   if (spotsLeft != null) {
     chips.push({
       label: `${spotsLeft} spots left`,
-      icon: <Users className="h-3 w-3" />,
+      icon: <Users className="h-2.5 w-2.5" />,
     });
   }
 
   offerings.slice(0, 2).forEach((offer) => {
     chips.push({
       label: `Offer: ${trimLabel(offer, 22)}`,
-      icon: <Gift className="h-3 w-3" />,
+      icon: <Gift className="h-2.5 w-2.5" />,
     });
   });
 
   if (expectationsText) {
     chips.push({
       label: `Expect: ${trimLabel(expectationsText, 26)}`,
-      icon: <ClipboardCheck className="h-3 w-3" />,
+      icon: <ClipboardCheck className="h-2.5 w-2.5" />,
     });
   }
 
   if (group.location) {
     chips.push({
       label: group.location,
-      icon: <MapPin className="h-3 w-3" />,
+      icon: <MapPin className="h-2.5 w-2.5" />,
     });
   }
 
   if (restricted) {
     chips.push({
       label: `${restricted.applies_to} only`.replace("_", " "),
-      icon: <Heart className="h-3 w-3" />,
+      icon: <Heart className="h-2.5 w-2.5" />,
     });
   }
 
   if (group.start_date) {
     chips.push({
       label: new Date(group.start_date).toLocaleDateString(),
-      icon: <Calendar className="h-3 w-3" />,
+      icon: <Calendar className="h-2.5 w-2.5" />,
     });
   }
 
   if (group.shared_tags && group.shared_tags.length > 0) {
     chips.push({
       label: `Shared: ${group.shared_tags[0]}`,
-      icon: <Heart className="h-3 w-3" />,
+      icon: <Heart className="h-2.5 w-2.5" />,
     });
   }
 
-  const visibleChips = chips.slice(0, 6);
+  const visibleChips = chips.slice(0, 4);
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-1">
       {visibleChips.map((chip, index) => (
         <span
           key={`${chip.label}-${index}`}
-          className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+          className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-semibold text-slate-600"
         >
           {chip.icon}
           {chip.label}

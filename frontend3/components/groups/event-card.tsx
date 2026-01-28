@@ -66,7 +66,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
         style={style}
         onClick={onClick}
       >
-        <div className="relative h-64 w-full sm:h-80">
+        <div className="relative h-[360px] w-full sm:h-[480px]">
           {activeImage ? (
             <img
               src={resolveMediaUrl(activeImage)}
@@ -132,9 +132,9 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
             </div>
           ) : null}
           <div className="absolute bottom-3 left-3 right-3 text-white">
-            <p className="text-[10px] uppercase tracking-wide text-white/70">Featured</p>
-            <h2 className="mt-1 text-lg font-semibold">{group.title}</h2>
-            <p className="text-[10px] text-white/80">{costLine}</p>
+            <p className="text-[9px] uppercase tracking-wide text-white/70">Featured</p>
+            <h2 className="mt-1 text-base font-semibold">{group.title}</h2>
+            <p className="text-[9px] text-white/80">{costLine}</p>
           </div>
           {overlayLabel ? (
             <div
@@ -150,38 +150,40 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           ) : null}
         </div>
 
-        <div className="flex-1 space-y-2 p-3 sm:p-4">
+        <div className="flex-1 space-y-1 p-2 sm:p-3">
           {creatorName ? (
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+            <div className="flex items-center gap-1 text-[9px] text-slate-500">
               {creatorAvatarUrl ? (
                 <img
                   src={resolveMediaUrl(creatorAvatarUrl)}
                   alt={creatorName}
-                  className="h-4 w-4 rounded-full object-cover"
+                  className="h-3.5 w-3.5 rounded-full object-cover"
                 />
               ) : (
-                <div className="h-4 w-4 rounded-full bg-slate-200" />
+                <div className="h-3.5 w-3.5 rounded-full bg-slate-200" />
               )}
               <span className="font-semibold text-slate-700">{creatorName}</span>
               {locationLabel ? <span className="text-slate-400"> | {locationLabel}</span> : null}
             </div>
           ) : null}
           <div>
-            <p className="mt-1 text-xs text-slate-600 line-clamp-2">{group.description}</p>
+            <p className="mt-0.5 text-[10px] text-slate-600 line-clamp-1">
+              {group.description}
+            </p>
           </div>
 
           <CardChips group={group} />
           <Link
             href={`/groups/${group.id}#creator`}
             onClick={(event) => event.stopPropagation()}
-            className="inline-flex text-[10px] font-semibold uppercase tracking-wide text-blue-600"
+            className="inline-flex text-[9px] font-semibold uppercase tracking-wide text-blue-600"
           >
             View creator profile
           </Link>
         </div>
 
         {footer ? (
-          <div className="sticky bottom-0 border-t border-slate-100 bg-white/95 px-3 py-3 sm:px-4">
+          <div className="sticky bottom-0 border-t border-slate-100 bg-white/95 px-2 py-2 sm:px-3">
             {footer}
           </div>
         ) : null}

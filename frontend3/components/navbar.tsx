@@ -50,20 +50,28 @@ export default function Navbar() {
         </div>
 
         {/* Right Side Actions */}
-        <div className="mt-0.5 flex items-center gap-3">
+        <div className="mt-0.5 flex items-start gap-3">
           {isGroups ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/groups?filters=open"
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  Filters
+                </Link>
+                <Link
+                  href="/groups/create"
+                  className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  Create group
+                </Link>
+              </div>
               <Link
-                href="/groups?filters=open"
-                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm sm:px-4 sm:py-2 sm:text-sm"
+                href="/groups?findType=open"
+                className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 sm:px-4 sm:py-2 sm:text-sm"
               >
-                Filters
-              </Link>
-              <Link
-                href="/groups/create"
-                className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:px-4 sm:py-2 sm:text-sm"
-              >
-                Create group
+                Find my type
               </Link>
             </div>
           ) : null}

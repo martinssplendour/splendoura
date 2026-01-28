@@ -11,7 +11,6 @@ import FiltersSidebar, { GroupFilters } from "@/components/groups/filters-sideba
 import FiltersDrawer from "@/components/groups/filters-drawer";
 import type { SwipeGroup } from "@/components/groups/types";
 import FindMyTypeModal from "@/components/find-my-type-modal";
-import { Button } from "@/components/ui/button";
 
 const DEFAULT_FILTERS: GroupFilters = {
   location: "",
@@ -27,6 +26,7 @@ export default function BrowseGroups() {
   const searchParams = useSearchParams();
   const creatorId = searchParams.get("creator_id");
   const filtersParam = searchParams.get("filters");
+  const findTypeParam = searchParams.get("findType");
   const [groups, setGroups] = useState<SwipeGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<GroupFilters>(DEFAULT_FILTERS);
@@ -73,6 +73,11 @@ export default function BrowseGroups() {
       setDrawerOpen(true);
     }
   }, [filtersParam]);
+
+  useEffect(() => {
+    if (findTypeParam !== "open") return;
+    setFindTypeOpen(true);
+  }, [findTypeParam]);
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -188,20 +193,7 @@ export default function BrowseGroups() {
                 <option value="smart">Smart sort</option>
                 <option value="recent">Most recent</option>
               </select>
-              <Button className="bg-slate-900 text-white hover:bg-slate-800" onClick={() => setFindTypeOpen(true)}>
-                Find my type
-              </Button>
             </div>
-          </div>
-
-          <div className="flex items-center justify-end sm:hidden">
-            <button
-              type="button"
-              onClick={() => setFindTypeOpen(true)}
-              className="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-slate-900/20"
-            >
-              Find my type
-            </button>
           </div>
 
           <div className="space-y-4 sm:space-y-6">

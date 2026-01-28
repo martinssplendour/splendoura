@@ -83,7 +83,7 @@ const buildChips = (group: SwipeGroup) => {
     chips.push(`Shared: ${group.shared_tags[0]}`);
   }
 
-  return chips.slice(0, 6);
+  return chips.slice(0, 4);
 };
 
 const resolveUrl = (url: string) => (url.startsWith("http") ? url : `${API_HOST}${url}`);
@@ -223,7 +223,7 @@ export default function GroupCard({
             </View>
           </View>
         ) : null}
-        <Text style={styles.description} numberOfLines={2}>
+        <Text style={styles.description} numberOfLines={1}>
           {group.description}
         </Text>
         <View style={styles.chips}>
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   imageWrap: {
     flex: 1,
-    minHeight: 420,
+    minHeight: 480,
   },
   image: {
     width: "100%",
@@ -392,20 +392,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   body: {
-    padding: 8,
-    gap: 6,
+    padding: 6,
+    gap: 4,
     backgroundColor: "#ffffff",
     borderTopWidth: 1,
     borderColor: "#e2e8f0",
   },
   description: {
-    fontSize: 10,
+    fontSize: 9,
     color: "#475569",
   },
   chips: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 4,
+    gap: 3,
   },
   discoveryRow: {
     flexDirection: "row",
@@ -437,13 +437,13 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   chip: {
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 999,
     backgroundColor: "#f1f5f9",
   },
   chipText: {
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: "600",
     color: "#475569",
   },
