@@ -36,70 +36,81 @@ export default function RequestsPage() {
   const { accessToken, user } = useAuth();
   const [requests, setRequests] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadRequests() {
-      if (!accessToken || !user?.id) {
-        setLoading(false);
-        return;
-      }
-
-      const groupsRes = await apiFetch(`/groups?creator_id=${user.id}`, { token: accessToken });
-      if (!groupsRes.ok) {
-        setLoading(false);
-        return;
-      }
-      const groupData: { id: number; title: string }[] = await groupsRes.json();
-
-      const nextUsers: Record<number, UserSummary> = {};
-      const nextRequests: RequestItem[] = [];
-
-      for (const group of groupData) {
-        const membersRes = await apiFetch(`/groups/${group.id}/members`, { token: accessToken });
-        if (!membersRes.ok) {
-          continue;
+      setError(null);
+      setLoading(true);
+      try {
+        if (!accessToken || !user?.id) {
+          setLoading(false);
+          return;
         }
-        const members: MembershipItem[] = await membersRes.json();
-        const requestedMembers = members.filter((m) => m.join_status === "requested");
 
-        for (const member of requestedMembers) {
-          if (nextUsers[member.user_id]) {
-            nextRequests.push({
-              group_id: group.id,
-              group_title: group.title,
-              user_id: member.user_id,
-              user: nextUsers[member.user_id],
-              request_message: member.request_message,
-              request_tier: member.request_tier,
-            });
+        const groupsRes = await apiFetch(`/groups?creator_id=${user.id}`, { token: accessToken });
+        if (!groupsRes.ok) {
+          const message = await groupsRes.text().catch(() => "");
+          setError(message || "Unable to load your groups.");
+          setLoading(false);
+          return;
+        }
+        const groupData: { id: number; title: string }[] = await groupsRes.json();
+
+        const nextUsers: Record<number, UserSummary> = {};
+        const nextRequests: RequestItem[] = [];
+
+        for (const group of groupData) {
+          const membersRes = await apiFetch(`/groups/${group.id}/members`, { token: accessToken });
+          if (!membersRes.ok) {
             continue;
           }
-          const userRes = await apiFetch(`/users/${member.user_id}`, { token: accessToken });
-          if (userRes.ok) {
-            const userSummary = await userRes.json();
-            nextUsers[member.user_id] = userSummary;
-            nextRequests.push({
-              group_id: group.id,
-              group_title: group.title,
-              user_id: member.user_id,
-              user: userSummary,
-              request_message: member.request_message,
-              request_tier: member.request_tier,
-            });
-          } else {
-            nextRequests.push({
-              group_id: group.id,
-              group_title: group.title,
-              user_id: member.user_id,
-              request_message: member.request_message,
-              request_tier: member.request_tier,
-            });
+          const members: MembershipItem[] = await membersRes.json();
+          const requestedMembers = members.filter((m) => m.join_status === "requested");
+
+          for (const member of requestedMembers) {
+            if (nextUsers[member.user_id]) {
+              nextRequests.push({
+                group_id: group.id,
+                group_title: group.title,
+                user_id: member.user_id,
+                user: nextUsers[member.user_id],
+                request_message: member.request_message,
+                request_tier: member.request_tier,
+              });
+              continue;
+            }
+            const userRes = await apiFetch(`/users/${member.user_id}`, { token: accessToken });
+            if (userRes.ok) {
+              const userSummary = await userRes.json();
+              nextUsers[member.user_id] = userSummary;
+              nextRequests.push({
+                group_id: group.id,
+                group_title: group.title,
+                user_id: member.user_id,
+                user: userSummary,
+                request_message: member.request_message,
+                request_tier: member.request_tier,
+              });
+            } else {
+              nextRequests.push({
+                group_id: group.id,
+                group_title: group.title,
+                user_id: member.user_id,
+                request_message: member.request_message,
+                request_tier: member.request_tier,
+              });
+            }
           }
         }
-      }
 
-      setRequests(nextRequests);
-      setLoading(false);
+        setRequests(nextRequests);
+        setLoading(false);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unable to load join requests.";
+        setError(message);
+        setLoading(false);
+      }
     }
 
     loadRequests();
@@ -135,6 +146,18 @@ export default function RequestsPage() {
 
   if (loading) {
     return <div className="mx-auto h-64 w-full max-w-3xl animate-pulse rounded-none bg-slate-200 sm:rounded-3xl" />;
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-3 rounded-none border border-rose-100 bg-rose-50 p-6 text-center sm:rounded-3xl">
+        <p className="text-sm font-semibold text-rose-700">Unable to load join requests</p>
+        <p className="text-xs text-rose-600">{error}</p>
+        <Button onClick={() => window.location.reload()} className="bg-blue-600 text-white hover:bg-blue-700">
+          Retry
+        </Button>
+      </div>
+    );
   }
 
   return (
