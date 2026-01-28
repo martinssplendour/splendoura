@@ -21,10 +21,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <Comp
         className={cn(
-          "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90",
-          // Simple logic to handle variants (expand as needed for full styling)
-          variant === "ghost" && "bg-transparent text-slate-600 hover:bg-slate-100",
-          variant === "outline" && "border border-slate-200 bg-transparent hover:bg-slate-100",
+          "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700",
+          // Visible variants (blue-based for contrast)
+          variant === "ghost" && "bg-transparent text-blue-600 hover:bg-blue-50",
+          variant === "outline" && "border border-blue-600 bg-transparent text-blue-600 hover:bg-blue-50",
           className
         )}
         ref={ref}

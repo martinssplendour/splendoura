@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   },
   outline: {
     backgroundColor: "transparent",
-    borderColor: "#cbd5f5",
+    borderColor: "#2563eb",
   },
   ghost: {
     backgroundColor: "transparent",
@@ -85,6 +85,6 @@ const styles = StyleSheet.create({
     color: "#ffffff",
   },
   textOutline: {
-    color: "#1e293b",
+    color: "#2563eb",
   },
 });

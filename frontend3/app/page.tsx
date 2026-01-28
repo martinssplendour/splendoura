@@ -47,7 +47,7 @@ export default function LandingPage() {
             <Link href="/auth/login" className="text-white/80 transition hover:text-white">
               Sign In
             </Link>
-            <Button asChild className="rounded-full bg-white px-5 text-slate-900 hover:bg-white/90">
+            <Button asChild className="rounded-full bg-blue-600 px-5 text-white hover:bg-blue-700">
               <Link href="/auth/register">Get Started</Link>
             </Button>
           </div>
