@@ -64,18 +64,25 @@ const buildChips = (group: SwipeGroup) => {
   if (spotsLeft != null) {
     chips.push(`${spotsLeft} spots left`);
   }
-  offerings.slice(0, 3).forEach((offer) => {
-    chips.push(`Offer: ${trimLabel(offer, 22)}`);
-  });
+  const offersList = offerings
+    .map((offer) => trimLabel(offer, 22))
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(", ");
+  if (offersList) {
+    chips.push(`Offers: ${offersList}`);
+  }
   if (expectationsText) {
     const expectationItems = expectationsText
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean)
-      .slice(0, 3);
-    expectationItems.forEach((item) => {
-      chips.push(`Expect: ${trimLabel(item, 26)}`);
-    });
+      .slice(0, 3)
+      .map((item) => trimLabel(item, 26))
+      .join(", ");
+    if (expectationItems) {
+      chips.push(`Expectations: ${expectationItems}`);
+    }
   }
   if (group.location) {
     chips.push(trimLabel(group.location, 24));
@@ -90,7 +97,7 @@ const buildChips = (group: SwipeGroup) => {
     chips.push(`Shared: ${group.shared_tags[0]}`);
   }
 
-  return chips.slice(0, 8);
+  return chips.slice(0, 6);
 };
 
 const resolveUrl = (url: string) => (url.startsWith("http") ? url : `${API_HOST}${url}`);
