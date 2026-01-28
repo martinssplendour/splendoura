@@ -41,6 +41,8 @@ origins = [
     "http://172.29.176.1:3000",
     "http://localhost:5004",
     "http://127.0.0.1:5004",
+    "https://splendouraweb.onrender.com",
+    "https://splendoura.onrender.com",
 ]
 if settings.CORS_ORIGINS:
     extra_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
