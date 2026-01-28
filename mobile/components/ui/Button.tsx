@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, ViewStyle } from "react-native";
 import type { ReactNode } from "react";
 
 type ButtonVariant = "primary" | "outline" | "ghost";
-type ButtonSize = "sm" | "md" | "lg";
+type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 interface ButtonProps {
   children: ReactNode;
@@ -14,9 +14,17 @@ interface ButtonProps {
 }
 
 const sizeStyles: Record<ButtonSize, ViewStyle> = {
+  xs: { paddingHorizontal: 6, paddingVertical: 4 },
   sm: { paddingHorizontal: 12, paddingVertical: 8 },
   md: { paddingHorizontal: 16, paddingVertical: 12 },
   lg: { paddingHorizontal: 20, paddingVertical: 14 },
+};
+
+const textSizes: Record<ButtonSize, number> = {
+  xs: 11,
+  sm: 15,
+  md: 15,
+  lg: 16,
 };
 
 export function Button({
@@ -43,6 +51,7 @@ export function Button({
       <Text
         style={[
           styles.text,
+          { fontSize: textSizes[size] },
           variant === "primary" ? styles.textPrimary : styles.textOutline,
         ]}
       >

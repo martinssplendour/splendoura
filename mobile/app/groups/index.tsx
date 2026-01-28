@@ -320,14 +320,14 @@ export default function GroupsScreen() {
             </View>
             <View style={styles.headerActions}>
               <View style={styles.headerActionRow}>
-                <Button variant="outline" size="sm" onPress={() => setShowFilters((prev) => !prev)}>
+                <Button variant="outline" size="xs" onPress={() => setShowFilters((prev) => !prev)}>
                   {showFilters ? "Hide filters" : "Filters"}
                 </Button>
-                <Button variant="ghost" size="sm" onPress={() => router.push("/groups/create")}>
+                <Button variant="ghost" size="xs" onPress={() => router.push("/groups/create")}>
                   Create group
                 </Button>
               </View>
-              <Button size="sm" onPress={() => setFindTypeOpen(true)}>
+              <Button size="xs" onPress={() => setFindTypeOpen(true)}>
                 Find my type
               </Button>
             </View>
@@ -503,22 +503,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 10,
+    gap: 5,
   },
   headerText: {
     flex: 1,
-    gap: 2,
+    gap: 1,
   },
   headerActions: {
     flexDirection: "column",
     alignItems: "flex-end",
-    gap: 6,
-    marginTop: 2,
+    gap: 3,
+    marginTop: 1,
   },
   headerActionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 3,
   },
   appNameWrap: {
     alignSelf: "flex-start",
@@ -526,23 +526,23 @@ const styles = StyleSheet.create({
     borderColor: "#c7d2fe",
     borderWidth: 1,
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
     shadowColor: "#6366f1",
     shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
   appName: {
-    fontSize: 18,
+    fontSize: 9,
     fontWeight: "800",
     color: "#4338ca",
-    letterSpacing: 1.2,
+    letterSpacing: 0.6,
     textTransform: "uppercase",
   },
   title: {
-    fontSize: 11,
+    fontSize: 6,
     fontWeight: "600",
     color: "rgba(15, 23, 42, 0.65)",
   },
