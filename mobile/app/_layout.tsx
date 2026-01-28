@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import type { ReactNode } from "react";
 
 import { AuthProvider } from "@/lib/auth-context";
@@ -13,7 +13,7 @@ export {
   ErrorBoundary,
 } from "expo-router";
 
-const UI_SCALE = 0.9;
+const UI_SCALE = Platform.OS === "android" ? 1 : 0.9;
 const INV_SCALE = 1 / UI_SCALE;
 const COMPACT_HEADER_OPTIONS = {
   headerStyle: { backgroundColor: "#ffffff" },
