@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     REDIS_URL: str | None = None
     CORS_ORIGINS: str | None = None
     AUTO_CREATE_TABLES: bool = True
+    REQUIRE_VERIFICATION: bool = False
 
     NUDITY_PROVIDER: str = "nudenet"
     NUDITY_MIN_CONFIDENCE: float = 0.35

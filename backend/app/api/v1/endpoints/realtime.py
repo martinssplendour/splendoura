@@ -94,7 +94,7 @@ async def group_realtime(websocket: WebSocket, group_id: int) -> None:
         user = _get_current_user(db, token)
         if (
             not user
-            or user.verification_status != VerificationStatus.VERIFIED
+            or (settings.REQUIRE_VERIFICATION and user.verification_status != VerificationStatus.VERIFIED)
             or not _is_group_member(db, group_id, user.id)
         ):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)

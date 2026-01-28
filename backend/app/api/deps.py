@@ -78,6 +78,8 @@ def get_current_active_user(
 def get_current_verified_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
+    if not settings.REQUIRE_VERIFICATION:
+        return current_user
     if current_user.verification_status != VerificationStatus.VERIFIED:
         raise HTTPException(status_code=403, detail="User must be verified")
     return current_user
