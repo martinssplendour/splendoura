@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function EmptyState() {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col items-center rounded-[32px] border border-white/70 bg-white/80 px-8 py-16 text-center shadow-xl shadow-slate-900/10">
+    <div className="mx-auto flex w-full max-w-3xl flex-col items-center rounded-none border-0 bg-white px-6 py-12 text-center shadow-none sm:rounded-[32px] sm:border sm:border-white/70 sm:bg-white/80 sm:px-8 sm:py-16 sm:shadow-xl sm:shadow-slate-900/10">
       <p className="text-sm uppercase tracking-widest text-slate-400">No more events nearby</p>
       <h3 className="mt-3 text-2xl font-semibold text-slate-900">You have seen them all</h3>
       <p className="mt-2 text-sm text-slate-600">

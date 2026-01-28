@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -815,7 +815,7 @@ export default function GroupDetailPage() {
   };
 
   if (loading) {
-    return <div className="mx-auto h-96 w-full max-w-3xl animate-pulse rounded-3xl bg-slate-200" />;
+    return <div className="mx-auto h-96 w-full max-w-3xl animate-pulse rounded-none bg-slate-200 sm:rounded-3xl" />;
   }
 
   if (!group) {
@@ -849,15 +849,15 @@ export default function GroupDetailPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-4">
           <p className="text-xs font-semibold uppercase text-slate-400">Activity</p>
           <p className="mt-2 font-semibold text-slate-800">{group.activity_type}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-4">
           <p className="text-xs font-semibold uppercase text-slate-400">Location</p>
           <p className="mt-2 font-semibold text-slate-800">{group.location || "Flexible"}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-4">
           <p className="text-xs font-semibold uppercase text-slate-400">Cost</p>
           <p className="mt-2 font-semibold capitalize text-slate-800">
             {group.cost_type.replace("_", " ")}
@@ -866,7 +866,7 @@ export default function GroupDetailPage() {
       </div>
 
       {creator ? (
-        <div id="creator" className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div id="creator" className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
           <p className="text-xs font-semibold uppercase text-slate-400">Creator</p>
           <div className="mt-3 flex flex-wrap items-center gap-4">
             {creator.profile_image_url ? (
@@ -929,20 +929,20 @@ export default function GroupDetailPage() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-4">
           <p className="text-xs font-semibold uppercase text-slate-400">Members</p>
           <p className="mt-2 font-semibold text-slate-800">
             {group.approved_members ?? 0} / {group.max_participants}
           </p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-4">
           <p className="text-xs font-semibold uppercase text-slate-400">Minimum needed</p>
           <p className="mt-2 font-semibold text-slate-800">{group.min_participants}</p>
         </div>
       </div>
 
       {user?.id === group.creator_id ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900">Gender locks</h2>
           <p className="mt-2 text-sm text-slate-600">
             Stop new join requests from a gender once you have enough members.
@@ -969,7 +969,7 @@ export default function GroupDetailPage() {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
         <h2 className="text-lg font-semibold text-slate-900">People in this group</h2>
         {approvedProfiles.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">No approved members yet.</p>
@@ -997,7 +997,7 @@ export default function GroupDetailPage() {
       </div>
 
       {isCreator ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900">Join requests</h2>
           {memberRequests.length === 0 ? (
             <p className="mt-3 text-sm text-slate-500">No pending requests.</p>
@@ -1041,7 +1041,7 @@ export default function GroupDetailPage() {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
         <h2 className="text-lg font-semibold text-slate-900">Group Gallery</h2>
         {mediaItems.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">No media yet.</p>
@@ -1105,7 +1105,7 @@ export default function GroupDetailPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
         <h2 className="text-lg font-semibold text-slate-900">Requirements</h2>
         <div className="mt-4 space-y-4 text-sm text-slate-600">
           {group.requirements?.length ? (
@@ -1129,7 +1129,7 @@ export default function GroupDetailPage() {
       </div>
 
       {icebreakers.length > 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900">Icebreakers</h2>
           <div className="mt-4 space-y-2">
             {icebreakers.map((prompt) => (
@@ -1141,7 +1141,7 @@ export default function GroupDetailPage() {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
         <h2 className="text-lg font-semibold text-slate-900">Weekly Availability</h2>
         {!isMember ? (
           <p className="mt-3 text-sm text-slate-500">Join to see availability planning.</p>
@@ -1179,7 +1179,7 @@ export default function GroupDetailPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
         <h2 className="text-lg font-semibold text-slate-900">Announcements</h2>
         {!isMember ? (
           <p className="mt-3 text-sm text-slate-500">Join to see announcements.</p>
@@ -1239,7 +1239,7 @@ export default function GroupDetailPage() {
       </div>
 
       {user?.id === group.creator_id ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Members</h2>
             <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={loadMembers}>
@@ -1267,7 +1267,7 @@ export default function GroupDetailPage() {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-6">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-6">
         <h2 className="text-lg font-semibold text-slate-900">Plans</h2>
         {!isMember ? (
           <p className="text-sm text-slate-500">Join to see and create plans.</p>
@@ -1540,7 +1540,7 @@ export default function GroupDetailPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
         <h2 className="text-lg font-semibold text-slate-900">Map Pins</h2>
         {!isMember ? (
           <p className="mt-3 text-sm text-slate-500">Join to add shared pins.</p>
@@ -1602,7 +1602,7 @@ export default function GroupDetailPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Group Chat</h2>
@@ -1623,3 +1623,4 @@ export default function GroupDetailPage() {
     </div>
   );
 }
+

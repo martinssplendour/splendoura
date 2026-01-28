@@ -108,7 +108,7 @@ export default function GroupFormWizard() {
   return (
     <form
       onSubmit={handleSubmit(onSubmit, onInvalid)}
-      className="mx-auto max-w-2xl rounded-[32px] border border-white/70 bg-white/90 p-8 shadow-2xl shadow-slate-900/10"
+      className="mx-auto max-w-2xl rounded-none border-0 bg-white p-6 shadow-none sm:rounded-[32px] sm:border sm:border-white/70 sm:bg-white/90 sm:p-8 sm:shadow-2xl sm:shadow-slate-900/10"
     >
       <div className="mb-8 flex justify-between">
         {[1, 2, 3, 4, 5].map((i) => (

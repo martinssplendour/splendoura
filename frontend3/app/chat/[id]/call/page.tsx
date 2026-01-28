@@ -23,7 +23,7 @@ export default function ChatCallPage() {
 
   if (!groupId) {
     return (
-      <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="mx-auto max-w-3xl rounded-none border-0 bg-white p-6 sm:rounded-2xl sm:border sm:border-slate-200">
         <p className="text-sm text-slate-600">Call not available.</p>
         <Button className="mt-4" onClick={() => router.push("/chat")}>
           Back to chats
@@ -45,7 +45,7 @@ export default function ChatCallPage() {
           Back
         </Button>
       </div>
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-none border-0 bg-white shadow-none sm:rounded-3xl sm:border sm:border-slate-200 sm:shadow-sm">
         <iframe
           src={callUrl}
           className="h-[70vh] w-full"

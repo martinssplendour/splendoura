@@ -60,7 +60,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
     return (
       <div
         ref={ref}
-        className={`relative flex h-full flex-col overflow-hidden rounded-[32px] border border-white/70 bg-white shadow-2xl shadow-slate-900/15 ${
+        className={`relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-none sm:rounded-[32px] sm:border-white/70 sm:shadow-2xl sm:shadow-slate-900/15 ${
           className || ""
         }`}
         style={style}

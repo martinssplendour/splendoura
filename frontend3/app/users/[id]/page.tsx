@@ -77,7 +77,9 @@ export default function UserProfilePage() {
   }
 
   if (loading) {
-    return <div className="mx-auto h-64 w-full max-w-3xl animate-pulse rounded-3xl bg-slate-200" />;
+    return (
+      <div className="mx-auto h-64 w-full max-w-3xl animate-pulse rounded-none bg-slate-200 sm:rounded-3xl" />
+    );
   }
 
   if (!profile) {
@@ -107,7 +109,7 @@ export default function UserProfilePage() {
         </Button>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border-0 bg-white p-6 sm:rounded-3xl sm:border sm:border-slate-200">
         <div className="flex flex-wrap items-center gap-4">
           {profile.profile_image_url ? (
             <img
@@ -190,7 +192,7 @@ export default function UserProfilePage() {
       </div>
 
       {photos.length > 0 ? (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6">
+        <div className="rounded-none border-0 bg-white p-6 sm:rounded-3xl sm:border sm:border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">Photos</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
             {photos.map((photo) => (
@@ -206,7 +208,7 @@ export default function UserProfilePage() {
       ) : null}
 
       {Object.keys(details).length > 0 ? (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6">
+        <div className="rounded-none border-0 bg-white p-6 sm:rounded-3xl sm:border sm:border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">Profile details</h2>
           {Array.isArray((details as Record<string, unknown>).availability_windows) ? (
             <p className="mt-3 text-sm text-slate-600">

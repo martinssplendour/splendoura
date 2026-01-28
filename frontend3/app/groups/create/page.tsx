@@ -4,7 +4,7 @@ import GroupFormWizard from "@/components/groups/group-form-wizard";
 
 export default function CreateGroupPage() {
   return (
-    <div className="relative overflow-hidden rounded-[40px] border border-white/70 bg-white/70 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.12)] sm:p-10">
+    <div className="relative overflow-hidden bg-white p-6 sm:rounded-[40px] sm:border sm:border-white/70 sm:bg-white/70 sm:p-10 sm:shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_#e2f4ff_0%,_#f8fbff_40%,_#fff1ea_100%)] opacity-80" />
       <div className="relative space-y-6">
         <div>

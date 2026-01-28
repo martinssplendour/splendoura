@@ -148,7 +148,7 @@ export default function OnboardingPage() {
 
   if (!accessToken) {
     return (
-      <div className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-6 text-center">
+      <div className="mx-auto max-w-lg rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 text-center">
         <p className="text-sm text-slate-600">Sign in to continue onboarding.</p>
         <Button asChild className="mt-4 bg-blue-600 text-white hover:bg-blue-700">
           <Link href="/auth/login">Sign in</Link>
@@ -174,7 +174,7 @@ export default function OnboardingPage() {
       </div>
 
       {step === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Tell us about you</h2>
           <label className="text-sm font-semibold text-slate-700">
             Bio
@@ -215,7 +215,7 @@ export default function OnboardingPage() {
       ) : null}
 
       {step === 1 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Interests</h2>
           <input
             value={interests}
@@ -227,7 +227,7 @@ export default function OnboardingPage() {
       ) : null}
 
       {step === 2 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Prompts</h2>
           {prompts.map((prompt, index) => (
             <label key={`prompt-${index}`} className="text-sm font-semibold text-slate-700">
@@ -248,7 +248,7 @@ export default function OnboardingPage() {
       ) : null}
 
       {step === 3 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+        <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Add a photo</h2>
           {user?.profile_image_url ? (
             <img
@@ -290,3 +290,4 @@ export default function OnboardingPage() {
     </div>
   );
 }
+

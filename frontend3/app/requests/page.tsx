@@ -134,7 +134,7 @@ export default function RequestsPage() {
   }
 
   if (loading) {
-    return <div className="mx-auto h-64 w-full max-w-3xl animate-pulse rounded-3xl bg-slate-200" />;
+    return <div className="mx-auto h-64 w-full max-w-3xl animate-pulse rounded-none bg-slate-200 sm:rounded-3xl" />;
   }
 
   return (
@@ -156,7 +156,7 @@ export default function RequestsPage() {
             return (
               <div
                 key={`${request.group_id}-${request.user_id}`}
-                className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-4 rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
                   {request.user?.profile_image_url ? (
@@ -214,3 +214,4 @@ export default function RequestsPage() {
     </div>
   );
 }
+

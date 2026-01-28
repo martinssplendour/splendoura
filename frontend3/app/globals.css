@@ -186,6 +186,12 @@
   :root body {
      background: radial-gradient(circle at top right, #f8fafc, #eff6ff);
   }
+
+  @media (max-width: 640px) {
+     :root body {
+        background: #f8fafc;
+     }
+  }
   
   /* Reset background for dark mode to use the variable */
   .dark body {

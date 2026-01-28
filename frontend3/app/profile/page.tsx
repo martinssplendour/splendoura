@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import Link from "next/link";
@@ -574,7 +574,7 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
         <p className="text-xs font-semibold uppercase text-slate-400">Profile completion</p>
         <div className="mt-3 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-slate-900">Your profile is {completionPercent}% complete</h1>
@@ -591,7 +591,7 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Profile photos</h2>
           <p className="text-sm text-slate-600">Upload up to 9 photos. The first image is your primary photo.</p>
@@ -633,7 +633,7 @@ export default function ProfilePage() {
         {status ? <p className="text-sm text-slate-600">{status}</p> : null}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Identity & basics</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold text-slate-700">
@@ -745,7 +745,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Appearance & lifestyle</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold text-slate-700">
@@ -831,7 +831,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Personal attributes & beliefs</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold text-slate-700">
@@ -901,7 +901,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Lifestyle & social preferences</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold text-slate-700">
@@ -961,7 +961,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Children & family preferences</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold text-slate-700">
@@ -997,7 +997,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Relationship preferences</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold text-slate-700">
@@ -1046,7 +1046,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Discovery & matching settings</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold text-slate-700">
@@ -1109,7 +1109,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-semibold text-slate-900">Safety & availability</h2>
           <Button asChild variant="outline" className="h-9">
@@ -1179,7 +1179,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Media & interaction</h2>
         <label className="text-sm font-semibold text-slate-700">
           Interests
@@ -1236,7 +1236,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Account verification</h2>
         <div className="flex flex-wrap items-center gap-3">
           <Button
@@ -1287,7 +1287,7 @@ export default function ProfilePage() {
         {profileStatus ? <p className="text-sm text-slate-600">{profileStatus}</p> : null}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-slate-900">Your groups</h2>
           <span className="text-sm text-slate-500">{createdGroups.length} total</span>
@@ -1333,3 +1333,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

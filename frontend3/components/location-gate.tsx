@@ -145,7 +145,7 @@ export default function LocationGate({ children }: LocationGateProps) {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-lg">
+      <div className="w-full max-w-md rounded-none border-0 bg-white p-5 text-center shadow-none sm:rounded-3xl sm:border sm:border-slate-200 sm:p-6 sm:shadow-lg">
         <h2 className="text-lg font-semibold text-slate-900">Enable location to continue</h2>
         <p className="mt-2 text-sm text-slate-600">
           We use your real location to show accurate groups and filters.
