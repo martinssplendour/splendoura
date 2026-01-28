@@ -120,7 +120,7 @@ def list_messages(
     db: Session = Depends(deps.get_db),
     id: int,
     since: datetime | None = None,
-    current_user: models.User = Depends(deps.get_current_verified_user),
+    current_user: models.User = Depends(deps.get_current_user),
 ):
     require_group_member(db, group_id=id, user_id=current_user.id)
     query = db.query(models.GroupMessage).filter(
@@ -154,7 +154,7 @@ def create_message(
     file: UploadFile | None = File(default=None),
     message_type: str | None = Form(default=None),
     metadata: str | None = Form(default=None),
-    current_user: models.User = Depends(deps.get_current_verified_user),
+    current_user: models.User = Depends(deps.get_current_user),
 ):
     require_group_member(db, group_id=id, user_id=current_user.id)
     if not content and not file:
@@ -261,7 +261,7 @@ def mark_messages_read(
     db: Session = Depends(deps.get_db),
     id: int,
     payload: schemas.GroupMessageReadRequest,
-    current_user: models.User = Depends(deps.get_current_verified_user),
+    current_user: models.User = Depends(deps.get_current_user),
 ):
     require_group_member(db, group_id=id, user_id=current_user.id)
     message_ids = payload.message_ids

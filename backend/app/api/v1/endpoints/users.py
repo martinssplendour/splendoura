@@ -92,7 +92,7 @@ def register_push_token(
 def list_my_groups(
     *,
     db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_verified_user),
+    current_user: models.User = Depends(deps.get_current_user),
 ) -> Any:
     groups = (
         db.query(models.Group)
