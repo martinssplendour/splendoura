@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   imageWrap: {
-    flex: 8.5,
+    flex: 6.8,
   },
   image: {
     width: "100%",
