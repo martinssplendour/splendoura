@@ -57,6 +57,7 @@ export default function ChatThreadPage() {
   const [showWarning, setShowWarning] = useState(false);
   const [warningText, setWarningText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [showActions, setShowActions] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<BlobPart[]>([]);
@@ -79,6 +80,16 @@ export default function ChatThreadPage() {
   );
   const showSend = Boolean(messageText.trim()) || Boolean(messageFile);
   const canSend = Boolean(isVerified && groupId && !isSending && showSend);
+  const canCall = Boolean(accessToken && groupId);
+  const latestCall = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const callMeta = (messages[i].meta as Record<string, any> | null)?.call;
+      if (callMeta?.mode) {
+        return callMeta as { mode?: "voice" | "video" };
+      }
+    }
+    return null;
+  }, [messages]);
   const formatTime = useCallback(
     (value: string) =>
       new Date(value).toLocaleTimeString(undefined, {
@@ -445,18 +456,19 @@ export default function ChatThreadPage() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col overflow-hidden rounded-none border-0 bg-white shadow-none sm:rounded-3xl sm:border sm:border-slate-200 sm:shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/chat")}>
-            Back
-          </Button>
+          <button
+            type="button"
+            onClick={() => router.push("/chat")}
+            className="text-sm font-semibold text-slate-600"
+          >
+            ← Back
+          </button>
           <div>
-            <p className="text-xs uppercase text-slate-400">Group chat</p>
             {group ? (
               <Link href={`/groups/${group.id}`} className="inline-flex">
-                <h3 className="text-lg font-semibold text-slate-900 underline underline-offset-4">
-                  {group.title}
-                </h3>
+                <h3 className="text-lg font-semibold text-slate-900">{group.title}</h3>
               </Link>
             ) : (
               <h3 className="text-lg font-semibold text-slate-900">Loading...</h3>
@@ -466,21 +478,70 @@ export default function ChatThreadPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => handleStartCall("voice")}>
-            Voice call
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => handleStartCall("video")}>
-            Video call
-          </Button>
+        <div className="relative flex items-center gap-2">
           {group ? (
-            <Link href={`/groups/${group.id}`}>
-              <Button size="sm">View group</Button>
-            </Link>
+            latestCall ? (
+              <Button
+                size="sm"
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => router.push(`/chat/${groupId}/call?mode=${latestCall.mode || "video"}`)}
+              >
+                Join call
+              </Button>
+            ) : (
+              <Link href={`/groups/${group.id}`}>
+                <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700">
+                  View group
+                </Button>
+              </Link>
+            )
           ) : null}
-          <Button size="sm" onClick={loadMessages}>
-            Refresh
-          </Button>
+          <button
+            type="button"
+            onClick={() => setShowActions((prev) => !prev)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-xl font-semibold text-white shadow-sm shadow-blue-600/30 hover:bg-blue-700"
+            aria-label="More actions"
+          >
+            ⋯
+          </button>
+          {showActions ? (
+            <div className="absolute right-0 top-11 z-10 w-40 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowActions(false);
+                  loadMessages();
+                }}
+                className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                🔄 Refresh
+              </button>
+              {canCall ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowActions(false);
+                      handleStartCall("voice");
+                    }}
+                    className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    🎤 Voice call
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowActions(false);
+                      handleStartCall("video");
+                    }}
+                    className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    🎥 Video call
+                  </button>
+                </>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -594,7 +655,7 @@ export default function ChatThreadPage() {
                       <p className="mt-1">Tap to join the {callMeta.mode || "video"} call.</p>
                       <Button
                         size="sm"
-                        variant="outline"
+                        className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
                         onClick={() => router.push(`/chat/${groupId}/call?mode=${callMeta.mode || "video"}`)}
                       >
                         Join call
