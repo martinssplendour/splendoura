@@ -1152,90 +1152,92 @@ export default function GroupDetailPage() {
           </div>
         )}
         {user?.id === group.creator_id ? (
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <input
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              onChange={handleSelectMedia}
-              ref={mediaInputRef}
-              className="hidden"
-            />
-            <Button
-              onClick={() => mediaInputRef.current?.click()}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              Choose media
-            </Button>
-            <button
-              type="button"
-              onClick={() => setIsCoverUpload((prev) => !prev)}
-              className={`rounded-full border px-4 py-2 text-xs font-semibold ${
-                isCoverUpload
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              Set as cover
-            </button>
-            <Button
-              onClick={handleUploadMedia}
-              disabled={mediaFiles.length === 0 || isUploadingMedia}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              {isUploadingMedia ? "Uploading..." : "Upload media"}
-            </Button>
-          </div>
-          {mediaFiles.length > 0 ? (
-            <p className="mt-2 text-xs text-slate-500">
-              {mediaFiles.length} file(s) ready to upload
-            </p>
-          ) : null}
-          {pendingMediaPreview ? (
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold text-slate-500">
-                Preview {pendingMediaIndex + 1} of {pendingMediaFiles.length}
-              </p>
-              {pendingMediaIsImage ? (
-                <img
-                  src={pendingMediaPreview}
-                  alt="Pending media"
-                  className="mt-3 h-52 w-full rounded-2xl object-cover"
-                />
-              ) : (
-                <div className="mt-3 flex h-40 w-full items-center justify-center rounded-2xl bg-slate-100 text-xs text-slate-500">
-                  Video selected
-                </div>
-              )}
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Button
-                  onClick={() => handleAddMedia("original")}
-                  className="bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Add to upload
-                </Button>
-                {pendingMediaIsImage ? (
-                  <Button variant="outline" onClick={() => handleAddMedia("crop")}>
-                    Crop & add
-                  </Button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={handleSkipMedia}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-700"
-                >
-                  Skip
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancelPendingMedia}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-700"
-                >
-                  Cancel all
-                </button>
-              </div>
+          <>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <input
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                onChange={handleSelectMedia}
+                ref={mediaInputRef}
+                className="hidden"
+              />
+              <Button
+                onClick={() => mediaInputRef.current?.click()}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Choose media
+              </Button>
+              <button
+                type="button"
+                onClick={() => setIsCoverUpload((prev) => !prev)}
+                className={`rounded-full border px-4 py-2 text-xs font-semibold ${
+                  isCoverUpload
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                Set as cover
+              </button>
+              <Button
+                onClick={handleUploadMedia}
+                disabled={mediaFiles.length === 0 || isUploadingMedia}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {isUploadingMedia ? "Uploading..." : "Upload media"}
+              </Button>
             </div>
-          ) : null}
+            {mediaFiles.length > 0 ? (
+              <p className="mt-2 text-xs text-slate-500">
+                {mediaFiles.length} file(s) ready to upload
+              </p>
+            ) : null}
+            {pendingMediaPreview ? (
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-semibold text-slate-500">
+                  Preview {pendingMediaIndex + 1} of {pendingMediaFiles.length}
+                </p>
+                {pendingMediaIsImage ? (
+                  <img
+                    src={pendingMediaPreview}
+                    alt="Pending media"
+                    className="mt-3 h-52 w-full rounded-2xl object-cover"
+                  />
+                ) : (
+                  <div className="mt-3 flex h-40 w-full items-center justify-center rounded-2xl bg-slate-100 text-xs text-slate-500">
+                    Video selected
+                  </div>
+                )}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <Button
+                    onClick={() => handleAddMedia("original")}
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    Add to upload
+                  </Button>
+                  {pendingMediaIsImage ? (
+                    <Button variant="outline" onClick={() => handleAddMedia("crop")}>
+                      Crop & add
+                    </Button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleSkipMedia}
+                    className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelPendingMedia}
+                    className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                  >
+                    Cancel all
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </>
         ) : (
           <p className="mt-3 text-sm text-slate-500">Only the group admin can upload media.</p>
         )}
