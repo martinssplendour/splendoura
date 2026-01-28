@@ -129,6 +129,11 @@ export default function GroupFormWizard() {
         typeof data.offerings === "string"
           ? data.offerings.split(",").map((item) => item.trim()).filter(Boolean)
           : data.offerings;
+      if (!normalizedOfferings || normalizedOfferings.length < 2) {
+        setSubmitError("List at least two offers before publishing.");
+        setIsSubmitting(false);
+        return;
+      }
       const res = await apiFetch("/groups", {
         method: "POST",
         body: JSON.stringify({
@@ -141,26 +146,43 @@ export default function GroupFormWizard() {
         token: accessToken || undefined,
       });
       if (!res.ok) {
-        const payload = await res.json().catch(() => null);
-        throw new Error(payload?.detail || "Unable to publish group.");
+        const contentType = res.headers.get("content-type") || "";
+        const payload = contentType.includes("application/json")
+          ? await res.json().catch(() => null)
+          : null;
+        const text = payload ? "" : await res.text().catch(() => "");
+        const detail =
+          payload?.detail ||
+          payload?.message ||
+          text ||
+          `Unable to publish group (status ${res.status}).`;
+        throw new Error(detail);
       }
       const createdGroup = await res.json();
       if (mediaFiles.length > 0) {
         for (const file of mediaFiles) {
           const formData = new FormData();
           formData.append("file", file);
-          await apiFetch(`/groups/${createdGroup.id}/media`, {
+          const uploadRes = await apiFetch(`/groups/${createdGroup.id}/media`, {
             method: "POST",
             body: formData,
             token: accessToken,
           });
+          if (!uploadRes.ok) {
+            const message = await uploadRes.text().catch(() => "");
+            throw new Error(message || "Media upload failed.");
+          }
         }
       }
       setSubmitSuccess("Group published successfully.");
       router.push("/groups");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to publish group.";
-      setSubmitError(message);
+      const raw = err instanceof Error ? err.message : "Unable to publish group.";
+      const friendly =
+        raw.toLowerCase().includes("failed to fetch") || raw.toLowerCase().includes("load failed")
+          ? "Network error: unable to reach the server. Check your connection or API URL."
+          : raw;
+      setSubmitError(friendly);
     } finally {
       setIsSubmitting(false);
     }
