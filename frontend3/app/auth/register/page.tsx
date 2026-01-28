@@ -27,7 +27,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/users`, {
+      const response = await fetch(`${API_BASE_URL}/users/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
