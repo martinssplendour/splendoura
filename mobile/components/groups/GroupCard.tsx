@@ -247,8 +247,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   imageWrap: {
-    flex: 1,
-    minHeight: 480,
+    flex: 4,
   },
   image: {
     width: "100%",
@@ -392,6 +391,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   body: {
+    flex: 1,
     padding: 6,
     gap: 4,
     backgroundColor: "#ffffff",

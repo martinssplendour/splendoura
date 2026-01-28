@@ -4,8 +4,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { usePathname, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export const BOTTOM_NAV_HEIGHT = 72;
-const NAV_VERTICAL_OFFSET = 0;
+export const BOTTOM_NAV_HEIGHT = Math.round(72 * 0.8);
+const NAV_VERTICAL_OFFSET = Math.round(BOTTOM_NAV_HEIGHT * 0.1);
 
 const NAV_ITEMS: { key: string; label: string; path: string }[] = [
   { key: "discover", label: "Discover", path: "/groups" },
