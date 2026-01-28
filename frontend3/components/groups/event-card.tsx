@@ -89,6 +89,24 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
               ))}
             </div>
           ) : null}
+          {creatorName ? (
+            <Link
+              href={`/users/${group.creator_id}`}
+              onClick={(event) => event.stopPropagation()}
+              className="absolute right-4 top-8 z-10 h-[120px] w-[120px] overflow-hidden rounded-full border-2 border-white/80 bg-slate-900/40 shadow-md"
+              aria-label="View creator profile"
+            >
+              {creatorAvatarUrl ? (
+                <img
+                  src={resolveMediaUrl(creatorAvatarUrl)}
+                  alt={creatorName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full bg-white/40" />
+              )}
+            </Link>
+          ) : null}
           {images.length > 1 ? (
             <div className="absolute inset-0 flex">
               <button
