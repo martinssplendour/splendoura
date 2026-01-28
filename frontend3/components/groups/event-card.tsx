@@ -60,13 +60,13 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
     return (
       <div
         ref={ref}
-        className={`relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-none sm:rounded-[32px] sm:border-white/70 sm:shadow-2xl sm:shadow-slate-900/15 ${
+        className={`relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-none sm:border-white/70 sm:shadow-2xl sm:shadow-slate-900/15 ${
           className || ""
         }`}
         style={style}
         onClick={onClick}
       >
-        <div className="relative h-56 w-full sm:h-72">
+        <div className="relative h-64 w-full sm:h-80">
           {activeImage ? (
             <img
               src={resolveMediaUrl(activeImage)}
@@ -78,11 +78,11 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/65 via-slate-900/20 to-transparent" />
           {images.length > 1 ? (
-            <div className="absolute left-4 right-4 top-3 flex gap-1">
+            <div className="absolute left-3 right-3 top-2 flex gap-0.5">
               {images.map((_, index) => (
                 <span
                   key={`media-${index}`}
-                  className={`h-1 flex-1 rounded-full ${
+                  className={`h-0.5 flex-1 rounded-full ${
                     index === safeIndex ? "bg-white/90" : "bg-white/40"
                   }`}
                 />
@@ -93,7 +93,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
             <Link
               href={`/users/${group.creator_id}`}
               onClick={(event) => event.stopPropagation()}
-              className="absolute right-4 top-8 z-10 h-[120px] w-[120px] overflow-hidden rounded-full border-2 border-white/80 bg-slate-900/40 shadow-md"
+              className="absolute right-4 top-6 z-10 h-[80px] w-[80px] overflow-hidden rounded-full border-2 border-white/80 bg-slate-900/40 shadow-md"
               aria-label="View creator profile"
             >
               {creatorAvatarUrl ? (
@@ -131,14 +131,14 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
               />
             </div>
           ) : null}
-          <div className="absolute bottom-4 left-4 right-4 text-white">
-            <p className="text-xs uppercase tracking-wide text-white/70">Featured</p>
-            <h2 className="mt-1 text-2xl font-semibold">{group.title}</h2>
-            <p className="text-xs text-white/80">{costLine}</p>
+          <div className="absolute bottom-3 left-3 right-3 text-white">
+            <p className="text-[10px] uppercase tracking-wide text-white/70">Featured</p>
+            <h2 className="mt-1 text-lg font-semibold">{group.title}</h2>
+            <p className="text-[10px] text-white/80">{costLine}</p>
           </div>
           {overlayLabel ? (
             <div
-              className={`absolute left-4 top-4 rounded-2xl border px-4 py-2 text-sm font-semibold uppercase tracking-widest ${
+              className={`absolute left-3 top-3 rounded-xl border px-2 py-1 text-[10px] font-semibold uppercase tracking-widest ${
                 overlayLabel.variant === "like"
                   ? "border-emerald-400 text-emerald-200"
                   : "border-red-300 text-red-200"
@@ -150,38 +150,38 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           ) : null}
         </div>
 
-        <div className="flex-1 space-y-4 p-5 sm:p-6">
+        <div className="flex-1 space-y-2 p-3 sm:p-4">
           {creatorName ? (
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
               {creatorAvatarUrl ? (
                 <img
                   src={resolveMediaUrl(creatorAvatarUrl)}
                   alt={creatorName}
-                  className="h-6 w-6 rounded-full object-cover"
+                  className="h-4 w-4 rounded-full object-cover"
                 />
               ) : (
-                <div className="h-6 w-6 rounded-full bg-slate-200" />
+                <div className="h-4 w-4 rounded-full bg-slate-200" />
               )}
               <span className="font-semibold text-slate-700">{creatorName}</span>
               {locationLabel ? <span className="text-slate-400"> | {locationLabel}</span> : null}
             </div>
           ) : null}
           <div>
-            <p className="mt-2 text-sm text-slate-600 line-clamp-3">{group.description}</p>
+            <p className="mt-1 text-xs text-slate-600 line-clamp-2">{group.description}</p>
           </div>
 
           <CardChips group={group} />
           <Link
             href={`/groups/${group.id}#creator`}
             onClick={(event) => event.stopPropagation()}
-            className="inline-flex text-xs font-semibold uppercase tracking-wide text-blue-600"
+            className="inline-flex text-[10px] font-semibold uppercase tracking-wide text-blue-600"
           >
             View creator profile
           </Link>
         </div>
 
         {footer ? (
-          <div className="sticky bottom-0 border-t border-slate-100 bg-white/95 px-5 py-4 sm:px-6">
+          <div className="sticky bottom-0 border-t border-slate-100 bg-white/95 px-3 py-3 sm:px-4">
             {footer}
           </div>
         ) : null}

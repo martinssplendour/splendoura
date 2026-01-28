@@ -123,11 +123,6 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
     };
   }, [accessToken, current?.creator_id]);
 
-  const progress = useMemo(() => {
-    if (groups.length === 0) return 0;
-    return Math.min(100, Math.round(((index + 1) / groups.length) * 100));
-  }, [groups.length, index]);
-
   useEffect(() => {
     const updateWidth = () => {
       if (cardRef.current) {
@@ -326,18 +321,6 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
 
   return (
     <div className="flex w-full flex-col items-center gap-6">
-      <div className="w-full max-w-3xl">
-        <div className="mb-3 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-400">
-          <span>Swipe deck</span>
-          <span>
-            {index + 1} / {groups.length}
-          </span>
-        </div>
-        <div className="h-1 w-full overflow-hidden rounded-full bg-white/70">
-          <div className="h-full bg-emerald-500" style={{ width: `${progress}%` }} />
-        </div>
-      </div>
-
       <div className="relative w-full max-w-3xl">
         <div className="absolute inset-0 hidden lg:block">
           {upcoming.map((group, stackIndex) => (

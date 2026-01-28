@@ -2,9 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Filter } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import SwipeDeck from "@/components/groups/swipe-deck";
@@ -28,6 +26,7 @@ const DEFAULT_FILTERS: GroupFilters = {
 export default function BrowseGroups() {
   const searchParams = useSearchParams();
   const creatorId = searchParams.get("creator_id");
+  const filtersParam = searchParams.get("filters");
   const [groups, setGroups] = useState<SwipeGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<GroupFilters>(DEFAULT_FILTERS);
@@ -66,6 +65,14 @@ export default function BrowseGroups() {
       return next;
     });
   }, [user]);
+
+  useEffect(() => {
+    if (filtersParam !== "open") return;
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      setDrawerOpen(true);
+    }
+  }, [filtersParam]);
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -181,37 +188,17 @@ export default function BrowseGroups() {
                 <option value="smart">Smart sort</option>
                 <option value="recent">Most recent</option>
               </select>
-              <Link
-                href="/groups/create"
-                className="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
-              >
-                Create Group
-              </Link>
               <Button className="bg-slate-900 text-white hover:bg-slate-800" onClick={() => setFindTypeOpen(true)}>
                 Find my type
               </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:hidden">
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(true)}
-              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 shadow-sm"
-            >
-              <Filter className="h-4 w-4" />
-              Filters
-            </button>
-            <Link
-              href="/groups/create"
-              className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
-            >
-              Create group
-            </Link>
+          <div className="flex items-center justify-end sm:hidden">
             <button
               type="button"
               onClick={() => setFindTypeOpen(true)}
-              className="ml-auto rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-slate-900/20"
+              className="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-slate-900/20"
             >
               Find my type
             </button>

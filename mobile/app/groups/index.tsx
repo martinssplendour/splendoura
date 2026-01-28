@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import SwipeDeck from "@/components/groups/SwipeDeck";
 import type { SwipeGroup } from "@/components/groups/types";
+import FindMyTypeModal from "@/components/find-my-type-modal";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -67,6 +68,7 @@ export default function GroupsScreen() {
   const [status, setStatus] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [activeCategory, setActiveCategory] = useState<CategoryId>("friendship");
+  const [findTypeOpen, setFindTypeOpen] = useState(false);
   const [locationFilter, setLocationFilter] = useState("");
   const [activityFilter, setActivityFilter] = useState("");
   const [minAgeFilter, setMinAgeFilter] = useState("");
@@ -238,6 +240,9 @@ export default function GroupsScreen() {
               >
                 {showFilters ? "Hide filters" : "Filters"}
               </Button>
+              <Button size="sm" onPress={() => setFindTypeOpen(true)}>
+                Find my type
+              </Button>
             </View>
           </View>
 
@@ -376,6 +381,7 @@ export default function GroupsScreen() {
         </View>
         <BottomNav />
       </View>
+      <FindMyTypeModal visible={findTypeOpen} onClose={() => setFindTypeOpen(false)} />
     </SafeAreaView>
   );
 }
@@ -408,6 +414,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     marginTop: 2,
+    flexWrap: "wrap",
   },
   appNameWrap: {
     alignSelf: "flex-start",

@@ -1288,9 +1288,8 @@ export default function ProfilePage() {
       </div>
 
       <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center">
           <h2 className="text-xl font-semibold text-slate-900">Your groups</h2>
-          <span className="text-sm text-slate-500">{createdGroups.length} total</span>
         </div>
         {createdLoading ? (
           <p className="text-sm text-slate-500">Loading your groups...</p>

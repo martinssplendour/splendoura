@@ -1343,7 +1343,6 @@ export default function ProfileScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Your groups</Text>
-                <Text style={styles.sectionMeta}>{createdGroups.length} total</Text>
               </View>
               {createdLoading ? (
                 <Text style={styles.status}>Loading your groups...</Text>
@@ -1432,10 +1431,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-  },
-  sectionMeta: {
-    fontSize: 12,
-    color: "#94a3b8",
   },
   completionRow: {
     flexDirection: "row",

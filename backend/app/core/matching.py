@@ -166,7 +166,11 @@ def matches_criterion(requester: User, candidate: User, criterion: dict) -> bool
     if key == "social_energy":
         return _match_in(_get_profile_detail(candidate, "social_energy"), value)
     if key == "fitness_level":
-        return _match_in(_get_profile_detail(candidate, "workout"), value)
+        return _match_in(
+            _get_profile_detail(candidate, "workout_habits")
+            or _get_profile_detail(candidate, "workout"),
+            value,
+        )
     if key == "relationship_preference":
         return _match_in(_get_profile_detail(candidate, "relationship_preference"), value)
     if key == "casual_dating":

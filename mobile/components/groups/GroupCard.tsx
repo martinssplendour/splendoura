@@ -223,7 +223,7 @@ export default function GroupCard({
             </View>
           </View>
         ) : null}
-        <Text style={styles.description} numberOfLines={3}>
+        <Text style={styles.description} numberOfLines={2}>
           {group.description}
         </Text>
         <View style={styles.chips}>
@@ -240,7 +240,7 @@ export default function GroupCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 28,
+    borderRadius: 14,
     backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#e2e8f0",
@@ -248,11 +248,12 @@ const styles = StyleSheet.create({
   },
   imageWrap: {
     flex: 1,
-    minHeight: 360,
+    minHeight: 420,
   },
   image: {
     width: "100%",
     height: "100%",
+    resizeMode: "cover",
   },
   imagePlaceholder: {
     width: "100%",
@@ -266,19 +267,19 @@ const styles = StyleSheet.create({
   },
   imageBars: {
     position: "absolute",
-    top: 12,
-    left: 12,
-    right: 12,
+    top: 6,
+    left: 6,
+    right: 6,
     flexDirection: "row",
-    gap: 6,
+    gap: 3,
   },
   creatorAvatarButton: {
     position: "absolute",
-    top: 30,
-    right: 16,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    top: 18,
+    right: 12,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     overflow: "hidden",
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.8)",
@@ -296,9 +297,9 @@ const styles = StyleSheet.create({
   },
   topLeftMeta: {
     position: "absolute",
-    top: 18,
-    left: 16,
-    gap: 6,
+    top: 9,
+    left: 8,
+    gap: 3,
     maxWidth: "70%",
   },
   topLeftText: {
@@ -308,17 +309,17 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   topLeftName: {
-    fontSize: 18,
+    fontSize: 10,
     fontWeight: "700",
   },
   topLeftLocation: {
-    fontSize: 11,
+    fontSize: 8,
     fontWeight: "600",
   },
   imageBar: {
     flex: 1,
-    height: 3,
-    borderRadius: 2,
+    height: 2,
+    borderRadius: 1,
     backgroundColor: "rgba(255,255,255,0.35)",
   },
   imageBarActive: {
@@ -326,34 +327,34 @@ const styles = StyleSheet.create({
   },
   imageText: {
     position: "absolute",
-    left: 16,
-    right: 72,
-    bottom: 16,
+    left: 8,
+    right: 48,
+    bottom: 10,
   },
   title: {
-    fontSize: 24,
+    fontSize: 13,
     fontWeight: "700",
     color: "#ffffff",
   },
   meta: {
-    fontSize: 13,
+    fontSize: 9,
     color: "rgba(255,255,255,0.85)",
   },
   overlayLabel: {
     position: "absolute",
-    top: 48,
-    left: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    top: 24,
+    left: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 2,
     backgroundColor: "rgba(0,0,0,0.2)",
   },
   overlayLabelText: {
     color: "#ffffff",
     fontWeight: "700",
-    fontSize: 12,
-    letterSpacing: 1,
+    fontSize: 8,
+    letterSpacing: 0.6,
   },
   likeBorder: {
     borderColor: "#10b981",
@@ -363,11 +364,11 @@ const styles = StyleSheet.create({
   },
   infoButton: {
     position: "absolute",
-    right: 16,
-    bottom: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    right: 8,
+    bottom: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.6)",
     backgroundColor: "rgba(15, 23, 42, 0.6)",
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
   },
   infoIcon: {
     color: "#ffffff",
-    fontSize: 16,
+    fontSize: 10,
     fontWeight: "700",
   },
   tapZones: {
@@ -391,58 +392,58 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   body: {
-    padding: 16,
-    gap: 12,
+    padding: 8,
+    gap: 6,
     backgroundColor: "#ffffff",
     borderTopWidth: 1,
     borderColor: "#e2e8f0",
   },
   description: {
-    fontSize: 14,
+    fontSize: 10,
     color: "#475569",
   },
   chips: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 4,
   },
   discoveryRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
+    gap: 4,
   },
   discoverySection: {
-    gap: 6,
+    gap: 4,
   },
   discoveryTitle: {
-    fontSize: 11,
+    fontSize: 8,
     fontWeight: "700",
     color: "#0f172a",
     textTransform: "uppercase",
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
   },
   discoveryPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
     borderRadius: 999,
     backgroundColor: "#ecfeff",
     borderWidth: 1,
     borderColor: "#a5f3fc",
   },
   discoveryText: {
-    fontSize: 10,
+    fontSize: 7,
     fontWeight: "700",
     color: "#0e7490",
     textTransform: "uppercase",
   },
   chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
     borderRadius: 999,
     backgroundColor: "#f1f5f9",
   },
   chipText: {
-    fontSize: 11,
+    fontSize: 8,
     fontWeight: "600",
     color: "#475569",
   },

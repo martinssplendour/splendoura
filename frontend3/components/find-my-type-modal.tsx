@@ -523,7 +523,7 @@ export default function FindMyTypeModal({
                 <span className="text-xs text-slate-500">{results.length} profiles</span>
               </div>
               {results.length === 0 ? (
-                <p className="text-sm text-slate-600">No matches found yet.</p>
+                <p className="text-sm text-slate-600">Type does not exist yet. Try adjusting your criteria.</p>
               ) : (
                 <div className="space-y-3">
                   {results.map((result) => {
@@ -550,7 +550,7 @@ export default function FindMyTypeModal({
                         <div className="flex-1">
                           <p className="text-sm font-semibold text-slate-800">{name}</p>
                           <p className="text-xs text-slate-500">
-                            {result.user.age ? `${result.user.age} · ` : ""}
+                            {result.user.age ? `${result.user.age} - ` : ""}
                             {[result.user.location_city, result.user.location_country]
                               .filter(Boolean)
                               .join(", ") || "Location unavailable"}
@@ -620,3 +620,4 @@ export default function FindMyTypeModal({
     </div>
   );
 }
+

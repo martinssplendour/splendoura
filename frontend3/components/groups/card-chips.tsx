@@ -52,73 +52,73 @@ export default function CardChips({ group }: { group: SwipeGroup }) {
       ? [
           {
             label: CATEGORY_LABELS[group.category] || group.category,
-            icon: <Heart className="h-3.5 w-3.5" />,
+            icon: <Heart className="h-3 w-3" />,
           },
         ]
       : []),
     {
       label: COST_LABELS[group.cost_type] || "Shared",
-      icon: <Wallet className="h-3.5 w-3.5" />,
+      icon: <Wallet className="h-3 w-3" />,
     },
   ];
 
   if (spotsLeft != null) {
     chips.push({
       label: `${spotsLeft} spots left`,
-      icon: <Users className="h-3.5 w-3.5" />,
+      icon: <Users className="h-3 w-3" />,
     });
   }
 
   offerings.slice(0, 2).forEach((offer) => {
     chips.push({
       label: `Offer: ${trimLabel(offer, 22)}`,
-      icon: <Gift className="h-3.5 w-3.5" />,
+      icon: <Gift className="h-3 w-3" />,
     });
   });
 
   if (expectationsText) {
     chips.push({
       label: `Expect: ${trimLabel(expectationsText, 26)}`,
-      icon: <ClipboardCheck className="h-3.5 w-3.5" />,
+      icon: <ClipboardCheck className="h-3 w-3" />,
     });
   }
 
   if (group.location) {
     chips.push({
       label: group.location,
-      icon: <MapPin className="h-3.5 w-3.5" />,
+      icon: <MapPin className="h-3 w-3" />,
     });
   }
 
   if (restricted) {
     chips.push({
       label: `${restricted.applies_to} only`.replace("_", " "),
-      icon: <Heart className="h-3.5 w-3.5" />,
+      icon: <Heart className="h-3 w-3" />,
     });
   }
 
   if (group.start_date) {
     chips.push({
       label: new Date(group.start_date).toLocaleDateString(),
-      icon: <Calendar className="h-3.5 w-3.5" />,
+      icon: <Calendar className="h-3 w-3" />,
     });
   }
 
   if (group.shared_tags && group.shared_tags.length > 0) {
     chips.push({
       label: `Shared: ${group.shared_tags[0]}`,
-      icon: <Heart className="h-3.5 w-3.5" />,
+      icon: <Heart className="h-3 w-3" />,
     });
   }
 
   const visibleChips = chips.slice(0, 6);
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       {visibleChips.map((chip, index) => (
         <span
           key={`${chip.label}-${index}`}
-          className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
+          className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
         >
           {chip.icon}
           {chip.label}
