@@ -17,3 +17,4 @@ from .push_token import UserPushToken
 from .report import Report
 from .message import GroupMessage, GroupMessageRead
 from .media import MediaBlob
+from .match_request import MatchRequest, MatchRequestInvite

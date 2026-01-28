@@ -27,3 +27,11 @@ from .token import (
 )
 from .report import Report, ReportCreate
 from .message import GroupMessage, GroupMessageCreate, GroupMessageReadRequest
+from .match_request import (
+    MatchRequest,
+    MatchRequestCreate,
+    MatchRequestWithResults,
+    MatchCriterion,
+    MatchCandidate,
+    MatchInvite,
+)

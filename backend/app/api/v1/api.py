@@ -1,6 +1,6 @@
 # backend/app/api/v1/api.py
 from fastapi import APIRouter
-from app.api.v1.endpoints import admin, auth, users, groups, reports, messages, realtime, media
+from app.api.v1.endpoints import admin, auth, users, groups, reports, messages, realtime, media, match
 
 api_router = APIRouter()
 
@@ -12,3 +12,4 @@ api_router.include_router(messages.router, prefix="/groups", tags=["messages"])
 api_router.include_router(realtime.router, tags=["realtime"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(media.router, tags=["media"])
+api_router.include_router(match.router, prefix="/match", tags=["match"])

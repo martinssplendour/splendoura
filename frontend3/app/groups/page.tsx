@@ -12,6 +12,8 @@ import SwipeDeckSkeleton from "@/components/groups/loading-skeleton";
 import FiltersSidebar, { GroupFilters } from "@/components/groups/filters-sidebar";
 import FiltersDrawer from "@/components/groups/filters-drawer";
 import type { SwipeGroup } from "@/components/groups/types";
+import FindMyTypeModal from "@/components/find-my-type-modal";
+import { Button } from "@/components/ui/button";
 
 const DEFAULT_FILTERS: GroupFilters = {
   location: "",
@@ -31,6 +33,7 @@ export default function BrowseGroups() {
   const [filters, setFilters] = useState<GroupFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState("smart");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [findTypeOpen, setFindTypeOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<
     "mutual_benefits" | "friendship" | "dating"
   >("friendship");
@@ -184,6 +187,9 @@ export default function BrowseGroups() {
               >
                 Create Group
               </Link>
+              <Button className="bg-slate-900 text-white hover:bg-slate-800" onClick={() => setFindTypeOpen(true)}>
+                Find my type
+              </Button>
             </div>
           </div>
 
@@ -197,11 +203,18 @@ export default function BrowseGroups() {
               Filters
             </button>
             <Link
-                href="/groups/create"
-                className="ml-auto rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
-              >
-                Create group
-              </Link>
+              href="/groups/create"
+              className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
+            >
+              Create group
+            </Link>
+            <button
+              type="button"
+              onClick={() => setFindTypeOpen(true)}
+              className="ml-auto rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-slate-900/20"
+            >
+              Find my type
+            </button>
           </div>
 
           <div className="space-y-4 sm:space-y-6">
@@ -247,6 +260,8 @@ export default function BrowseGroups() {
           filters.distance.trim() && (user?.location_lat == null || user?.location_lng == null)
         )}
       />
+
+      <FindMyTypeModal open={findTypeOpen} onClose={() => setFindTypeOpen(false)} />
     </div>
   );
 }
