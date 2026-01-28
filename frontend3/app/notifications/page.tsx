@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -264,7 +264,7 @@ export default function NotificationsPage() {
                         <Link href={`/groups/${request.group_id}`} className="text-blue-600">
                           View group
                         </Link>
-                        <span className="text-slate-400">|</span>
+                        <span className="text-xs text-slate-400">|</span>
                         <Link href={`/users/${request.user_id}`} className="text-blue-600">
                           View profile
                         </Link>
@@ -287,7 +287,7 @@ export default function NotificationsPage() {
           <Link href="/groups" className="text-xs font-semibold text-blue-600">
             Browse groups
           </Link>
-          <span className="text-xs text-slate-400">•</span>
+          <span className="text-xs text-slate-400">|</span>
           <Link href="/profile" className="text-xs font-semibold text-blue-600">
             Update profile
           </Link>
