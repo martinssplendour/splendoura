@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Home, MessageCircle, Inbox, LogOut, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -26,8 +27,9 @@ export default function Navbar() {
     <nav className="border-b border-slate-200 bg-white">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="text-xl font-bold text-blue-600">
-          Splendoura
+        <Link href="/" className="flex items-center gap-2 text-xl font-bold text-blue-600">
+          <Image src="/brand/icon.png" alt="Splendoura" width={28} height={28} />
+          <span>Splendoura</span>
         </Link>
 
         {/* Right Side Actions */}

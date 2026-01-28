@@ -37,6 +37,13 @@ export default function BrowseGroups() {
   const { accessToken, user } = useAuth();
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 639px)").matches) {
+      setSort("recent");
+    }
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     setFilters((prev) => {
       const discovery = (user.discovery_settings as Record<string, unknown>) || {};
@@ -133,7 +140,7 @@ export default function BrowseGroups() {
   ];
 
   return (
-    <div className="relative overflow-hidden bg-white p-4 sm:rounded-[40px] sm:border sm:border-white/70 sm:bg-white/70 sm:p-10 sm:shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
+    <div className="relative -mt-4 overflow-hidden bg-white px-4 pb-4 pt-2 sm:mt-0 sm:rounded-[40px] sm:border sm:border-white/70 sm:bg-white/70 sm:p-10 sm:shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_#e2f4ff_0%,_#f8fbff_38%,_#fff1ea_100%)] opacity-80" />
       <div className="pointer-events-none absolute inset-x-10 top-10 h-24 rounded-full bg-[radial-gradient(circle,_rgba(255,255,255,0.7)_0%,_rgba(255,255,255,0)_70%)] blur-2xl" />
 
@@ -189,14 +196,6 @@ export default function BrowseGroups() {
               <Filter className="h-4 w-4" />
               Filters
             </button>
-            <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value)}
-              className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600"
-            >
-              <option value="smart">Smart sort</option>
-              <option value="recent">Most recent</option>
-            </select>
             <Link
                 href="/groups/create"
                 className="ml-auto rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
