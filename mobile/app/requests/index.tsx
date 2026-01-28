@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -13,7 +13,6 @@ import {
 import { useRouter } from "expo-router";
 
 import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav";
-import { Button } from "@/components/ui/Button";
 import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -43,92 +42,138 @@ interface RequestItem {
   request_tier?: string | null;
 }
 
-export default function RequestsScreen() {
+type SystemNotice = {
+  id: string;
+  title: string;
+  description: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+};
+
+export default function NotificationsScreen() {
   const router = useRouter();
   const { accessToken, user, isLoading } = useAuth();
   const [requests, setRequests] = useState<RequestItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
+  const systemNotices = useMemo<SystemNotice[]>(() => {
+    if (!user) return [];
+    const notices: SystemNotice[] = [];
+    if (!user.profile_image_url) {
+      notices.push({
+        id: "add-photo",
+        title: "Add a profile photo",
+        description: "Profiles with a photo get more matches and can create groups.",
+        ctaLabel: "Upload photo",
+        ctaHref: "/profile",
+      });
+    }
+    if (!user.bio) {
+      notices.push({
+        id: "add-bio",
+        title: "Introduce yourself",
+        description: "A short bio helps people know what you are about.",
+        ctaLabel: "Edit bio",
+        ctaHref: "/profile",
+      });
+    }
+    if (user.verification_status !== "verified") {
+      notices.push({
+        id: "verify",
+        title: "Verify your profile",
+        description: "Verified profiles get more trust and visibility.",
+        ctaLabel: "Start verification",
+        ctaHref: "/profile",
+      });
+    }
+    if (notices.length === 0) {
+      notices.push({
+        id: "all-good",
+        title: "You are all caught up",
+        description: "No new system updates right now.",
+      });
+    }
+    return notices;
+  }, [user]);
 
   useEffect(() => {
     async function loadRequests() {
-      if (!accessToken || !user?.id) {
-        setLoading(false);
-        return;
-      }
-
-      const groupsRes = await apiFetch(`/groups?creator_id=${user.id}`, { token: accessToken });
-      if (!groupsRes.ok) {
-        setLoading(false);
-        return;
-      }
-      const groupData: { id: number; title: string }[] = await groupsRes.json();
-
-      const nextUsers: Record<number, UserSummary> = {};
-      const nextRequests: RequestItem[] = [];
-
-      for (const group of groupData) {
-        const membersRes = await apiFetch(`/groups/${group.id}/members`, { token: accessToken });
-        if (!membersRes.ok) {
-          continue;
+      setRequestError(null);
+      setLoadingRequests(true);
+      try {
+        if (!accessToken || !user?.id) {
+          setLoadingRequests(false);
+          return;
         }
-        const members: MembershipItem[] = await membersRes.json();
-        const requestedMembers = members.filter((m) => m.join_status === "requested");
 
-        for (const member of requestedMembers) {
-          if (nextUsers[member.user_id]) {
-            nextRequests.push({
-              group_id: group.id,
-              group_title: group.title,
-              user_id: member.user_id,
-              user: nextUsers[member.user_id],
-              request_message: member.request_message,
-              request_tier: member.request_tier,
-            });
+        const groupsRes = await apiFetch(`/groups/?creator_id=${user.id}`, { token: accessToken });
+        if (!groupsRes.ok) {
+          const message = await groupsRes.text().catch(() => "");
+          setRequestError(message || "Unable to load your groups.");
+          setLoadingRequests(false);
+          return;
+        }
+        const groupData: { id: number; title: string }[] = await groupsRes.json();
+
+        const nextUsers: Record<number, UserSummary> = {};
+        const nextRequests: RequestItem[] = [];
+
+        for (const group of groupData) {
+          const membersRes = await apiFetch(`/groups/${group.id}/members`, { token: accessToken });
+          if (!membersRes.ok) {
             continue;
           }
-          const userRes = await apiFetch(`/users/${member.user_id}`, { token: accessToken });
-          if (userRes.ok) {
-            const userSummary = await userRes.json();
-            nextUsers[member.user_id] = userSummary;
-            nextRequests.push({
-              group_id: group.id,
-              group_title: group.title,
-              user_id: member.user_id,
-              user: userSummary,
-              request_message: member.request_message,
-              request_tier: member.request_tier,
-            });
-          } else {
-            nextRequests.push({
-              group_id: group.id,
-              group_title: group.title,
-              user_id: member.user_id,
-              request_message: member.request_message,
-              request_tier: member.request_tier,
-            });
+          const members: MembershipItem[] = await membersRes.json();
+          const requestedMembers = members.filter((m) => m.join_status === "requested");
+
+          for (const member of requestedMembers) {
+            if (nextUsers[member.user_id]) {
+              nextRequests.push({
+                group_id: group.id,
+                group_title: group.title,
+                user_id: member.user_id,
+                user: nextUsers[member.user_id],
+                request_message: member.request_message,
+                request_tier: member.request_tier,
+              });
+              continue;
+            }
+            const userRes = await apiFetch(`/users/${member.user_id}`, { token: accessToken });
+            if (userRes.ok) {
+              const userSummary = await userRes.json();
+              nextUsers[member.user_id] = userSummary;
+              nextRequests.push({
+                group_id: group.id,
+                group_title: group.title,
+                user_id: member.user_id,
+                user: userSummary,
+                request_message: member.request_message,
+                request_tier: member.request_tier,
+              });
+            } else {
+              nextRequests.push({
+                group_id: group.id,
+                group_title: group.title,
+                user_id: member.user_id,
+                request_message: member.request_message,
+                request_tier: member.request_tier,
+              });
+            }
           }
         }
-      }
 
-      setRequests(nextRequests);
-      setLoading(false);
+        setRequests(nextRequests);
+        setLoadingRequests(false);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unable to load join requests.";
+        setRequestError(message);
+        setLoadingRequests(false);
+      }
     }
 
     loadRequests();
   }, [accessToken, user?.id]);
-
-  const handleDecision = async (groupId: number, userId: number, action: "approve" | "reject") => {
-    if (!accessToken) return;
-    const res = await apiFetch(`/groups/${groupId}/${action}/${userId}`, {
-      method: "POST",
-      token: accessToken,
-    });
-    if (res.ok) {
-      setRequests((prev) =>
-        prev.filter((item) => !(item.group_id === groupId && item.user_id === userId))
-      );
-    }
-  };
 
   if (isLoading) {
     return (
@@ -144,18 +189,13 @@ export default function RequestsScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centered}>
-          <Text style={styles.status}>Sign in to manage requests.</Text>
-          <Button onPress={() => router.push("/auth/login")}>Go to sign in</Button>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#2563eb" />
+          <View style={styles.authCard}>
+            <Text style={styles.pageTitle}>Notifications</Text>
+            <Text style={styles.subtitle}>Sign in to view updates.</Text>
+            <Text style={styles.link} onPress={() => router.push("/auth/login")}>
+              Go to sign in
+            </Text>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -166,71 +206,115 @@ export default function RequestsScreen() {
       <View style={styles.page}>
         <ScrollView contentContainerStyle={[styles.container, styles.containerWithNav]}>
           <View>
-            <Text style={styles.title}>Join Requests</Text>
-            <Text style={styles.subtitle}>Review pending requests for your groups.</Text>
+            <Text style={styles.pageTitle}>Notifications</Text>
+            <Text style={styles.subtitle}>Updates from your groups plus system reminders.</Text>
           </View>
 
-          {requests.length === 0 ? (
-            <Text style={styles.status}>No pending requests right now.</Text>
-          ) : (
-            requests.map((request) => {
-              const displayName =
-                request.user?.full_name || request.user?.email || `User ${request.user_id}`;
-              return (
-                <View key={`${request.group_id}-${request.user_id}`} style={styles.card}>
-                  <View style={styles.cardRow}>
-                    {request.user?.profile_image_url ? (
-                      <Image
-                        source={{ uri: resolveMediaUrl(request.user.profile_image_url) }}
-                        style={styles.avatar}
-                      />
-                    ) : (
-                      <View style={styles.avatarPlaceholder} />
-                    )}
-                  <View style={styles.cardBody}>
-                    <Text style={styles.cardTitle}>
-                      {displayName} wants to join {request.group_title}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>System updates</Text>
+            <View style={styles.noticeList}>
+              {systemNotices.map((notice) => (
+                <View key={notice.id} style={styles.noticeCard}>
+                  <Text style={styles.noticeTitle}>{notice.title}</Text>
+                  <Text style={styles.noticeBody}>{notice.description}</Text>
+                  {notice.ctaHref ? (
+                    <Text style={styles.link} onPress={() => router.push(notice.ctaHref!)}>
+                      {notice.ctaLabel || "View"}
                     </Text>
-                    {request.request_tier === "superlike" ? (
-                      <Text style={styles.superlikeBadge}>Superlike</Text>
-                    ) : null}
-                    {request.request_message ? (
-                      <Text style={styles.note}>{request.request_message}</Text>
-                    ) : null}
-                    <View style={styles.linkRow}>
-                      <Text
-                          style={styles.link}
-                          onPress={() => router.push(`/groups/${request.group_id}`)}
-                        >
-                          View group
-                        </Text>
-                        <Text style={styles.dot}>-</Text>
-                        <Text
-                          style={styles.link}
-                          onPress={() => router.push(`/users/${request.user_id}`)}
-                        >
-                          View profile
-                        </Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.sectionHeaderText}>
+                <Text style={styles.sectionTitle}>Join requests</Text>
+                <Text style={styles.sectionSubtitle}>
+                  People asking to join groups you created.
+                </Text>
+              </View>
+              <Text style={styles.link} onPress={() => router.push("/requests/manage")}>
+                Manage requests
+              </Text>
+            </View>
+
+            {loadingRequests ? (
+              <View style={styles.loadingBlock} />
+            ) : requestError ? (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorTitle}>Unable to load join requests</Text>
+                <Text style={styles.errorBody}>{requestError}</Text>
+              </View>
+            ) : requests.length === 0 ? (
+              <Text style={styles.status}>No pending requests right now.</Text>
+            ) : (
+              <View style={styles.requestList}>
+                {requests.map((request) => {
+                  const displayName =
+                    request.user?.full_name || request.user?.email || `User ${request.user_id}`;
+                  return (
+                    <View key={`${request.group_id}-${request.user_id}`} style={styles.requestCard}>
+                      <View style={styles.requestRow}>
+                        {request.user?.profile_image_url ? (
+                          <Image
+                            source={{ uri: resolveMediaUrl(request.user.profile_image_url) }}
+                            style={styles.avatar}
+                          />
+                        ) : (
+                          <View style={styles.avatarPlaceholder} />
+                        )}
+                        <View style={styles.requestBody}>
+                          <Text style={styles.requestTitle}>
+                            {displayName} wants to join{" "}
+                            <Text style={styles.requestTitleStrong}>{request.group_title}</Text>
+                          </Text>
+                          {request.request_tier === "superlike" ? (
+                            <Text style={styles.superlikeBadge}>Superlike</Text>
+                          ) : null}
+                          {request.request_message ? (
+                            <Text style={styles.requestMessage}>{request.request_message}</Text>
+                          ) : null}
+                          <View style={styles.linkRow}>
+                            <Text
+                              style={styles.link}
+                              onPress={() => router.push(`/groups/${request.group_id}`)}
+                            >
+                              View group
+                            </Text>
+                            <Text style={styles.dot}>|</Text>
+                            <Text
+                              style={styles.link}
+                              onPress={() => router.push(`/users/${request.user_id}`)}
+                            >
+                              View profile
+                            </Text>
+                          </View>
+                        </View>
                       </View>
                     </View>
-                  </View>
-                  <View style={styles.actionRow}>
-                    <Button
-                      variant="outline"
-                      onPress={() => handleDecision(request.group_id, request.user_id, "reject")}
-                    >
-                      Decline
-                    </Button>
-                    <Button
-                      onPress={() => handleDecision(request.group_id, request.user_id, "approve")}
-                    >
-                      Accept
-                    </Button>
-                  </View>
-                </View>
-              );
-            })
-          )}
+                  );
+                })}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>General updates</Text>
+            <Text style={styles.sectionSubtitle}>
+              We will surface match invites and group announcements here next.
+            </Text>
+            <View style={styles.linkRow}>
+              <Text style={styles.link} onPress={() => router.push("/groups")}>
+                Browse groups
+              </Text>
+              <Text style={styles.dot}>|</Text>
+              <Text style={styles.link} onPress={() => router.push("/profile")}>
+                Update profile
+              </Text>
+            </View>
+          </View>
         </ScrollView>
         <BottomNav />
       </View>
@@ -248,29 +332,79 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 16,
-    gap: 12,
+    gap: 16,
   },
   containerWithNav: {
     paddingBottom: BOTTOM_NAV_HEIGHT + 16,
   },
-  title: {
+  pageTitle: {
     fontSize: 22,
     fontWeight: "700",
     color: "#0f172a",
   },
   subtitle: {
-    fontSize: 14,
+    marginTop: 4,
+    fontSize: 13,
     color: "#64748b",
   },
-  card: {
-    borderRadius: 18,
-    backgroundColor: "#ffffff",
+  section: {
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: "#e2e8f0",
-    padding: 14,
+    backgroundColor: "#ffffff",
+    padding: 16,
+    gap: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  sectionHeaderText: {
+    flex: 1,
+    gap: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: "#64748b",
+  },
+  noticeList: {
     gap: 10,
   },
-  cardRow: {
+  noticeCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+    padding: 12,
+    gap: 6,
+  },
+  noticeTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1e293b",
+  },
+  noticeBody: {
+    fontSize: 12,
+    color: "#64748b",
+  },
+  requestList: {
+    gap: 12,
+  },
+  requestCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#ffffff",
+    padding: 12,
+  },
+  requestRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -286,19 +420,22 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: "#e2e8f0",
   },
-  cardBody: {
+  requestBody: {
     flex: 1,
     gap: 4,
   },
-  cardTitle: {
-    fontSize: 14,
+  requestTitle: {
+    fontSize: 13,
     fontWeight: "600",
-    color: "#0f172a",
+    color: "#1e293b",
   },
-  linkRow: {
-    flexDirection: "row",
-    gap: 6,
-    alignItems: "center",
+  requestTitleStrong: {
+    color: "#0f172a",
+    fontWeight: "700",
+  },
+  requestMessage: {
+    fontSize: 12,
+    color: "#64748b",
   },
   superlikeBadge: {
     alignSelf: "flex-start",
@@ -310,9 +447,11 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 999,
   },
-  note: {
-    fontSize: 12,
-    color: "#475569",
+  linkRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    alignItems: "center",
   },
   link: {
     color: "#2563eb",
@@ -323,18 +462,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#94a3b8",
   },
-  actionRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
   status: {
-    fontSize: 13,
+    fontSize: 12,
     color: "#64748b",
+  },
+  loadingBlock: {
+    height: 120,
+    borderRadius: 16,
+    backgroundColor: "#e2e8f0",
+  },
+  errorCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    backgroundColor: "#fef2f2",
+    padding: 12,
+    gap: 4,
+  },
+  errorTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#b91c1c",
+  },
+  errorBody: {
+    fontSize: 11,
+    color: "#dc2626",
+  },
+  authCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#ffffff",
+    padding: 20,
+    gap: 6,
+    alignItems: "center",
   },
   centered: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    padding: 16,
   },
 });
