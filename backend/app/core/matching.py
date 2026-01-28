@@ -46,11 +46,15 @@ def _normalize_text(value: Any) -> str:
 
 def _get_profile_detail(user: User, key: str) -> Any:
     details = user.profile_details or {}
+    if not isinstance(details, dict):
+        return None
     return details.get(key)
 
 
 def _get_discovery_setting(user: User, key: str) -> Any:
     settings = user.discovery_settings or {}
+    if not isinstance(settings, dict):
+        return None
     return settings.get(key)
 
 
