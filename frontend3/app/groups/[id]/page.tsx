@@ -1046,29 +1046,40 @@ export default function GroupDetailPage() {
         {mediaItems.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">No media yet.</p>
         ) : (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 flex flex-wrap gap-2.5">
             {mediaItems.map((media) => (
-              <div key={media.id} className="relative overflow-hidden rounded-xl border border-slate-100">
+              <div key={media.id} className="w-[48%] space-y-1.5">
                 {media.media_type === "image" ? (
-                  <img src={resolveMediaUrl(media.url)} alt="Group media" className="h-48 w-full object-cover" />
+                  <img
+                    src={resolveMediaUrl(media.url)}
+                    alt="Group media"
+                    className="h-[140px] w-full rounded-2xl object-cover bg-slate-200"
+                  />
                 ) : (
-                  <video controls className="h-48 w-full object-cover" src={resolveMediaUrl(media.url)} />
+                  <video
+                    controls
+                    className="h-[140px] w-full rounded-2xl object-cover bg-slate-200"
+                    src={resolveMediaUrl(media.url)}
+                  />
                 )}
-                {media.is_cover ? (
-                  <span className="absolute left-2 top-2 rounded-full bg-slate-900/70 px-3 py-1 text-xs font-semibold text-white">
-                    Cover
-                  </span>
-                ) : null}
-                {user?.id === group.creator_id ? (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteMedia(media.id)}
-                    className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white shadow hover:bg-blue-700"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Delete
-                  </button>
-                ) : null}
+                <div className="flex items-center justify-between">
+                  {media.is_cover ? (
+                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-800">
+                      Cover
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                  {user?.id === group.creator_id ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMedia(media.id)}
+                      className="text-[12px] font-semibold text-rose-500"
+                    >
+                      Delete
+                    </button>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
