@@ -226,11 +226,13 @@ export default function BrowseGroups() {
               {categoryConfig.find((category) => category.id === activeCategory)?.description}
             </div>
 
-            {loading ? (
-              <SwipeDeckSkeleton />
-            ) : (
-              <SwipeDeck groups={grouped[activeCategory]} />
-            )}
+            <div className="-mx-4 sm:mx-0">
+              {loading ? (
+                <SwipeDeckSkeleton />
+              ) : (
+                <SwipeDeck groups={grouped[activeCategory]} />
+              )}
+            </div>
           </div>
         </div>
       </div>

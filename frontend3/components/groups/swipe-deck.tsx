@@ -326,7 +326,7 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
 
   return (
     <div className="flex w-full flex-col items-center gap-6">
-      <div className="w-[120%] max-w-none sm:w-full sm:max-w-3xl">
+      <div className="w-full max-w-3xl">
         <div className="mb-3 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-400">
           <span>Swipe deck</span>
           <span>
@@ -338,7 +338,7 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
         </div>
       </div>
 
-      <div className="relative w-[120%] max-w-none sm:w-full sm:max-w-3xl">
+      <div className="relative w-full max-w-3xl">
         <div className="absolute inset-0 hidden lg:block">
           {upcoming.map((group, stackIndex) => (
             <div
