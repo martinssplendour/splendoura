@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -314,6 +315,7 @@ export default function GroupsScreen() {
           <View style={styles.header}>
             <View style={styles.headerText}>
               <View style={styles.appNameWrap}>
+                <Image source={require("../../assets/brand/icon.png")} style={styles.appLogo} />
                 <Text style={styles.appName}>Splendoura</Text>
               </View>
               <Text style={styles.title}>Discover plans and swipe to join</Text>
@@ -504,6 +506,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 5,
+    marginTop: 18,
   },
   headerText: {
     flex: 1,
@@ -522,6 +525,9 @@ const styles = StyleSheet.create({
   },
   appNameWrap: {
     alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     backgroundColor: "#eef2ff",
     borderColor: "#c7d2fe",
     borderWidth: 1,
@@ -540,6 +546,10 @@ const styles = StyleSheet.create({
     color: "#4338ca",
     letterSpacing: 0.6,
     textTransform: "uppercase",
+  },
+  appLogo: {
+    width: 14,
+    height: 14,
   },
   title: {
     fontSize: 6,
