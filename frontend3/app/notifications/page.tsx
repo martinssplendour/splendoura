@@ -96,7 +96,7 @@ export default function NotificationsPage() {
           return;
         }
 
-        const groupsRes = await apiFetch(`/groups?creator_id=${user.id}`, { token: accessToken });
+        const groupsRes = await apiFetch(`/groups/?creator_id=${user.id}`, { token: accessToken });
         if (!groupsRes.ok) {
           const message = await groupsRes.text().catch(() => "");
           setRequestError(message || "Unable to load your groups.");

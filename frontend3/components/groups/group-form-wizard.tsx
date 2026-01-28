@@ -134,7 +134,7 @@ export default function GroupFormWizard() {
         setIsSubmitting(false);
         return;
       }
-      const res = await apiFetch("/groups", {
+      const res = await apiFetch("/groups/", {
         method: "POST",
         body: JSON.stringify({
           ...data,

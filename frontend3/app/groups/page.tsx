@@ -108,11 +108,13 @@ export default function BrowseGroups() {
   useEffect(() => {
     async function loadGroups() {
       setLoading(true);
-      const endpoint = accessToken ? "/groups/discover" : "/groups";
+      const endpoint = accessToken ? "/groups/discover" : "/groups/";
       const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
       let res = await apiFetch(url, accessToken ? { token: accessToken } : undefined);
       if (res.status === 401 && accessToken) {
-        const fallbackUrl = queryParams.toString() ? `/groups?${queryParams.toString()}` : "/groups";
+        const fallbackUrl = queryParams.toString()
+          ? `/groups/?${queryParams.toString()}`
+          : "/groups/";
         res = await apiFetch(fallbackUrl);
       }
       if (res.ok) {

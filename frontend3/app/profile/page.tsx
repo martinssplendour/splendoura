@@ -270,7 +270,10 @@ export default function ProfilePage() {
     const loadCreatedGroups = async () => {
       setCreatedLoading(true);
       setCreatedError(null);
-      const res = await apiFetch(`/groups?creator_id=${user.id}`, accessToken ? { token: accessToken } : undefined);
+      const res = await apiFetch(
+        `/groups/?creator_id=${user.id}`,
+        accessToken ? { token: accessToken } : undefined
+      );
       if (!isMounted) return;
       if (res.ok) {
         setCreatedGroups(await res.json());

@@ -48,7 +48,7 @@ export default function RequestsPage() {
           return;
         }
 
-        const groupsRes = await apiFetch(`/groups?creator_id=${user.id}`, { token: accessToken });
+        const groupsRes = await apiFetch(`/groups/?creator_id=${user.id}`, { token: accessToken });
         if (!groupsRes.ok) {
           const message = await groupsRes.text().catch(() => "");
           setError(message || "Unable to load your groups.");
