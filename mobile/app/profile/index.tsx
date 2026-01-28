@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/Button";
 import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { buildFormFile, type UploadAsset } from "@/lib/uploads";
 
@@ -737,6 +738,20 @@ export default function ProfileScreen() {
           behavior={Platform.select({ ios: "padding", android: undefined })}
         >
           <ScrollView contentContainerStyle={[styles.container, styles.containerWithNav]}>
+            <View style={styles.profileHeader}>
+              <Text style={styles.profileHeaderTitle}>Profile</Text>
+              <Pressable
+                onPress={() => router.push("/settings")}
+                style={({ pressed }) => [
+                  styles.settingsButton,
+                  pressed ? styles.settingsButtonPressed : null,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Open settings"
+              >
+                <Ionicons name="settings-outline" size={20} color="#ffffff" />
+              </Pressable>
+            </View>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Profile completion</Text>
               <View style={styles.completionRow}>
@@ -1712,6 +1727,28 @@ const styles = StyleSheet.create({
   },
   containerWithNav: {
     paddingBottom: BOTTOM_NAV_HEIGHT + 16,
+  },
+  profileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 2,
+  },
+  profileHeaderTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  settingsButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#10b981",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settingsButtonPressed: {
+    opacity: 0.85,
   },
   section: {
     backgroundColor: "#ffffff",

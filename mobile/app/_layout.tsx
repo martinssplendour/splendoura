@@ -61,6 +61,7 @@ export default function RootLayout() {
               <Stack.Screen name="chat/[id]" options={{ title: "Chat", ...COMPACT_HEADER_OPTIONS }} />
               <Stack.Screen name="chat/[id]/call" options={{ headerShown: false }} />
               <Stack.Screen name="profile/index" options={{ title: "Profile", ...COMPACT_HEADER_OPTIONS }} />
+              <Stack.Screen name="settings/index" options={{ title: "Settings" }} />
               <Stack.Screen name="requests/index" options={{ title: "Join Requests", ...COMPACT_HEADER_OPTIONS }} />
               <Stack.Screen name="safety/index" options={{ title: "Safety Center" }} />
               <Stack.Screen name="users/[id]" options={{ title: "User" }} />

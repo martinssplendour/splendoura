@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
+import { Settings } from "lucide-react";
 import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -696,6 +697,20 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase text-slate-400">Profile</p>
+          <h1 className="text-2xl font-semibold text-slate-900">Manage your profile</h1>
+          <p className="text-sm text-slate-600">Update your details, visibility, and preferences.</p>
+        </div>
+        <Link
+          href="/settings"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+          aria-label="Open settings"
+        >
+          <Settings size={18} />
+        </Link>
+      </div>
       <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
         <p className="text-xs font-semibold uppercase text-slate-400">Profile completion</p>
         <div className="mt-3 flex items-center justify-between">
