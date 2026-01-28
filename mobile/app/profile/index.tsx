@@ -19,7 +19,7 @@ import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav"
 import { Button } from "@/components/ui/Button";
 import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { buildFormFile, type UploadAsset } from "@/lib/uploads";
@@ -741,7 +741,7 @@ export default function ProfileScreen() {
             <View style={styles.profileHeader}>
               <Text style={styles.profileHeaderTitle}>Profile</Text>
               <Pressable
-                onPress={() => router.push("/settings")}
+                onPress={() => router.push("/settings" as Href)}
                 style={({ pressed }) => [
                   styles.settingsButton,
                   pressed ? styles.settingsButtonPressed : null,
@@ -1810,6 +1810,12 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: "flex-end",
   },
+  actionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    alignItems: "center",
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
@@ -1898,6 +1904,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#64748b",
   },
+  removeText: {
+    fontSize: 12,
+    color: "#ef4444",
+    fontWeight: "600",
+  },
   groupCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1939,6 +1950,9 @@ const styles = StyleSheet.create({
   fieldFlex: {
     flex: 1,
     gap: 6,
+  },
+  flex: {
+    flex: 1,
   },
   label: {
     fontSize: 12,

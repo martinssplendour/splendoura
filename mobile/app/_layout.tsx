@@ -16,7 +16,7 @@ export {
 const UI_SCALE = 0.9;
 const INV_SCALE = 1 / UI_SCALE;
 const COMPACT_HEADER_OPTIONS = {
-  headerStyle: { backgroundColor: "#ffffff", height: 3 },
+  headerStyle: { backgroundColor: "#ffffff" },
   headerBackTitleVisible: false,
 };
 
@@ -45,7 +45,7 @@ export default function RootLayout() {
           <LocationGate>
             <Stack
               screenOptions={{
-                headerStyle: { backgroundColor: "#ffffff", height: 46 },
+                headerStyle: { backgroundColor: "#ffffff" },
                 headerShadowVisible: false,
                 headerTitleStyle: { fontSize: 15, fontWeight: "600" },
               }}

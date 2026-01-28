@@ -1,7 +1,7 @@
 "use client";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { API_BASE_URL } from "@/lib/api";
@@ -143,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRefreshToken(data.refresh_token);
       await AsyncStorage.setItem("refresh_token", data.refresh_token);
       setUser(data.user);
-      router.replace(redirectTo || "/groups");
+      router.replace((redirectTo || "/groups") as Href);
     },
     [router]
   );
@@ -153,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRefreshToken(null);
     await AsyncStorage.removeItem("refresh_token");
     setUser(null);
-    router.replace("/");
+    router.replace("/" as Href);
   }, [router]);
 
   return (

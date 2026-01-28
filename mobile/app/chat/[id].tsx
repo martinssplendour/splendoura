@@ -984,6 +984,11 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 8,
   },
+  loading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",

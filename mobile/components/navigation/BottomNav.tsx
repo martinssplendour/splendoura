@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export const BOTTOM_NAV_HEIGHT = 72;
 const NAV_VERTICAL_OFFSET = Math.round(-BOTTOM_NAV_HEIGHT * 0.65);
 
-const NAV_ITEMS = [
+const NAV_ITEMS: { key: string; label: string; path: string }[] = [
   { key: "discover", label: "Discover", path: "/groups" },
   { key: "chat", label: "Chats", path: "/chat" },
   { key: "requests", label: "Notifications", path: "/requests" },
@@ -33,11 +33,11 @@ export function BottomNav() {
         {NAV_ITEMS.map((item) => {
           const active = isActivePath(pathname, item.path);
           return (
-            <Pressable
-              key={item.key}
-              onPress={() => router.push(item.path)}
-              style={[styles.item, active ? styles.itemActive : null]}
-            >
+              <Pressable
+                key={item.key}
+                onPress={() => router.push(item.path as never)}
+                style={[styles.item, active ? styles.itemActive : null]}
+              >
               <Text style={[styles.label, active ? styles.labelActive : null]}>{item.label}</Text>
             </Pressable>
           );

@@ -289,10 +289,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#64748b",
   },
-  status: {
-    fontSize: 12,
-    color: "#64748b",
-  },
   bio: {
     fontSize: 14,
     color: "#334155",

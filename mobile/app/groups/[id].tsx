@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Video } from "expo-av";
+import { Video, ResizeMode } from "expo-av";
 import * as ImagePicker from "expo-image-picker";
 
 import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav";
@@ -1051,6 +1051,7 @@ export default function GroupDetailScreen() {
   const coverUrl = toAbsoluteUrl(group.cover_image_url);
   const memberLabel = `${approvedCount}/${group.max_participants} members`;
   const activeLabel = creator?.last_active_at ? formatLastActive(creator.last_active_at) : "Active";
+  const introVideoUrl = group.creator_intro_video_url || undefined;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -1193,8 +1194,8 @@ export default function GroupDetailScreen() {
                 <Text style={styles.detailValue}>{creatorAvailability.join(", ")}</Text>
               </View>
             ) : null}
-            {group.creator_intro_video_url ? (
-              <Pressable onPress={() => Linking.openURL(group.creator_intro_video_url)}>
+            {introVideoUrl ? (
+              <Pressable onPress={() => Linking.openURL(introVideoUrl)}>
                 <Text style={styles.link}>Open intro video</Text>
               </Pressable>
             ) : null}
@@ -1415,7 +1416,7 @@ export default function GroupDetailScreen() {
                         source={{ uri: sourceUrl || "" }}
                         style={styles.media}
                         useNativeControls
-                        resizeMode="cover"
+                        resizeMode={ResizeMode.COVER}
                       />
                     ) : (
                       <Image source={{ uri: sourceUrl || "" }} style={styles.media} />
@@ -1615,7 +1616,7 @@ export default function GroupDetailScreen() {
                       <Button
                         size="sm"
                         variant={
-                          planRsvps[plan.id]?.user_status === "going" ? "default" : "outline"
+                          planRsvps[plan.id]?.user_status === "going" ? "primary" : "outline"
                         }
                         onPress={() => handleRsvpPlan(plan.id, "going")}
                         disabled={rsvpLoading[plan.id]}
@@ -1625,7 +1626,7 @@ export default function GroupDetailScreen() {
                       <Button
                         size="sm"
                         variant={
-                          planRsvps[plan.id]?.user_status === "interested" ? "default" : "outline"
+                          planRsvps[plan.id]?.user_status === "interested" ? "primary" : "outline"
                         }
                         onPress={() => handleRsvpPlan(plan.id, "interested")}
                         disabled={rsvpLoading[plan.id]}
@@ -1635,7 +1636,7 @@ export default function GroupDetailScreen() {
                       <Button
                         size="sm"
                         variant={
-                          planRsvps[plan.id]?.user_status === "not_going" ? "default" : "outline"
+                          planRsvps[plan.id]?.user_status === "not_going" ? "primary" : "outline"
                         }
                         onPress={() => handleRsvpPlan(plan.id, "not_going")}
                         disabled={rsvpLoading[plan.id]}

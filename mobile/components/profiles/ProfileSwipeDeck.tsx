@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  type GestureResponderEvent,
   Image,
   PanResponder,
+  type PanResponderGestureState,
   Pressable,
   StyleSheet,
   Text,
@@ -232,17 +234,15 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gesture) => {
+        onMoveShouldSetPanResponder: (_event: GestureResponderEvent, gesture: PanResponderGestureState) => {
           if (isAnimating) return false;
           return Math.abs(gesture.dx) > Math.abs(gesture.dy) && Math.abs(gesture.dx) > 6;
         },
-        onPanResponderMove: Animated.event([null, { dx: swipe.x, dy: swipe.y }], {
-          useNativeDriver: false,
-          listener: (_, gesture) => {
-            setDragX(gesture.dx);
-          },
-        }),
-        onPanResponderRelease: (_, gesture) => {
+        onPanResponderMove: (_event: GestureResponderEvent, gesture: PanResponderGestureState) => {
+          swipe.setValue({ x: gesture.dx, y: gesture.dy });
+          setDragX(gesture.dx);
+        },
+        onPanResponderRelease: (_event: GestureResponderEvent, gesture: PanResponderGestureState) => {
           void handleRelease(gesture.dx);
         },
       }),
