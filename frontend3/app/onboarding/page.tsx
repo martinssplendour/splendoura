@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { cropImageToAspect } from "@/lib/image-processing";
 
 const promptDefaults = ["", "", ""];
 
@@ -25,6 +26,7 @@ export default function OnboardingPage() {
   const [interests, setInterests] = useState("");
   const [prompts, setPrompts] = useState<string[]>([...promptDefaults]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [blockNudity, setBlockNudity] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -47,6 +49,16 @@ export default function OnboardingPage() {
         | undefined) || {};
     setBlockNudity(Boolean(safetySettings.block_nudity));
   }, [user]);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
 
   const completedCount = useMemo(() => {
     let count = 0;
@@ -108,32 +120,36 @@ export default function OnboardingPage() {
     }
   }, [accessToken, bio, blockNudity, interests, locationCity, locationCountry, prompts, refreshSession, user?.profile_details, user?.profile_media]);
 
-  const handleUploadPhoto = useCallback(async () => {
-    if (!accessToken || !photoFile) return;
-    setUploading(true);
-    setStatus(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", photoFile);
-      const res = await apiFetch("/users/me/photo", {
-        method: "POST",
-        token: accessToken,
-        body: formData,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.detail || "Photo upload failed.");
+  const handleConfirmPhoto = useCallback(
+    async (mode: "original" | "crop") => {
+      if (!accessToken || !photoFile) return;
+      setUploading(true);
+      setStatus(null);
+      try {
+        const uploadFile = mode === "crop" ? await cropImageToAspect(photoFile) : photoFile;
+        const formData = new FormData();
+        formData.append("file", uploadFile);
+        const res = await apiFetch("/users/me/photo", {
+          method: "POST",
+          token: accessToken,
+          body: formData,
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.detail || "Photo upload failed.");
+        }
+        setPhotoFile(null);
+        await refreshSession();
+        setStatus("Photo uploaded.");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Photo upload failed.";
+        setStatus(message);
+      } finally {
+        setUploading(false);
       }
-      setPhotoFile(null);
-      await refreshSession();
-      setStatus("Photo uploaded.");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Photo upload failed.";
-      setStatus(message);
-    } finally {
-      setUploading(false);
-    }
-  }, [accessToken, photoFile, refreshSession]);
+    },
+    [accessToken, photoFile, refreshSession]
+  );
 
   const handleNext = useCallback(async () => {
     const saved = await handleSave();
@@ -257,6 +273,13 @@ export default function OnboardingPage() {
               className="h-48 w-full rounded-2xl object-cover"
             />
           ) : null}
+          {photoPreviewUrl ? (
+            <img
+              src={photoPreviewUrl}
+              alt="Selected profile"
+              className="h-48 w-full rounded-2xl object-cover"
+            />
+          ) : null}
           {photoFile ? (
             <p className="text-xs text-slate-500">Selected: {photoFile.name}</p>
           ) : null}
@@ -266,13 +289,20 @@ export default function OnboardingPage() {
               accept="image/*"
               onChange={(event) => setPhotoFile(event.target.files?.[0] || null)}
             />
-            <Button
-              onClick={handleUploadPhoto}
-              disabled={!photoFile || uploading}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              {uploading ? "Uploading..." : "Upload"}
-            </Button>
+            {photoFile ? (
+              <>
+                <Button
+                  onClick={() => handleConfirmPhoto("original")}
+                  disabled={!photoFile || uploading}
+                  className="bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  {uploading ? "Uploading..." : "Upload original"}
+                </Button>
+                <Button variant="outline" onClick={() => handleConfirmPhoto("crop")} disabled={uploading}>
+                  Crop & upload
+                </Button>
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Trash2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import JoinRequestButton, { GroupRequirement } from "@/components/groups/join-request-button";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { cropImageToAspect } from "@/lib/image-processing";
 
 interface GroupDetail {
   id: number;
@@ -151,6 +152,10 @@ export default function GroupDetailPage() {
   const [memberRequests, setMemberRequests] = useState<MemberRequest[]>([]);
   const [mediaItems, setMediaItems] = useState<GroupMedia[]>([]);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [pendingMediaFiles, setPendingMediaFiles] = useState<File[]>([]);
+  const [pendingMediaIndex, setPendingMediaIndex] = useState(0);
+  const [pendingMediaPreview, setPendingMediaPreview] = useState<string | null>(null);
+  const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const [isCoverUpload, setIsCoverUpload] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [availability, setAvailability] = useState<GroupAvailability[]>([]);
@@ -213,6 +218,68 @@ export default function GroupDetailPage() {
     ];
     return prompts.filter(Boolean).slice(0, 4) as string[];
   }, [group]);
+
+  useEffect(() => {
+    if (pendingMediaFiles.length === 0) {
+      setPendingMediaPreview(null);
+      return;
+    }
+    const file = pendingMediaFiles[pendingMediaIndex];
+    if (!file) {
+      setPendingMediaPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPendingMediaPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingMediaFiles, pendingMediaIndex]);
+
+  const pendingMediaFile = pendingMediaFiles[pendingMediaIndex];
+  const pendingMediaIsImage = Boolean(pendingMediaFile?.type.startsWith("image/"));
+
+  const handleSelectMedia = (event: ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files || []);
+    if (selected.length === 0) return;
+    setPendingMediaFiles(selected);
+    setPendingMediaIndex(0);
+    event.target.value = "";
+  };
+
+  const advancePendingMedia = () => {
+    setPendingMediaIndex((prev) => {
+      const next = prev + 1;
+      if (next >= pendingMediaFiles.length) {
+        setPendingMediaFiles([]);
+        return 0;
+      }
+      return next;
+    });
+  };
+
+  const handleAddMedia = async (mode: "original" | "crop") => {
+    if (!pendingMediaFile) return;
+    try {
+      const fileToAdd =
+        mode === "crop" && pendingMediaIsImage
+          ? await cropImageToAspect(pendingMediaFile)
+          : pendingMediaFile;
+      setMediaFiles((prev) => [...prev, fileToAdd]);
+      advancePendingMedia();
+    } catch {
+      setStatus("Unable to crop this media. Try another file.");
+    }
+  };
+
+  const handleSkipMedia = () => {
+    if (!pendingMediaFile) return;
+    advancePendingMedia();
+  };
+
+  const handleCancelPendingMedia = () => {
+    setPendingMediaFiles([]);
+    setPendingMediaIndex(0);
+    setPendingMediaPreview(null);
+  };
 
   const loadMembers = useCallback(async () => {
     if (!accessToken) return;
@@ -1090,8 +1157,16 @@ export default function GroupDetailPage() {
               type="file"
               accept="image/*,video/*"
               multiple
-              onChange={(event) => setMediaFiles(Array.from(event.target.files || []))}
+              onChange={handleSelectMedia}
+              ref={mediaInputRef}
+              className="hidden"
             />
+            <Button
+              onClick={() => mediaInputRef.current?.click()}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Choose media
+            </Button>
             <button
               type="button"
               onClick={() => setIsCoverUpload((prev) => !prev)}
@@ -1111,6 +1186,56 @@ export default function GroupDetailPage() {
               {isUploadingMedia ? "Uploading..." : "Upload media"}
             </Button>
           </div>
+          {mediaFiles.length > 0 ? (
+            <p className="mt-2 text-xs text-slate-500">
+              {mediaFiles.length} file(s) ready to upload
+            </p>
+          ) : null}
+          {pendingMediaPreview ? (
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold text-slate-500">
+                Preview {pendingMediaIndex + 1} of {pendingMediaFiles.length}
+              </p>
+              {pendingMediaIsImage ? (
+                <img
+                  src={pendingMediaPreview}
+                  alt="Pending media"
+                  className="mt-3 h-52 w-full rounded-2xl object-cover"
+                />
+              ) : (
+                <div className="mt-3 flex h-40 w-full items-center justify-center rounded-2xl bg-slate-100 text-xs text-slate-500">
+                  Video selected
+                </div>
+              )}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() => handleAddMedia("original")}
+                  className="bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Add to upload
+                </Button>
+                {pendingMediaIsImage ? (
+                  <Button variant="outline" onClick={() => handleAddMedia("crop")}>
+                    Crop & add
+                  </Button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={handleSkipMedia}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                >
+                  Skip
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelPendingMedia}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                >
+                  Cancel all
+                </button>
+              </div>
+            </div>
+          ) : null}
         ) : (
           <p className="mt-3 text-sm text-slate-500">Only the group admin can upload media.</p>
         )}

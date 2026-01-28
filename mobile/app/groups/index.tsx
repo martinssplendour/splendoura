@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import SwipeDeck from "@/components/groups/SwipeDeck";
 import type { SwipeGroup } from "@/components/groups/types";
+import ProfileSwipeDeck, { ProfileMatch } from "@/components/profiles/ProfileSwipeDeck";
 import FindMyTypeModal from "@/components/find-my-type-modal";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -47,6 +48,11 @@ const CATEGORY_CONFIG = [
     label: "Dating",
     description: "Two-person date planning groups.",
   },
+  {
+    id: "profiles" as const,
+    label: "Profiles",
+    description: "Swipe profiles based on your discovery filters.",
+  },
 ];
 type CategoryId = (typeof CATEGORY_CONFIG)[number]["id"];
 
@@ -69,6 +75,10 @@ export default function GroupsScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [activeCategory, setActiveCategory] = useState<CategoryId>("friendship");
   const [findTypeOpen, setFindTypeOpen] = useState(false);
+  const [profileMatches, setProfileMatches] = useState<ProfileMatch[]>([]);
+  const [profileRequestId, setProfileRequestId] = useState<number | null>(null);
+  const [profilesLoading, setProfilesLoading] = useState(false);
+  const [profilesError, setProfilesError] = useState<string | null>(null);
   const [locationFilter, setLocationFilter] = useState("");
   const [activityFilter, setActivityFilter] = useState("");
   const [minAgeFilter, setMinAgeFilter] = useState("");
@@ -161,8 +171,87 @@ export default function GroupsScreen() {
     loadGroups();
   }, [loadGroups]);
 
+  const profileCriteria = useMemo(() => {
+    const discovery = (user?.discovery_settings as Record<string, unknown>) || {};
+    const criteria: { key: string; value: unknown }[] = [];
+    const ageMin = discovery.age_min as number | undefined;
+    const ageMax = discovery.age_max as number | undefined;
+    if (ageMin != null || ageMax != null) {
+      criteria.push({
+        key: "age_range",
+        value: {
+          ...(ageMin != null ? { min: ageMin } : {}),
+          ...(ageMax != null ? { max: ageMax } : {}),
+        },
+      });
+    }
+    const distance = discovery.distance_km as number | undefined;
+    if (distance != null) {
+      criteria.push({ key: "distance_km", value: distance });
+    }
+    const genders = discovery.genders as string[] | undefined;
+    if (Array.isArray(genders) && genders.length > 0) {
+      criteria.push({ key: "gender", value: genders });
+    }
+    return criteria;
+  }, [user?.discovery_settings]);
+
+  const profileCriteriaKey = useMemo(() => JSON.stringify(profileCriteria), [profileCriteria]);
+
+  useEffect(() => {
+    let active = true;
+    const loadProfiles = async () => {
+      if (!accessToken) {
+        if (active) {
+          setProfileMatches([]);
+          setProfileRequestId(null);
+          setProfilesError(null);
+          setProfilesLoading(false);
+        }
+        return;
+      }
+      setProfilesLoading(true);
+      setProfilesError(null);
+      try {
+        const res = await apiFetch("/match/requests", {
+          method: "POST",
+          token: accessToken,
+          body: JSON.stringify({
+            intent: "relationship",
+            criteria: profileCriteria,
+            offers: [],
+          }),
+        });
+        if (!res.ok) {
+          const payload = await res.json().catch(() => null);
+          throw new Error(payload?.detail || "Unable to load profiles right now.");
+        }
+        const data: { request?: { id: number }; results?: ProfileMatch[] } = await res.json();
+        if (active) {
+          setProfileMatches(data.results || []);
+          setProfileRequestId(data.request?.id ?? null);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unable to load profiles right now.";
+        if (active) {
+          setProfilesError(message);
+          setProfileMatches([]);
+          setProfileRequestId(null);
+        }
+      } finally {
+        if (active) {
+          setProfilesLoading(false);
+        }
+      }
+    };
+    loadProfiles();
+    return () => {
+      active = false;
+    };
+  }, [accessToken, profileCriteriaKey]);
+
   const grouped = useMemo(() => {
-    const buckets: Record<CategoryId, SwipeGroup[]> = {
+    const buckets: Record<string, SwipeGroup[]> = {
       mutual_benefits: [],
       friendship: [],
       dating: [],
@@ -369,7 +458,20 @@ export default function GroupsScreen() {
           </View>
 
           <View style={styles.deckArea}>
-            {loading ? (
+            {activeCategory === "profiles" ? (
+              profilesLoading ? (
+                <ActivityIndicator size="large" color="#2563eb" />
+              ) : accessToken ? (
+                <>
+                  <ProfileSwipeDeck profiles={profileMatches} requestId={profileRequestId} />
+                  {profilesError ? (
+                    <Text style={styles.status}>{profilesError}</Text>
+                  ) : null}
+                </>
+              ) : (
+                <Text style={styles.status}>Sign in to see profile matches.</Text>
+              )
+            ) : loading ? (
               <ActivityIndicator size="large" color="#2563eb" />
             ) : (
               <SwipeDeck groups={grouped[activeCategory]} />

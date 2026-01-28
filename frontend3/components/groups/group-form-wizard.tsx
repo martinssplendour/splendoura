@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form"; // Removed Resolver import as it's not needed directly
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,7 @@ import { groupSchema } from "@/lib/validators";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { cropImageToAspect } from "@/lib/image-processing";
 
 // 1. Generate the type (Keep this for use in onSubmit)
 type GroupFormData = z.infer<typeof groupSchema>;
@@ -18,6 +19,10 @@ export default function GroupFormWizard() {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [pendingMedia, setPendingMedia] = useState<File[]>([]);
+  const [pendingMediaIndex, setPendingMediaIndex] = useState(0);
+  const [pendingMediaPreview, setPendingMediaPreview] = useState<string | null>(null);
+  const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const { accessToken, user } = useAuth();
   const router = useRouter();
   
@@ -40,6 +45,66 @@ export default function GroupFormWizard() {
       ],
     }
   });
+
+  useEffect(() => {
+    if (pendingMedia.length === 0) {
+      setPendingMediaPreview(null);
+      return;
+    }
+    const file = pendingMedia[pendingMediaIndex];
+    if (!file) {
+      setPendingMediaPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPendingMediaPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingMedia, pendingMediaIndex]);
+
+  const pendingFile = pendingMedia[pendingMediaIndex];
+  const pendingIsImage = Boolean(pendingFile?.type.startsWith("image/"));
+
+  const handleSelectMedia = (event: ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files || []);
+    if (selected.length === 0) return;
+    setPendingMedia(selected);
+    setPendingMediaIndex(0);
+    event.target.value = "";
+  };
+
+  const advancePendingMedia = () => {
+    setPendingMediaIndex((prev) => {
+      const next = prev + 1;
+      if (next >= pendingMedia.length) {
+        setPendingMedia([]);
+        return 0;
+      }
+      return next;
+    });
+  };
+
+  const handleAddMedia = async (mode: "original" | "crop") => {
+    if (!pendingFile) return;
+    try {
+      const fileToAdd =
+        mode === "crop" && pendingIsImage ? await cropImageToAspect(pendingFile) : pendingFile;
+      setMediaFiles((prev) => [...prev, fileToAdd]);
+      advancePendingMedia();
+    } catch {
+      setSubmitError("Unable to crop this media. Try another file.");
+    }
+  };
+
+  const handleSkipMedia = () => {
+    if (!pendingFile) return;
+    advancePendingMedia();
+  };
+
+  const handleCancelPendingMedia = () => {
+    setPendingMedia([]);
+    setPendingMediaIndex(0);
+    setPendingMediaPreview(null);
+  };
 
   // 3. Update onSubmit. 
   // Since we removed the generic above, we just type the data argument directly.
@@ -300,10 +365,65 @@ export default function GroupFormWizard() {
               type="file"
               accept="image/*,video/*"
               multiple
-              onChange={(event) => setMediaFiles(Array.from(event.target.files || []))}
+              onChange={handleSelectMedia}
+              ref={mediaInputRef}
+              className="hidden"
             />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => mediaInputRef.current?.click()}
+            >
+              Choose media
+            </Button>
             {mediaFiles.length ? (
               <p className="text-xs text-slate-500">{mediaFiles.length} files selected</p>
+            ) : null}
+            {pendingMediaPreview ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-semibold text-slate-500">
+                  Preview {pendingMediaIndex + 1} of {pendingMedia.length}
+                </p>
+                {pendingIsImage ? (
+                  <img
+                    src={pendingMediaPreview}
+                    alt="Pending media"
+                    className="mt-3 h-52 w-full rounded-2xl object-cover"
+                  />
+                ) : (
+                  <div className="mt-3 flex h-40 w-full items-center justify-center rounded-2xl bg-slate-100 text-xs text-slate-500">
+                    Video selected
+                  </div>
+                )}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => handleAddMedia("original")}
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    Add to group
+                  </Button>
+                  {pendingIsImage ? (
+                    <Button type="button" variant="outline" onClick={() => handleAddMedia("crop")}>
+                      Crop & add
+                    </Button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleSkipMedia}
+                    className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelPendingMedia}
+                    className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                  >
+                    Cancel all
+                  </button>
+                </div>
+              </div>
             ) : null}
           </div>
         </div>

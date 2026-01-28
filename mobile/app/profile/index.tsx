@@ -21,7 +21,7 @@ import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { buildFormFile } from "@/lib/uploads";
+import { buildFormFile, type UploadAsset } from "@/lib/uploads";
 
 const GENDER_OPTIONS = ["male", "female", "other", "other_custom"] as const;
 const ORIENTATION_OPTIONS = [
@@ -44,6 +44,12 @@ const SLEEP_OPTIONS = ["early bird", "night owl", "flexible"];
 const SOCIAL_OPTIONS = ["introvert", "ambivert", "extrovert"];
 const POLITICAL_OPTIONS = ["liberal", "moderate", "conservative", "not political"];
 const RELIGION_OPTIONS = ["christian", "muslim", "jewish", "hindu", "buddhist", "other", "none"];
+const BODY_TYPE_OPTIONS = ["slim", "athletic", "average", "curvy", "plus-size"];
+const HAIR_COLOR_OPTIONS = ["black", "brown", "blonde", "red", "gray", "other"];
+const EYE_COLOR_OPTIONS = ["brown", "blue", "green", "hazel", "gray", "other"];
+const INCOME_BRACKET_OPTIONS = ["<25k", "25-50k", "50-100k", "100k+"];
+const TRAVEL_FREQUENCY_OPTIONS = ["rarely", "sometimes", "often"];
+const COMMUNICATION_STYLE_OPTIONS = ["text", "call", "in-person", "mixed"];
 const MAX_PROFILE_PHOTOS = 9;
 
 interface CreatedGroup {
@@ -107,6 +113,15 @@ export default function ProfileScreen() {
   const [locationLng, setLocationLng] = useState("");
 
   const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [income, setIncome] = useState("");
+  const [bodyType, setBodyType] = useState("");
+  const [hairColor, setHairColor] = useState("");
+  const [eyeColor, setEyeColor] = useState("");
+  const [incomeBracket, setIncomeBracket] = useState("");
+  const [travelFrequency, setTravelFrequency] = useState("");
+  const [communicationStyle, setCommunicationStyle] = useState("");
+  const [loveLanguages, setLoveLanguages] = useState("");
   const [workoutHabits, setWorkoutHabits] = useState("");
   const [smoking, setSmoking] = useState("");
   const [drinking, setDrinking] = useState("");
@@ -158,7 +173,12 @@ export default function ProfileScreen() {
   const [idVerified, setIdVerified] = useState(false);
 
   const [photos, setPhotos] = useState<string[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<UploadAsset[]>([]);
   const [photoVerified, setPhotoVerified] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState<{
+    type: "photo" | "id";
+    asset: UploadAsset;
+  } | null>(null);
   const [createdGroups, setCreatedGroups] = useState<CreatedGroup[]>([]);
   const [createdLoading, setCreatedLoading] = useState(false);
   const [createdError, setCreatedError] = useState<string | null>(null);
@@ -189,6 +209,12 @@ export default function ProfileScreen() {
     );
 
     setHeightCm(String(details.height_cm ?? ""));
+    setWeightKg(String(details.weight_kg ?? ""));
+    setIncome(details.income != null ? String(details.income) : "");
+    setBodyType((details.body_type as string) || "");
+    setHairColor((details.hair_color as string) || "");
+    setEyeColor((details.eye_color as string) || "");
+    setIncomeBracket((details.income_bracket as string) || "");
     setWorkoutHabits((details.workout_habits as string) || "");
     setSmoking((details.smoking as string) || "");
     setDrinking((details.drinking as string) || "");
@@ -208,6 +234,9 @@ export default function ProfileScreen() {
     setDiet((details.diet as string) || "");
     setSleepHabits((details.sleep_habits as string) || "");
     setSocialEnergy((details.social_energy as string) || "");
+    setTravelFrequency((details.travel_frequency as string) || "");
+    setCommunicationStyle((details.communication_style as string) || "");
+    setLoveLanguages(((details.love_languages as string[]) || []).join(", "));
 
     setHasChildren((details.has_children as string) || "");
     setWantsChildren((details.wants_children as string) || "");
@@ -276,6 +305,12 @@ export default function ProfileScreen() {
       lookingFor,
       locationCity || locationCountry,
       heightCm,
+      weightKg,
+      income,
+      bodyType,
+      hairColor,
+      eyeColor,
+      incomeBracket,
       workoutHabits,
       smoking,
       drinking,
@@ -293,6 +328,9 @@ export default function ProfileScreen() {
       diet,
       sleepHabits,
       socialEnergy,
+      travelFrequency,
+      communicationStyle,
+      loveLanguages,
       hasChildren,
       wantsChildren,
       relationshipPreference,
@@ -322,12 +360,17 @@ export default function ProfileScreen() {
     company,
     dob,
     drinking,
+    communicationStyle,
     educationLevel,
     ethnicity,
+    eyeColor,
+    hairColor,
     gender,
     globalMode,
     hasChildren,
     heightCm,
+    income,
+    incomeBracket,
     incognitoMode,
     interests,
     jobTitle,
@@ -335,7 +378,9 @@ export default function ProfileScreen() {
     languages,
     locationCity,
     locationCountry,
+    loveLanguages,
     lookingFor,
+    bodyType,
     pets,
     personalityType,
     photos,
@@ -349,13 +394,15 @@ export default function ProfileScreen() {
     religion,
     relationshipPreference,
     school,
+    socialEnergy,
     sexualOrientation,
     sleepHabits,
     smoking,
-    socialEnergy,
     user?.profile_image_url,
+    travelFrequency,
     videoLoops,
     videoUrl,
+    weightKg,
     wantsChildren,
     workoutHabits,
     zodiacSign,
@@ -375,6 +422,12 @@ export default function ProfileScreen() {
         show_orientation: showOrientation,
         looking_for: lookingFor || undefined,
         height_cm: heightCm ? Number(heightCm) : undefined,
+        weight_kg: weightKg ? Number(weightKg) : undefined,
+        income: income ? Number(income) : undefined,
+        body_type: bodyType || undefined,
+        hair_color: hairColor || undefined,
+        eye_color: eyeColor || undefined,
+        income_bracket: incomeBracket || undefined,
         workout_habits: workoutHabits || undefined,
         smoking: smoking || undefined,
         drinking: drinking || undefined,
@@ -392,6 +445,9 @@ export default function ProfileScreen() {
         diet: diet || undefined,
         sleep_habits: sleepHabits || undefined,
         social_energy: socialEnergy || undefined,
+        travel_frequency: travelFrequency || undefined,
+        communication_style: communicationStyle || undefined,
+        love_languages: parseList(loveLanguages),
         has_children: hasChildren || undefined,
         wants_children: wantsChildren || undefined,
         relationship_preference: relationshipPreference || undefined,
@@ -478,26 +534,24 @@ export default function ProfileScreen() {
     }
   };
 
-  const uploadVerificationAsset = async (endpoint: string, label: string) => {
+  const uploadVerificationAsset = async (
+    endpoint: string,
+    label: string,
+    asset: UploadAsset
+  ) => {
     if (!accessToken) {
       setStatus("Please sign in to upload verification.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-    });
-    if (result.canceled) return;
     setIsVerifying(true);
     setStatus(null);
     try {
-      const asset = result.assets[0];
       const formData = new FormData();
       formData.append(
         "file",
         buildFormFile({
           uri: asset.uri,
-          name: asset.fileName,
+          name: asset.name,
           mimeType: asset.mimeType,
         }) as unknown as Blob
       );
@@ -520,12 +574,35 @@ export default function ProfileScreen() {
     }
   };
 
-  const handlePhotoVerification = () => {
-    void uploadVerificationAsset("/users/me/photo-verification", "Photo verification");
+  const handleSelectVerification = async (type: "photo" | "id") => {
+    if (!accessToken) {
+      setStatus("Please sign in to upload verification.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 5],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    setPendingVerification({
+      type,
+      asset: { uri: asset.uri, name: asset.fileName, mimeType: asset.mimeType },
+    });
   };
 
-  const handleIdVerification = () => {
-    void uploadVerificationAsset("/users/me/id-verification", "ID verification");
+  const handleConfirmVerification = async () => {
+    if (!pendingVerification) return;
+    const endpoint =
+      pendingVerification.type === "photo"
+        ? "/users/me/photo-verification"
+        : "/users/me/id-verification";
+    const label =
+      pendingVerification.type === "photo" ? "Photo verification" : "ID verification";
+    await uploadVerificationAsset(endpoint, label, pendingVerification.asset);
+    setPendingVerification(null);
   };
 
   const handlePickPhotos = async () => {
@@ -540,28 +617,43 @@ export default function ProfileScreen() {
     setStatus(null);
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
+      allowsEditing: true,
       quality: 0.8,
+      aspect: [4, 5],
     });
     if (result.canceled) {
       return;
     }
-    const remainingSlots = Math.max(MAX_PROFILE_PHOTOS - photos.length, 0);
-    const assetsToUpload = result.assets.slice(0, remainingSlots);
-    if (assetsToUpload.length === 0) {
+    const asset = result.assets[0];
+    setPendingPhotos([
+      {
+        uri: asset.uri,
+        name: asset.fileName,
+        mimeType: asset.mimeType,
+      },
+    ]);
+  };
+
+  const handleUploadPendingPhotos = async () => {
+    if (!accessToken) {
+      setStatus("Please sign in to upload photos.");
+      return;
+    }
+    if (pendingPhotos.length === 0) {
+      setStatus("Select a photo first.");
+      return;
+    }
+    if (photos.length + pendingPhotos.length > MAX_PROFILE_PHOTOS) {
       setStatus(`You can upload up to ${MAX_PROFILE_PHOTOS} photos.`);
       return;
     }
-    if (assetsToUpload.length < result.assets.length) {
-      setStatus(`Only ${remainingSlots} more photo(s) can be added (max ${MAX_PROFILE_PHOTOS}).`);
-    }
     setIsUploading(true);
     try {
-      for (const asset of assetsToUpload) {
+      for (const asset of pendingPhotos) {
         const formData = new FormData();
         const file = buildFormFile({
           uri: asset.uri,
-          name: asset.fileName,
+          name: asset.name,
           mimeType: asset.mimeType,
         });
         formData.append("file", file as unknown as Blob);
@@ -577,6 +669,7 @@ export default function ProfileScreen() {
       }
       await refreshSession();
       setStatus("Photos uploaded.");
+      setPendingPhotos([]);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Photo upload failed.";
       setStatus(message);
@@ -684,6 +777,27 @@ export default function ProfileScreen() {
                   <Button onPress={handlePickPhotos} disabled={isUploading}>
                     {isUploading ? "Uploading..." : "Upload photos"}
                   </Button>
+                  {pendingPhotos.length > 0 ? (
+                    <View style={styles.pendingCard}>
+                      <Text style={styles.helperText}>Preview</Text>
+                      <Image source={{ uri: pendingPhotos[0].uri }} style={styles.pendingImage} />
+                      <View style={styles.pendingActions}>
+                        <Button size="sm" variant="outline" onPress={() => setPendingPhotos([])}>
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onPress={handleUploadPendingPhotos}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? "Uploading..." : "Confirm upload"}
+                        </Button>
+                      </View>
+                      <Button size="sm" variant="ghost" onPress={handlePickPhotos}>
+                        Choose another
+                      </Button>
+                    </View>
+                  ) : null}
                   <Text style={styles.helperText}>
                     {photos.length}/{MAX_PROFILE_PHOTOS} photos used
                   </Text>
@@ -735,13 +849,45 @@ export default function ProfileScreen() {
                 </View>
               </View>
               <View style={styles.actionRow}>
-                <Button size="sm" onPress={handlePhotoVerification} disabled={isVerifying}>
-                  {isVerifying ? "Submitting..." : "Submit photo verification"}
+                <Button
+                  size="sm"
+                  onPress={() => handleSelectVerification("photo")}
+                  disabled={isVerifying}
+                >
+                  {isVerifying ? "Submitting..." : "Choose photo verification"}
                 </Button>
-                <Button size="sm" variant="outline" onPress={handleIdVerification} disabled={isVerifying}>
-                  {isVerifying ? "Submitting..." : "Submit ID verification"}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onPress={() => handleSelectVerification("id")}
+                  disabled={isVerifying}
+                >
+                  {isVerifying ? "Submitting..." : "Choose ID verification"}
                 </Button>
               </View>
+              {pendingVerification ? (
+                <View style={styles.pendingCard}>
+                  <Text style={styles.helperText}>
+                    {pendingVerification.type === "photo" ? "Photo" : "ID"} verification
+                  </Text>
+                  <Image
+                    source={{ uri: pendingVerification.asset.uri }}
+                    style={styles.pendingImage}
+                  />
+                  <View style={styles.pendingActions}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onPress={() => setPendingVerification(null)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button size="sm" onPress={handleConfirmVerification} disabled={isVerifying}>
+                      {isVerifying ? "Submitting..." : "Confirm upload"}
+                    </Button>
+                  </View>
+                </View>
+              ) : null}
               <View style={styles.switchRow}>
                 <Text style={styles.label}>Block nudity in chat</Text>
                 <Switch value={blockNudity} onValueChange={setBlockNudity} />
@@ -922,6 +1068,100 @@ export default function ProfileScreen() {
                   style={styles.input}
                   keyboardType="number-pad"
                 />
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Weight (kg)</Text>
+                <TextInput
+                  value={weightKg}
+                  onChangeText={setWeightKg}
+                  style={styles.input}
+                  keyboardType="number-pad"
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Body type</Text>
+                <View style={styles.chipRow}>
+                  {BODY_TYPE_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option}
+                      onPress={() => setBodyType(option)}
+                      style={[styles.chip, bodyType === option ? styles.chipActive : null]}
+                    >
+                      <Text
+                        style={[styles.chipText, bodyType === option ? styles.chipTextActive : null]}
+                      >
+                        {formatOption(option)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Hair color</Text>
+                <View style={styles.chipRow}>
+                  {HAIR_COLOR_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option}
+                      onPress={() => setHairColor(option)}
+                      style={[styles.chip, hairColor === option ? styles.chipActive : null]}
+                    >
+                      <Text
+                        style={[styles.chipText, hairColor === option ? styles.chipTextActive : null]}
+                      >
+                        {formatOption(option)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Eye color</Text>
+                <View style={styles.chipRow}>
+                  {EYE_COLOR_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option}
+                      onPress={() => setEyeColor(option)}
+                      style={[styles.chip, eyeColor === option ? styles.chipActive : null]}
+                    >
+                      <Text
+                        style={[styles.chipText, eyeColor === option ? styles.chipTextActive : null]}
+                      >
+                        {formatOption(option)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Income (yearly)</Text>
+                <TextInput
+                  value={income}
+                  onChangeText={setIncome}
+                  style={styles.input}
+                  keyboardType="number-pad"
+                  placeholder="50000"
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Income bracket</Text>
+                <View style={styles.chipRow}>
+                  {INCOME_BRACKET_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option}
+                      onPress={() => setIncomeBracket(option)}
+                      style={[styles.chip, incomeBracket === option ? styles.chipActive : null]}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          incomeBracket === option ? styles.chipTextActive : null,
+                        ]}
+                      >
+                        {formatOption(option)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
               <View style={styles.field}>
                 <Text style={styles.label}>Workout habits</Text>
@@ -1118,6 +1358,60 @@ export default function ProfileScreen() {
                     </Pressable>
                   ))}
                 </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Travel frequency</Text>
+                <View style={styles.chipRow}>
+                  {TRAVEL_FREQUENCY_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option}
+                      onPress={() => setTravelFrequency(option)}
+                      style={[styles.chip, travelFrequency === option ? styles.chipActive : null]}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          travelFrequency === option ? styles.chipTextActive : null,
+                        ]}
+                      >
+                        {formatOption(option)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Communication style</Text>
+                <View style={styles.chipRow}>
+                  {COMMUNICATION_STYLE_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option}
+                      onPress={() => setCommunicationStyle(option)}
+                      style={[
+                        styles.chip,
+                        communicationStyle === option ? styles.chipActive : null,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          communicationStyle === option ? styles.chipTextActive : null,
+                        ]}
+                      >
+                        {formatOption(option)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Love languages (comma separated)</Text>
+                <TextInput
+                  value={loveLanguages}
+                  onChangeText={setLoveLanguages}
+                  style={styles.input}
+                  placeholder="Quality time, Acts of service"
+                />
               </View>
             </View>
 
@@ -1459,6 +1753,25 @@ const styles = StyleSheet.create({
   },
   photoSection: {
     gap: 10,
+  },
+  pendingCard: {
+    gap: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#ffffff",
+    padding: 12,
+  },
+  pendingImage: {
+    width: "100%",
+    height: 180,
+    borderRadius: 14,
+    backgroundColor: "#e2e8f0",
+  },
+  pendingActions: {
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "flex-end",
   },
   sectionTitle: {
     fontSize: 16,

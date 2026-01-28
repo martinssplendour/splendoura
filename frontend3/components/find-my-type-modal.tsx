@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -538,27 +539,38 @@ export default function FindMyTypeModal({
                         key={result.user.id}
                         className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4"
                       >
-                        {result.user.profile_image_url ? (
-                          <img
-                            src={resolveMediaUrl(result.user.profile_image_url)}
-                            alt={name}
-                            className="h-12 w-12 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-12 w-12 rounded-full bg-slate-200" />
-                        )}
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-slate-800">{name}</p>
-                          <p className="text-xs text-slate-500">
-                            {result.user.age ? `${result.user.age} - ` : ""}
-                            {[result.user.location_city, result.user.location_country]
-                              .filter(Boolean)
-                              .join(", ") || "Location unavailable"}
-                          </p>
-                        </div>
+                        <Link
+                          href={`/users/${result.user.id}`}
+                          className="flex flex-1 items-center gap-3"
+                        >
+                          {result.user.profile_image_url ? (
+                            <img
+                              src={resolveMediaUrl(result.user.profile_image_url)}
+                              alt={name}
+                              className="h-12 w-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-slate-200" />
+                          )}
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800">{name}</p>
+                            <p className="text-xs text-slate-500">
+                              {result.user.age ? `${result.user.age} - ` : ""}
+                              {[result.user.location_city, result.user.location_country]
+                                .filter(Boolean)
+                                .join(", ") || "Location unavailable"}
+                            </p>
+                          </div>
+                        </Link>
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                           Match {scoreLabel}
                         </span>
+                        <Link
+                          href={`/users/${result.user.id}`}
+                          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                        >
+                          View profile
+                        </Link>
                         <Button
                           size="sm"
                           className="bg-blue-600 text-white hover:bg-blue-700"

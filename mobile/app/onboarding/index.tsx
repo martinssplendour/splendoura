@@ -124,6 +124,8 @@ export default function OnboardingScreen() {
   const handlePickPhoto = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 5],
       quality: 0.8,
     });
     if (result.canceled) return;

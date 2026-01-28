@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -43,6 +44,7 @@ export default function CreateGroupScreen() {
   const [creatorIntro, setCreatorIntro] = useState("");
   const [creatorIntroVideoUrl, setCreatorIntroVideoUrl] = useState("");
   const [selectedMedia, setSelectedMedia] = useState<UploadAsset[]>([]);
+  const [pendingMedia, setPendingMedia] = useState<UploadAsset | null>(null);
   const [appliesTo, setAppliesTo] = useState<(typeof APPLIES_TO)[number]>("all");
   const [minAge, setMinAge] = useState("18");
   const [maxAge, setMaxAge] = useState("99");
@@ -53,17 +55,23 @@ export default function CreateGroupScreen() {
     setStatus(null);
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsMultipleSelection: true,
+      allowsEditing: true,
+      aspect: [4, 5],
       quality: 0.8,
     });
     if (result.canceled) return;
-    const assets = result.assets || [];
-    const picked = assets.map((asset) => ({
+    const asset = result.assets[0];
+    setPendingMedia({
       uri: asset.uri,
       name: asset.fileName,
       mimeType: asset.mimeType,
-    }));
-    setSelectedMedia(picked);
+    });
+  };
+
+  const handleConfirmMedia = () => {
+    if (!pendingMedia) return;
+    setSelectedMedia((prev) => [...prev, pendingMedia]);
+    setPendingMedia(null);
   };
 
   const handleSubmit = async () => {
@@ -311,6 +319,25 @@ export default function CreateGroupScreen() {
                 </Button>
               ) : null}
             </View>
+            {pendingMedia ? (
+              <View style={styles.pendingMediaCard}>
+                {pendingMedia.mimeType?.startsWith("image/") ? (
+                  <Image source={{ uri: pendingMedia.uri }} style={styles.pendingMediaImage} />
+                ) : (
+                  <View style={styles.pendingMediaPlaceholder}>
+                    <Text style={styles.pendingMediaText}>Video selected</Text>
+                  </View>
+                )}
+                <View style={styles.mediaActions}>
+                  <Button size="sm" variant="outline" onPress={() => setPendingMedia(null)}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" onPress={handleConfirmMedia}>
+                    Add media
+                  </Button>
+                </View>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.field}>
@@ -427,6 +454,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  pendingMediaCard: {
+    marginTop: 10,
+    gap: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 12,
+    backgroundColor: "#ffffff",
+  },
+  pendingMediaImage: {
+    width: "100%",
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: "#e2e8f0",
+  },
+  pendingMediaPlaceholder: {
+    width: "100%",
+    height: 140,
+    borderRadius: 12,
+    backgroundColor: "#f1f5f9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pendingMediaText: {
+    fontSize: 12,
+    color: "#64748b",
   },
   option: {
     paddingHorizontal: 10,

@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
 
 import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -272,6 +273,7 @@ type ModalProps = {
 
 export default function FindMyTypeModal({ visible, onClose }: ModalProps) {
   const { accessToken } = useAuth();
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [intent, setIntent] = useState<Intent>("friendship");
   const [selectedCriteria, setSelectedCriteria] = useState<string[]>([]);
@@ -640,26 +642,37 @@ export default function FindMyTypeModal({ visible, onClose }: ModalProps) {
                           : "0/0";
                       return (
                         <View key={result.user.id} style={styles.resultCard}>
-                          {result.user.profile_image_url ? (
-                            <Image
-                              source={{ uri: resolveMediaUrl(result.user.profile_image_url) }}
-                              style={styles.avatar}
-                            />
-                          ) : (
-                            <View style={styles.avatarFallback} />
-                          )}
-                          <View style={styles.resultInfo}>
-                            <Text style={styles.resultName}>{name}</Text>
-                            <Text style={styles.resultMeta}>
-                              {result.user.age ? `${result.user.age} - ` : ""}
-                              {[result.user.location_city, result.user.location_country]
-                                .filter(Boolean)
-                                .join(", ") || "Location unavailable"}
-                            </Text>
-                          </View>
+                          <Pressable
+                            style={styles.resultMain}
+                            onPress={() => router.push(`/users/${result.user.id}`)}
+                          >
+                            {result.user.profile_image_url ? (
+                              <Image
+                                source={{ uri: resolveMediaUrl(result.user.profile_image_url) }}
+                                style={styles.avatar}
+                              />
+                            ) : (
+                              <View style={styles.avatarFallback} />
+                            )}
+                            <View style={styles.resultInfo}>
+                              <Text style={styles.resultName}>{name}</Text>
+                              <Text style={styles.resultMeta}>
+                                {result.user.age ? `${result.user.age} - ` : ""}
+                                {[result.user.location_city, result.user.location_country]
+                                  .filter(Boolean)
+                                  .join(", ") || "Location unavailable"}
+                              </Text>
+                            </View>
+                          </Pressable>
                           <View style={styles.scorePill}>
                             <Text style={styles.scoreText}>Match {scoreLabel}</Text>
                           </View>
+                          <Pressable
+                            onPress={() => router.push(`/users/${result.user.id}`)}
+                            style={styles.viewProfileButton}
+                          >
+                            <Text style={styles.viewProfileText}>View</Text>
+                          </Pressable>
                           <Button
                             size="sm"
                             onPress={() => handleSendRequest(result.user.id)}
@@ -901,6 +914,13 @@ const styles = StyleSheet.create({
     gap: 10,
     flexWrap: "wrap",
   },
+  resultMain: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+    minWidth: 160,
+  },
   avatar: {
     width: 48,
     height: 48,
@@ -932,6 +952,18 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   scoreText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#475569",
+  },
+  viewProfileButton: {
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  viewProfileText: {
     fontSize: 11,
     fontWeight: "600",
     color: "#475569",

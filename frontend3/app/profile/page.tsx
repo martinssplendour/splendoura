@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { apiFetch, resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { cropImageToAspect } from "@/lib/image-processing";
 
 const ORIENTATION_OPTIONS = [
   "straight",
@@ -38,6 +39,18 @@ const POLITICAL_OPTIONS = ["liberal", "moderate", "conservative", "not political
 const RELIGION_OPTIONS = ["christian", "muslim", "jewish", "hindu", "buddhist", "other", "none"];
 
 const GENDER_OPTIONS = ["male", "female", "other", "other_custom"];
+
+const BODY_TYPE_OPTIONS = ["slim", "athletic", "average", "curvy", "plus-size"];
+
+const HAIR_COLOR_OPTIONS = ["black", "brown", "blonde", "red", "gray", "other"];
+
+const EYE_COLOR_OPTIONS = ["brown", "blue", "green", "hazel", "gray", "other"];
+
+const INCOME_BRACKET_OPTIONS = ["<25k", "25-50k", "50-100k", "100k+"];
+
+const TRAVEL_FREQUENCY_OPTIONS = ["rarely", "sometimes", "often"];
+
+const COMMUNICATION_STYLE_OPTIONS = ["text", "call", "in-person", "mixed"];
 
 interface CreatedGroup {
   id: number;
@@ -79,7 +92,15 @@ const calculateAge = (dob: string) => {
 
 export default function ProfilePage() {
   const { accessToken, user, refreshSession } = useAuth();
-  const [files, setFiles] = useState<File[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingIndex, setPendingIndex] = useState(0);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingVerification, setPendingVerification] = useState<{
+    type: "photo" | "id";
+    file: File;
+  } | null>(null);
+  const [pendingVerificationPreview, setPendingVerificationPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
@@ -97,6 +118,8 @@ export default function ProfilePage() {
   const [locationLng, setLocationLng] = useState("");
 
   const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [income, setIncome] = useState("");
   const [workoutHabits, setWorkoutHabits] = useState("");
   const [smoking, setSmoking] = useState("");
   const [drinking, setDrinking] = useState("");
@@ -104,6 +127,10 @@ export default function ProfilePage() {
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
   const [school, setSchool] = useState("");
+  const [bodyType, setBodyType] = useState("");
+  const [hairColor, setHairColor] = useState("");
+  const [eyeColor, setEyeColor] = useState("");
+  const [incomeBracket, setIncomeBracket] = useState("");
 
   const [religion, setReligion] = useState("");
   const [politicalViews, setPoliticalViews] = useState("");
@@ -116,6 +143,9 @@ export default function ProfilePage() {
   const [diet, setDiet] = useState("");
   const [sleepHabits, setSleepHabits] = useState("");
   const [socialEnergy, setSocialEnergy] = useState("");
+  const [travelFrequency, setTravelFrequency] = useState("");
+  const [communicationStyle, setCommunicationStyle] = useState("");
+  const [loveLanguages, setLoveLanguages] = useState("");
 
   const [hasChildren, setHasChildren] = useState("");
   const [wantsChildren, setWantsChildren] = useState("");
@@ -172,6 +202,8 @@ export default function ProfilePage() {
     setLocationLng(user?.location_lng != null ? String(user.location_lng) : "");
 
     setHeightCm(String(details.height_cm ?? ""));
+    setWeightKg(String(details.weight_kg ?? ""));
+    setIncome(String(details.income ?? ""));
     setWorkoutHabits((details.workout_habits as string) || "");
     setSmoking((details.smoking as string) || "");
     setDrinking((details.drinking as string) || "");
@@ -179,6 +211,10 @@ export default function ProfilePage() {
     setJobTitle((details.job_title as string) || "");
     setCompany((details.company as string) || "");
     setSchool((details.school as string) || "");
+    setBodyType((details.body_type as string) || "");
+    setHairColor((details.hair_color as string) || "");
+    setEyeColor((details.eye_color as string) || "");
+    setIncomeBracket((details.income_bracket as string) || "");
 
     setReligion((details.religion as string) || "");
     setPoliticalViews((details.political_views as string) || "");
@@ -191,6 +227,9 @@ export default function ProfilePage() {
     setDiet((details.diet as string) || "");
     setSleepHabits((details.sleep_habits as string) || "");
     setSocialEnergy((details.social_energy as string) || "");
+    setTravelFrequency((details.travel_frequency as string) || "");
+    setCommunicationStyle((details.communication_style as string) || "");
+    setLoveLanguages(((details.love_languages as string[]) || []).join(", "));
 
     setHasChildren((details.has_children as string) || "");
     setWantsChildren((details.wants_children as string) || "");
@@ -348,44 +387,131 @@ export default function ProfilePage() {
     zodiacSign,
   ]);
 
-  const handleUpload = async () => {
+  useEffect(() => {
+    if (pendingFiles.length === 0) {
+      setPendingPreviewUrl(null);
+      return;
+    }
+    const file = pendingFiles[pendingIndex];
+    if (!file) {
+      setPendingPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPendingPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingFiles, pendingIndex]);
+
+  useEffect(() => {
+    if (!pendingVerification?.file) {
+      setPendingVerificationPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(pendingVerification.file);
+    setPendingVerificationPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingVerification]);
+
+  const handleSelectFiles = (event: ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files || []);
+    if (selected.length === 0) return;
+    setStatus(null);
+    setPendingFiles(selected);
+    setPendingIndex(0);
+    event.target.value = "";
+  };
+
+  const advancePending = () => {
+    setPendingIndex((prev) => {
+      const next = prev + 1;
+      if (next >= pendingFiles.length) {
+        setPendingFiles([]);
+        return 0;
+      }
+      return next;
+    });
+  };
+
+  const uploadProfileFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await apiFetch("/users/me/photo", {
+      method: "POST",
+      body: formData,
+      token: accessToken,
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null);
+      throw new Error(payload?.detail || "Upload failed.");
+    }
+  };
+
+  const handleConfirmUpload = async (mode: "original" | "crop") => {
     if (!accessToken) {
       setStatus("Please sign in to upload photos.");
       return;
     }
-    if (files.length === 0) {
+    const file = pendingFiles[pendingIndex];
+    if (!file) {
       setStatus("Select at least one image.");
       return;
     }
-    if (photos.length + files.length > 9) {
+    if (photos.length + 1 > 9) {
       setStatus("You can upload up to 9 photos.");
       return;
     }
     setIsUploading(true);
     setStatus(null);
-
     try {
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await apiFetch("/users/me/photo", {
-          method: "POST",
-          body: formData,
-          token: accessToken,
-        });
-        if (!res.ok) {
-          const payload = await res.json().catch(() => null);
-          throw new Error(payload?.detail || "Upload failed.");
-        }
-      }
+      const uploadFile = mode === "crop" ? await cropImageToAspect(file) : file;
+      await uploadProfileFile(uploadFile);
       await refreshSession();
-      setStatus("Photos uploaded successfully.");
-      setFiles([]);
+      setStatus("Photo uploaded successfully.");
+      advancePending();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed.";
       setStatus(message);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleSkipPending = () => {
+    if (pendingFiles.length === 0) return;
+    advancePending();
+  };
+
+  const handleCancelPending = () => {
+    setPendingFiles([]);
+    setPendingIndex(0);
+    setPendingPreviewUrl(null);
+  };
+
+  const handleSelectVerification =
+    (type: "photo" | "id") => (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      setProfileStatus(null);
+      setPendingVerification({ type, file });
+      event.target.value = "";
+    };
+
+  const handleConfirmVerification = async (mode: "original" | "crop") => {
+    if (!pendingVerification) return;
+    const endpoint =
+      pendingVerification.type === "photo"
+        ? "/users/me/photo-verification"
+        : "/users/me/id-verification";
+    const label = pendingVerification.type === "photo" ? "Photo verification" : "ID verification";
+    try {
+      const uploadFile =
+        mode === "crop" ? await cropImageToAspect(pendingVerification.file) : pendingVerification.file;
+      await uploadVerificationAsset(endpoint, label, uploadFile);
+      setPendingVerification(null);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : `${label} upload failed.`;
+      setProfileStatus(message);
     }
   };
 
@@ -431,19 +557,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handlePhotoVerification = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    await uploadVerificationAsset("/users/me/photo-verification", "Photo verification", file);
-    event.target.value = "";
-  };
-
-  const handleIdVerification = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    await uploadVerificationAsset("/users/me/id-verification", "ID verification", file);
-    event.target.value = "";
-  };
 
   const handleDeleteGroup = async (groupId: number) => {
     if (!accessToken) {
@@ -476,6 +589,8 @@ export default function ProfilePage() {
       show_orientation: showOrientation,
       looking_for: lookingFor || undefined,
       height_cm: heightCm ? Number(heightCm) : undefined,
+      weight_kg: weightKg ? Number(weightKg) : undefined,
+      income: income ? Number(income) : undefined,
       workout_habits: workoutHabits || undefined,
       smoking: smoking || undefined,
       drinking: drinking || undefined,
@@ -483,6 +598,10 @@ export default function ProfilePage() {
       job_title: jobTitle || undefined,
       company: company || undefined,
       school: school || undefined,
+      body_type: bodyType || undefined,
+      hair_color: hairColor || undefined,
+      eye_color: eyeColor || undefined,
+      income_bracket: incomeBracket || undefined,
       religion: religion || undefined,
       political_views: politicalViews || undefined,
       zodiac_sign: zodiacSign || undefined,
@@ -493,6 +612,9 @@ export default function ProfilePage() {
       diet: diet || undefined,
       sleep_habits: sleepHabits || undefined,
       social_energy: socialEnergy || undefined,
+      travel_frequency: travelFrequency || undefined,
+      communication_style: communicationStyle || undefined,
+      love_languages: parseList(loveLanguages),
       has_children: hasChildren || undefined,
       wants_children: wantsChildren || undefined,
       relationship_preference: relationshipPreference || undefined,
@@ -615,14 +737,16 @@ export default function ProfilePage() {
             type="file"
             accept="image/*"
             multiple
-            onChange={(event) => setFiles(Array.from(event.target.files || []))}
+            onChange={handleSelectFiles}
+            ref={fileInputRef}
+            className="hidden"
           />
           <Button
-            onClick={handleUpload}
+            onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
             className="bg-blue-600 text-white hover:bg-blue-700"
           >
-            {isUploading ? "Uploading..." : "Upload photos"}
+            {isUploading ? "Uploading..." : "Choose photos"}
           </Button>
           {photoVerified ? (
             <span className="text-sm font-semibold text-emerald-600">Photo verified</span>
@@ -630,6 +754,44 @@ export default function ProfilePage() {
             <span className="text-sm text-slate-500">Verification pending</span>
           )}
         </div>
+        {pendingPreviewUrl ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs font-semibold text-slate-500">
+              Preview {pendingIndex + 1} of {pendingFiles.length}
+            </p>
+            <img
+              src={pendingPreviewUrl}
+              alt="Pending upload"
+              className="mt-3 h-56 w-full rounded-2xl object-cover"
+            />
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                onClick={() => handleConfirmUpload("original")}
+                disabled={isUploading}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {isUploading ? "Uploading..." : "Upload original"}
+              </Button>
+              <Button variant="outline" onClick={() => handleConfirmUpload("crop")}>
+                Crop & upload
+              </Button>
+              <button
+                type="button"
+                onClick={handleSkipPending}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+              >
+                Skip
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelPending}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+              >
+                Cancel all
+              </button>
+            </div>
+          </div>
+        ) : null}
         {status ? <p className="text-sm text-slate-600">{status}</p> : null}
       </div>
 
@@ -757,6 +919,14 @@ export default function ProfilePage() {
             />
           </label>
           <label className="text-sm font-semibold text-slate-700">
+            Weight (kg)
+            <input
+              value={weightKg}
+              onChange={(event) => setWeightKg(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+            />
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
             Workout habits
             <select
               value={workoutHabits}
@@ -765,6 +935,51 @@ export default function ProfilePage() {
             >
               <option value="">Select</option>
               {WORKOUT_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            Body type
+            <select
+              value={bodyType}
+              onChange={(event) => setBodyType(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+            >
+              <option value="">Select</option>
+              {BODY_TYPE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            Hair color
+            <select
+              value={hairColor}
+              onChange={(event) => setHairColor(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+            >
+              <option value="">Select</option>
+              {HAIR_COLOR_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            Eye color
+            <select
+              value={eyeColor}
+              onChange={(event) => setEyeColor(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+            >
+              <option value="">Select</option>
+              {EYE_COLOR_OPTIONS.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -798,6 +1013,30 @@ export default function ProfilePage() {
             >
               <option value="">Select</option>
               {EDUCATION_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            Income (USD per year)
+            <input
+              value={income}
+              onChange={(event) => setIncome(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+              placeholder="50000"
+            />
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            Income bracket
+            <select
+              value={incomeBracket}
+              onChange={(event) => setIncomeBracket(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+            >
+              <option value="">Select</option>
+              {INCOME_BRACKET_OPTIONS.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -957,6 +1196,45 @@ export default function ProfilePage() {
                 </option>
               ))}
             </select>
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            Travel frequency
+            <select
+              value={travelFrequency}
+              onChange={(event) => setTravelFrequency(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+            >
+              <option value="">Select</option>
+              {TRAVEL_FREQUENCY_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            Communication style
+            <select
+              value={communicationStyle}
+              onChange={(event) => setCommunicationStyle(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+            >
+              <option value="">Select</option>
+              {COMMUNICATION_STYLE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-semibold text-slate-700 md:col-span-2">
+            Love languages
+            <input
+              value={loveLanguages}
+              onChange={(event) => setLoveLanguages(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+              placeholder="Quality time, Acts of service"
+            />
           </label>
         </div>
       </div>
@@ -1265,7 +1543,7 @@ export default function ProfilePage() {
             <input
               type="file"
               accept="image/*"
-              onChange={handlePhotoVerification}
+              onChange={handleSelectVerification("photo")}
               disabled={isVerifying}
               className="mt-3 w-full text-xs"
             />
@@ -1278,12 +1556,43 @@ export default function ProfilePage() {
             <input
               type="file"
               accept="image/*"
-              onChange={handleIdVerification}
+              onChange={handleSelectVerification("id")}
               disabled={isVerifying}
               className="mt-3 w-full text-xs"
             />
           </div>
         </div>
+        {pendingVerificationPreview ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs font-semibold text-slate-500">
+              {pendingVerification?.type === "photo" ? "Photo" : "ID"} verification preview
+            </p>
+            <img
+              src={pendingVerificationPreview}
+              alt="Verification preview"
+              className="mt-3 h-56 w-full rounded-2xl object-cover"
+            />
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                onClick={() => handleConfirmVerification("original")}
+                disabled={isVerifying}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {isVerifying ? "Uploading..." : "Upload original"}
+              </Button>
+              <Button variant="outline" onClick={() => handleConfirmVerification("crop")}>
+                Crop & upload
+              </Button>
+              <button
+                type="button"
+                onClick={() => setPendingVerification(null)}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : null}
         {profileStatus ? <p className="text-sm text-slate-600">{profileStatus}</p> : null}
       </div>
 

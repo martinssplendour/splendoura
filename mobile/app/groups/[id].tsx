@@ -646,6 +646,8 @@ export default function GroupDetailScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 5],
       quality: 0.8,
     });
     if (result.canceled) return;
@@ -1434,14 +1436,28 @@ export default function GroupDetailScreen() {
           {isCreator ? (
             <View style={styles.uploadSection}>
               {selectedMedia ? (
-                <Text style={styles.detailValue}>
-                  Selected: {selectedMedia.name || "media"}
-                </Text>
+                <>
+                  {selectedMedia.mimeType?.startsWith("image/") ? (
+                    <Image source={{ uri: selectedMedia.uri }} style={styles.pendingMediaImage} />
+                  ) : (
+                    <View style={styles.pendingMediaPlaceholder}>
+                      <Text style={styles.pendingMediaText}>Video selected</Text>
+                    </View>
+                  )}
+                  <Text style={styles.detailValue}>
+                    Selected: {selectedMedia.name || "media"}
+                  </Text>
+                </>
               ) : null}
               <View style={styles.actionRow}>
                 <Button variant="outline" size="sm" onPress={handlePickMedia}>
                   Pick media
                 </Button>
+                {selectedMedia ? (
+                  <Button variant="ghost" size="sm" onPress={() => setSelectedMedia(null)}>
+                    Clear
+                  </Button>
+                ) : null}
                 <Pressable
                   style={[styles.toggle, isCoverUpload ? styles.toggleActive : null]}
                   onPress={() => setIsCoverUpload((prev) => !prev)}
@@ -2210,6 +2226,24 @@ const styles = StyleSheet.create({
   },
   uploadSection: {
     gap: 10,
+  },
+  pendingMediaImage: {
+    width: "100%",
+    height: 180,
+    borderRadius: 16,
+    backgroundColor: "#e2e8f0",
+  },
+  pendingMediaPlaceholder: {
+    width: "100%",
+    height: 160,
+    borderRadius: 16,
+    backgroundColor: "#f1f5f9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pendingMediaText: {
+    fontSize: 12,
+    color: "#64748b",
   },
   availabilityGrid: {
     gap: 12,
