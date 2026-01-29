@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -22,6 +23,7 @@ export default function SettingsScreen() {
   const [profileVisibility, setProfileVisibility] = useState(true);
   const [incognitoMode, setIncognitoMode] = useState(false);
   const [globalMode, setGlobalMode] = useState(false);
+  const [genderPref, setGenderPref] = useState("both");
   const [blockNudity, setBlockNudity] = useState(false);
   const [pushNotifs, setPushNotifs] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(false);
@@ -40,6 +42,16 @@ export default function SettingsScreen() {
     setProfileVisibility(discovery.profile_visibility !== false);
     setIncognitoMode(Boolean(discovery.incognito_mode));
     setGlobalMode(Boolean(discovery.global_mode));
+    const genders = discovery.genders as string[] | undefined;
+    const hasMale = genders?.includes("male");
+    const hasFemale = genders?.includes("female");
+    if (hasMale && hasFemale) {
+      setGenderPref("both");
+    } else if (hasFemale) {
+      setGenderPref("female");
+    } else if (hasMale) {
+      setGenderPref("male");
+    }
     setBlockNudity(Boolean(safety.block_nudity));
     setPushNotifs((notifications.push_enabled as boolean) ?? true);
     setEmailNotifs((notifications.email_enabled as boolean) ?? false);
@@ -83,6 +95,12 @@ export default function SettingsScreen() {
         profile_visibility: profileVisibility,
         incognito_mode: incognitoMode,
         global_mode: globalMode,
+        genders:
+          genderPref === "male"
+            ? ["male"]
+            : genderPref === "female"
+              ? ["female"]
+              : ["male", "female"],
       };
       const res = await apiFetch("/users/me", {
         method: "PUT",
@@ -142,7 +160,35 @@ export default function SettingsScreen() {
             <Text style={styles.label}>Global mode</Text>
             <Switch value={globalMode} onValueChange={setGlobalMode} />
           </View>
-          <Text style={styles.helperText}>Age range, distance, and filters are in Profile.</Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Show me</Text>
+            <View style={styles.optionRow}>
+              {[
+                { id: "both", label: "Both" },
+                { id: "female", label: "Women" },
+                { id: "male", label: "Men" },
+              ].map((option) => (
+                <Pressable
+                  key={option.id}
+                  onPress={() => setGenderPref(option.id)}
+                  style={[
+                    styles.optionChip,
+                    genderPref === option.id ? styles.optionChipActive : null,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.optionText,
+                      genderPref === option.id ? styles.optionTextActive : null,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          <Text style={styles.helperText}>Age range and distance are in Profile.</Text>
         </View>
 
         <View style={styles.section}>
@@ -238,6 +284,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+  },
+  field: {
+    gap: 8,
+  },
+  optionRow: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  optionChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+  },
+  optionChipActive: {
+    backgroundColor: "#0f172a",
+    borderColor: "#0f172a",
+  },
+  optionText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+  },
+  optionTextActive: {
+    color: "#ffffff",
   },
   label: {
     fontSize: 13,

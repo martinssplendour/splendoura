@@ -30,6 +30,7 @@ type AppliedFilters = {
   maxAge: string;
   distance: string;
   cost: string;
+  gender: string;
   creatorVerified: boolean;
 };
 
@@ -65,6 +66,12 @@ const COST_OPTIONS = [
   { id: "custom", label: "Custom" },
 ];
 
+const GENDER_OPTIONS = [
+  { id: "both", label: "Both" },
+  { id: "female", label: "Women" },
+  { id: "male", label: "Men" },
+];
+
 export default function GroupsScreen() {
   const router = useRouter();
   const { accessToken, user } = useAuth();
@@ -86,6 +93,7 @@ export default function GroupsScreen() {
   const [maxAgeFilter, setMaxAgeFilter] = useState("");
   const [distanceFilter, setDistanceFilter] = useState("");
   const [costFilter, setCostFilter] = useState("");
+  const [genderFilter, setGenderFilter] = useState("both");
   const [creatorVerifiedFilter, setCreatorVerifiedFilter] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilters>({
     location: "",
@@ -94,6 +102,7 @@ export default function GroupsScreen() {
     maxAge: "",
     distance: "",
     cost: "",
+    gender: "both",
     creatorVerified: false,
   });
 
@@ -111,6 +120,16 @@ export default function GroupsScreen() {
     }
     if (!maxAgeFilter && discovery.age_max != null) {
       setMaxAgeFilter(String(discovery.age_max));
+    }
+    const genders = discovery.genders as string[] | undefined;
+    const hasMale = genders?.includes("male");
+    const hasFemale = genders?.includes("female");
+    if (hasMale && hasFemale) {
+      setGenderFilter("both");
+    } else if (hasFemale) {
+      setGenderFilter("female");
+    } else if (hasMale) {
+      setGenderFilter("male");
     }
   }, [distanceFilter, locationFilter, maxAgeFilter, minAgeFilter, user]);
 
@@ -191,11 +210,21 @@ export default function GroupsScreen() {
       criteria.push({ key: "distance_km", value: distance });
     }
     const genders = discovery.genders as string[] | undefined;
-    if (Array.isArray(genders) && genders.length > 0) {
-      criteria.push({ key: "gender", value: genders });
+    const resolvedGenders =
+      appliedFilters.gender === "male"
+        ? ["male"]
+        : appliedFilters.gender === "female"
+          ? ["female"]
+          : appliedFilters.gender === "both"
+            ? ["male", "female"]
+            : Array.isArray(genders)
+              ? genders
+              : [];
+    if (resolvedGenders.length > 0) {
+      criteria.push({ key: "gender", value: resolvedGenders });
     }
     return criteria;
-  }, [user?.discovery_settings]);
+  }, [appliedFilters.gender, user?.discovery_settings]);
 
   const profileCriteriaKey = useMemo(() => JSON.stringify(profileCriteria), [profileCriteria]);
 
@@ -276,6 +305,7 @@ export default function GroupsScreen() {
       maxAge: maxAgeFilter,
       distance: distanceFilter,
       cost: costFilter,
+      gender: genderFilter,
       creatorVerified: creatorVerifiedFilter,
     });
     setShowFilters(false);
@@ -284,6 +314,7 @@ export default function GroupsScreen() {
     costFilter,
     creatorVerifiedFilter,
     distanceFilter,
+    genderFilter,
     locationFilter,
     maxAgeFilter,
     minAgeFilter,
@@ -304,8 +335,10 @@ export default function GroupsScreen() {
       maxAge: "",
       distance: "",
       cost: "",
+      gender: "both",
       creatorVerified: false,
     });
+    setGenderFilter("both");
   }, []);
 
   return (
@@ -411,6 +444,30 @@ export default function GroupsScreen() {
                         style={[
                           styles.costChipText,
                           costFilter === option.id ? styles.costChipTextActive : null,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.filterField}>
+                <Text style={styles.label}>Show me</Text>
+                <View style={styles.costRow}>
+                  {GENDER_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option.id}
+                      onPress={() => setGenderFilter(option.id)}
+                      style={[
+                        styles.costChip,
+                        genderFilter === option.id ? styles.costChipActive : null,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.costChipText,
+                          genderFilter === option.id ? styles.costChipTextActive : null,
                         ]}
                       >
                         {option.label}

@@ -20,6 +20,7 @@ const DEFAULT_FILTERS: GroupFilters = {
   maxAge: "",
   distance: "",
   cost: "",
+  gender: "",
   creatorVerified: false,
 };
 
@@ -66,6 +67,18 @@ export default function BrowseGroups() {
       }
       if (!prev.maxAge && discovery.age_max != null) {
         next.maxAge = String(discovery.age_max);
+      }
+      if (!prev.gender) {
+        const genders = discovery.genders as string[] | undefined;
+        const hasMale = genders?.includes("male");
+        const hasFemale = genders?.includes("female");
+        if (hasMale && hasFemale) {
+          next.gender = "both";
+        } else if (hasFemale) {
+          next.gender = "female";
+        } else if (hasMale) {
+          next.gender = "male";
+        }
       }
       return next;
     });
@@ -145,11 +158,22 @@ export default function BrowseGroups() {
       criteria.push({ key: "distance_km", value: distance });
     }
     const genders = discovery.genders as string[] | undefined;
-    if (Array.isArray(genders) && genders.length > 0) {
-      criteria.push({ key: "gender", value: genders });
+    const filterPref = filters.gender;
+    const resolvedGenders =
+      filterPref === "male"
+        ? ["male"]
+        : filterPref === "female"
+          ? ["female"]
+          : filterPref === "both"
+            ? ["male", "female"]
+            : Array.isArray(genders)
+              ? genders
+              : [];
+    if (resolvedGenders.length > 0) {
+      criteria.push({ key: "gender", value: resolvedGenders });
     }
     return criteria;
-  }, [user?.discovery_settings]);
+  }, [filters.gender, user?.discovery_settings]);
 
   const profileCriteriaKey = useMemo(() => JSON.stringify(profileCriteria), [profileCriteria]);
 

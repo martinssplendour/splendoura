@@ -9,6 +9,7 @@ export interface GroupFilters {
   maxAge: string;
   distance: string;
   cost: string;
+  gender: string;
   creatorVerified: boolean;
 }
 
@@ -73,6 +74,19 @@ export default function FiltersSidebar({
             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm"
           />
         </div>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-xs font-semibold uppercase text-slate-400">Show me</p>
+        <select
+          value={filters.gender || "both"}
+          onChange={(event) => onChange({ ...filters, gender: event.target.value })}
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm"
+        >
+          <option value="both">Men & women</option>
+          <option value="female">Women</option>
+          <option value="male">Men</option>
+        </select>
       </div>
 
       <div className="space-y-3">

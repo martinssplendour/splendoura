@@ -60,6 +60,7 @@ export default function SettingsPage() {
   const [profileVisibility, setProfileVisibility] = useState(true);
   const [incognitoMode, setIncognitoMode] = useState(false);
   const [globalMode, setGlobalMode] = useState(false);
+  const [genderPref, setGenderPref] = useState("both");
   const [blockNudity, setBlockNudity] = useState(false);
   const [pushNotifs, setPushNotifs] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(false);
@@ -79,6 +80,16 @@ export default function SettingsPage() {
     setProfileVisibility(discovery.profile_visibility !== false);
     setIncognitoMode(Boolean(discovery.incognito_mode));
     setGlobalMode(Boolean(discovery.global_mode));
+    const genders = discovery.genders as string[] | undefined;
+    const hasMale = genders?.includes("male");
+    const hasFemale = genders?.includes("female");
+    if (hasMale && hasFemale) {
+      setGenderPref("both");
+    } else if (hasFemale) {
+      setGenderPref("female");
+    } else if (hasMale) {
+      setGenderPref("male");
+    }
     setBlockNudity(Boolean(safety.block_nudity));
     setPushNotifs((notifications.push_enabled as boolean) ?? true);
     setEmailNotifs((notifications.email_enabled as boolean) ?? false);
@@ -125,6 +136,12 @@ export default function SettingsPage() {
         profile_visibility: profileVisibility,
         incognito_mode: incognitoMode,
         global_mode: globalMode,
+        genders:
+          genderPref === "male"
+            ? ["male"]
+            : genderPref === "female"
+              ? ["female"]
+              : ["male", "female"],
       };
 
       const res = await apiFetch("/users/me", {
@@ -219,8 +236,20 @@ export default function SettingsPage() {
           checked={globalMode}
           onChange={setGlobalMode}
         />
+        <div className="space-y-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <p className="text-sm font-semibold text-slate-700">Show me</p>
+          <select
+            value={genderPref}
+            onChange={(event) => setGenderPref(event.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+          >
+            <option value="both">Men & women</option>
+            <option value="female">Women</option>
+            <option value="male">Men</option>
+          </select>
+        </div>
         <p className="text-xs text-slate-500">
-          Age range, distance, and intent filters are managed in your profile.
+          Age range and distance filters are managed in your profile.
         </p>
       </SettingsSection>
 
