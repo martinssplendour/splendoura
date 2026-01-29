@@ -674,6 +674,7 @@ const styles = StyleSheet.create({
   filterOverlay: {
     flex: 1,
     justifyContent: "flex-end",
+    transform: [{ translateY: -20 }],
   },
   filterBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -688,6 +689,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     gap: 14,
     maxHeight: "85%",
+    marginBottom: 16,
   },
   filterHeader: {
     flexDirection: "row",
