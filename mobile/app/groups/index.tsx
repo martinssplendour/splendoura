@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -369,127 +371,155 @@ export default function GroupsScreen() {
           </View>
 
           {showFilters ? (
-            <View style={styles.filters}>
-              <View style={styles.filterRow}>
-                <View style={styles.filterField}>
-                  <Text style={styles.label}>Location</Text>
-                  <TextInput
-                    value={locationFilter}
-                    onChangeText={setLocationFilter}
-                    placeholder="City or area"
-                    style={styles.input}
-                  />
-                </View>
-                <View style={styles.filterField}>
-                  <Text style={styles.label}>Activity</Text>
-                  <TextInput
-                    value={activityFilter}
-                    onChangeText={setActivityFilter}
-                    placeholder="Dinner, travel..."
-                    style={styles.input}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.filterRow}>
-                <View style={styles.filterField}>
-                  <Text style={styles.label}>Min age</Text>
-                  <TextInput
-                    value={minAgeFilter}
-                    onChangeText={setMinAgeFilter}
-                    placeholder="18"
-                    keyboardType="number-pad"
-                    style={styles.input}
-                  />
-                </View>
-                <View style={styles.filterField}>
-                  <Text style={styles.label}>Max age</Text>
-                  <TextInput
-                    value={maxAgeFilter}
-                    onChangeText={setMaxAgeFilter}
-                    placeholder="40"
-                    keyboardType="number-pad"
-                    style={styles.input}
-                  />
-                </View>
-              </View>
-              <View style={styles.filterRow}>
-                <View style={styles.filterField}>
-                  <Text style={styles.label}>Distance (km)</Text>
-                  <TextInput
-                    value={distanceFilter}
-                    onChangeText={setDistanceFilter}
-                    placeholder="25"
-                    keyboardType="decimal-pad"
-                    style={styles.input}
-                  />
-                  {user?.location_lat == null || user?.location_lng == null ? (
-                    <Text style={styles.helper}>Add location coordinates in your profile.</Text>
-                  ) : null}
-                </View>
-              </View>
-              <View style={styles.filterField}>
-                <Text style={styles.label}>Cost</Text>
-                <View style={styles.costRow}>
-                  {COST_OPTIONS.map((option) => (
-                    <Pressable
-                      key={option.id || "any"}
-                      onPress={() => setCostFilter(option.id)}
-                      style={[
-                        styles.costChip,
-                        costFilter === option.id ? styles.costChipActive : null,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.costChipText,
-                          costFilter === option.id ? styles.costChipTextActive : null,
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
+            <Modal
+              transparent
+              animationType="slide"
+              visible={showFilters}
+              onRequestClose={() => setShowFilters(false)}
+            >
+              <View style={styles.filterOverlay}>
+                <Pressable style={styles.filterBackdrop} onPress={() => setShowFilters(false)} />
+                <View style={styles.filterSheet}>
+                  <View style={styles.filterHeader}>
+                    <View>
+                      <Text style={styles.filterKicker}>Filters</Text>
+                      <Text style={styles.filterTitle}>Refine your matches</Text>
+                    </View>
+                    <Pressable onPress={() => setShowFilters(false)}>
+                      <Text style={styles.filterClose}>Close</Text>
                     </Pressable>
-                  ))}
-                </View>
-              </View>
-              <View style={styles.filterField}>
-                <Text style={styles.label}>Show me</Text>
-                <View style={styles.costRow}>
-                  {GENDER_OPTIONS.map((option) => (
-                    <Pressable
-                      key={option.id}
-                      onPress={() => setGenderFilter(option.id)}
-                      style={[
-                        styles.costChip,
-                        genderFilter === option.id ? styles.costChipActive : null,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.costChipText,
-                          genderFilter === option.id ? styles.costChipTextActive : null,
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-              <View style={styles.switchRow}>
-                <Text style={styles.label}>Verified creators only</Text>
-                <Switch value={creatorVerifiedFilter} onValueChange={setCreatorVerifiedFilter} />
-              </View>
+                  </View>
 
-              <View style={styles.actions}>
-                <Button variant="ghost" size="sm" onPress={handleClearFilters}>
-                  Clear
-                </Button>
-                <Button variant="outline" size="sm" onPress={handleApplyFilters}>
-                  Apply filters
-                </Button>
+                  <View style={styles.filterDivider} />
+
+                  <ScrollView
+                    contentContainerStyle={styles.filters}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <View style={styles.filterField}>
+                      <Text style={styles.filterLabel}>Location</Text>
+                      <TextInput
+                        value={locationFilter}
+                        onChangeText={setLocationFilter}
+                        placeholder="City or area"
+                        style={styles.filterInput}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={styles.filterLabel}>Activity</Text>
+                      <TextInput
+                        value={activityFilter}
+                        onChangeText={setActivityFilter}
+                        placeholder="Dinner, travel..."
+                        style={styles.filterInput}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={styles.filterLabel}>Age range</Text>
+                      <View style={styles.filterRow}>
+                        <TextInput
+                          value={minAgeFilter}
+                          onChangeText={setMinAgeFilter}
+                          placeholder="Min"
+                          keyboardType="number-pad"
+                          style={[styles.filterInput, styles.filterInputHalf]}
+                        />
+                        <TextInput
+                          value={maxAgeFilter}
+                          onChangeText={setMaxAgeFilter}
+                          placeholder="Max"
+                          keyboardType="number-pad"
+                          style={[styles.filterInput, styles.filterInputHalf]}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={styles.filterLabel}>Distance (km)</Text>
+                      <TextInput
+                        value={distanceFilter}
+                        onChangeText={setDistanceFilter}
+                        placeholder="25"
+                        keyboardType="decimal-pad"
+                        style={styles.filterInput}
+                      />
+                      {user?.location_lat == null || user?.location_lng == null ? (
+                        <Text style={styles.helper}>Add location coordinates in your profile.</Text>
+                      ) : null}
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={styles.filterLabel}>Cost</Text>
+                      <View style={styles.optionRow}>
+                        {COST_OPTIONS.map((option) => (
+                          <Pressable
+                            key={option.id || "any"}
+                            onPress={() => setCostFilter(option.id)}
+                            style={[
+                              styles.optionChip,
+                              costFilter === option.id ? styles.optionChipActive : null,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.optionText,
+                                costFilter === option.id ? styles.optionTextActive : null,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={styles.filterLabel}>Show me</Text>
+                      <View style={styles.segmentedRow}>
+                        {GENDER_OPTIONS.map((option) => (
+                          <Pressable
+                            key={option.id}
+                            onPress={() => setGenderFilter(option.id)}
+                            style={[
+                              styles.segment,
+                              genderFilter === option.id ? styles.segmentActive : null,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.segmentText,
+                                genderFilter === option.id ? styles.segmentTextActive : null,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+
+                    <View style={styles.switchRow}>
+                      <Text style={styles.filterLabel}>Verified creators only</Text>
+                      <Switch
+                        value={creatorVerifiedFilter}
+                        onValueChange={setCreatorVerifiedFilter}
+                      />
+                    </View>
+                  </ScrollView>
+
+                  <View style={styles.filterFooter}>
+                    <Button variant="ghost" size="sm" onPress={handleClearFilters}>
+                      Clear
+                    </Button>
+                    <Button size="sm" onPress={handleApplyFilters}>
+                      Apply filters
+                    </Button>
+                  </View>
+                </View>
               </View>
-            </View>
+            </Modal>
           ) : null}
 
           <View style={styles.categorySection}>
@@ -641,45 +671,82 @@ const styles = StyleSheet.create({
   categoryChipTextActive: {
     color: "#ffffff",
   },
-  filters: {
-    gap: 12,
-    padding: 12,
-    borderRadius: 16,
+  filterOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  filterBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+  },
+  filterSheet: {
     backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
+    gap: 14,
+    maxHeight: "85%",
+  },
+  filterHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  filterKicker: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    color: "#94a3b8",
+  },
+  filterTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  filterClose: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#2563eb",
+  },
+  filterDivider: {
+    height: 1,
+    backgroundColor: "#e2e8f0",
+  },
+  filters: {
+    gap: 14,
   },
   filterRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 10,
   },
   filterField: {
-    flex: 1,
-    gap: 6,
+    gap: 8,
   },
-  label: {
+  filterLabel: {
     fontSize: 12,
     fontWeight: "600",
     color: "#475569",
   },
-  input: {
+  filterInput: {
     borderWidth: 1,
     borderColor: "#e2e8f0",
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     fontSize: 14,
     backgroundColor: "#ffffff",
+  },
+  filterInputHalf: {
+    flex: 1,
   },
   helper: {
     fontSize: 10,
     color: "#94a3b8",
     marginTop: 4,
-  },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
   },
   switchRow: {
     flexDirection: "row",
@@ -687,30 +754,61 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
   },
-  costRow: {
+  optionRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
-  costChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  optionChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#e2e8f0",
     backgroundColor: "#f8fafc",
   },
-  costChipActive: {
-    backgroundColor: "#1e293b",
-    borderColor: "#1e293b",
+  optionChipActive: {
+    backgroundColor: "#0f172a",
+    borderColor: "#0f172a",
   },
-  costChipText: {
+  optionText: {
     fontSize: 12,
     fontWeight: "600",
     color: "#475569",
   },
-  costChipTextActive: {
+  optionTextActive: {
     color: "#ffffff",
+  },
+  segmentedRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+  },
+  segmentActive: {
+    backgroundColor: "#0f172a",
+    borderColor: "#0f172a",
+  },
+  segmentText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+  },
+  segmentTextActive: {
+    color: "#ffffff",
+  },
+  filterFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingTop: 6,
   },
   deckArea: {
     flex: 1,
