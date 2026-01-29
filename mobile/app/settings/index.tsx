@@ -234,6 +234,9 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Legal & support</Text>
+          <Pressable onPress={() => router.push("/privacy")}>
+            <Text style={styles.linkText}>Privacy policy</Text>
+          </Pressable>
           <Text style={styles.helperText}>Terms, privacy policy, and support resources.</Text>
         </View>
 
@@ -325,6 +328,11 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 12,
     color: "#64748b",
+  },
+  linkText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#2563eb",
   },
   status: {
     textAlign: "center",

@@ -307,7 +307,9 @@ export default function SettingsPage() {
             Safety guidelines
           </Link>
           <span>Terms of service</span>
-          <span>Privacy policy</span>
+          <Link href="/privacy" className="font-semibold text-emerald-600 hover:text-emerald-700">
+            Privacy policy
+          </Link>
           <span>Contact support</span>
         </div>
       </SettingsSection>
