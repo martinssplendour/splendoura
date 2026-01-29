@@ -5,6 +5,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -72,6 +73,10 @@ export default function CreateGroupScreen() {
     if (!pendingMedia) return;
     setSelectedMedia((prev) => [...prev, pendingMedia]);
     setPendingMedia(null);
+  };
+
+  const handleRemoveSelectedMedia = (index: number) => {
+    setSelectedMedia((prev) => prev.filter((_, idx) => idx !== index));
   };
 
   const handleSubmit = async () => {
@@ -319,6 +324,27 @@ export default function CreateGroupScreen() {
                 </Button>
               ) : null}
             </View>
+            {selectedMedia.length > 0 ? (
+              <View style={styles.selectedMediaList}>
+                {selectedMedia.map((media, index) => (
+                  <View key={`${media.uri}-${index}`} style={styles.selectedMediaItem}>
+                    {media.mimeType?.startsWith("image/") ? (
+                      <Image source={{ uri: media.uri }} style={styles.selectedMediaThumb} />
+                    ) : (
+                      <View style={styles.selectedMediaThumb}>
+                        <Text style={styles.pendingMediaText}>Video</Text>
+                      </View>
+                    )}
+                    <Pressable
+                      onPress={() => handleRemoveSelectedMedia(index)}
+                      style={styles.selectedMediaRemove}
+                    >
+                      <Text style={styles.selectedMediaRemoveText}>×</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            ) : null}
             {pendingMedia ? (
               <View style={styles.pendingMediaCard}>
                 {pendingMedia.mimeType?.startsWith("image/") ? (
@@ -454,6 +480,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  selectedMediaList: {
+    marginTop: 10,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  selectedMediaItem: {
+    width: "48%",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#ffffff",
+    padding: 8,
+    gap: 6,
+  },
+  selectedMediaThumb: {
+    width: "100%",
+    height: 90,
+    borderRadius: 10,
+    backgroundColor: "#f1f5f9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedMediaRemove: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedMediaRemoveText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#ffffff",
+    lineHeight: 16,
   },
   pendingMediaCard: {
     marginTop: 10,

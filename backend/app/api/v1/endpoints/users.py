@@ -1,8 +1,9 @@
 ﻿# backend/app/api/v1/endpoints/users.py
 from datetime import datetime, timezone
 from typing import Any, List
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app import crud, models, schemas
 from app.api import deps
@@ -14,6 +15,10 @@ from app.models.user import VerificationStatus
 from app.core.storage import supabase_storage_enabled, upload_bytes_to_supabase
 
 router = APIRouter()
+
+
+class PhotoRemove(BaseModel):
+    url: str
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -170,6 +175,41 @@ def upload_profile_photo(
     if current_user.verification_status != VerificationStatus.VERIFIED:
         current_user.verification_status = VerificationStatus.PENDING
         current_user.verification_requested_at = datetime.utcnow()
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.delete("/me/photo", response_model=schemas.User, dependencies=[Depends(deps.rate_limit)])
+def delete_profile_photo(
+    *,
+    db: Session = Depends(deps.get_db),
+    payload: PhotoRemove = Body(...),
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    """Delete a profile image for the current user."""
+    url = (payload.url or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="Photo URL is required.")
+    media = current_user.profile_media or {}
+    photos = media.get("photos") or []
+    if url not in photos:
+        raise HTTPException(status_code=404, detail="Photo not found.")
+    photos = [photo for photo in photos if photo != url]
+    media["photos"] = photos
+    if current_user.profile_image_url == url:
+        current_user.profile_image_url = photos[0] if photos else None
+    current_user.profile_media = media
+    if url.startswith("/api/v1/media/"):
+        try:
+            blob_id = int(url.split("/api/v1/media/")[1])
+            blob = db.query(MediaBlob).filter(MediaBlob.id == blob_id).first()
+            if blob:
+                blob.deleted_at = _utcnow()
+                db.add(blob)
+        except (ValueError, IndexError):
+            pass
     db.add(current_user)
     db.commit()
     db.refresh(current_user)

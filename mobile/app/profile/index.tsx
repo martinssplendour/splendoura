@@ -186,6 +186,7 @@ export default function ProfileScreen() {
   const [status, setStatus] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
@@ -679,6 +680,36 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleDeletePhoto = async (photoUrl: string) => {
+    if (!accessToken) {
+      setStatus("Please sign in to manage photos.");
+      return;
+    }
+    setIsDeletingPhoto(true);
+    setStatus(null);
+    try {
+      const res = await apiFetch("/users/me/photo", {
+        method: "DELETE",
+        token: accessToken,
+        body: JSON.stringify({ url: photoUrl }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.detail || "Unable to delete photo.");
+      }
+      const updated = await res.json();
+      const media = (updated.profile_media as Record<string, unknown>) || {};
+      setPhotos((media.photos as string[]) || []);
+      await refreshSession();
+      setStatus("Photo removed.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to delete photo.";
+      setStatus(message);
+    } finally {
+      setIsDeletingPhoto(false);
+    }
+  };
+
   const handleDeleteGroup = async (groupId: number) => {
     if (!accessToken) return;
     const res = await apiFetch(`/groups/${groupId}`, {
@@ -780,12 +811,20 @@ export default function ProfileScreen() {
                 ) : (
                     <View style={styles.photoGrid}>
                       {photos.map((photo) => (
-                        <Image
-                          key={photo}
-                          source={{ uri: resolveMediaUrl(photo) }}
-                          style={styles.photo}
-                          resizeMode="contain"
-                        />
+                        <View key={photo} style={styles.photoItem}>
+                          <Image
+                            source={{ uri: resolveMediaUrl(photo) }}
+                            style={styles.photo}
+                            resizeMode="cover"
+                          />
+                          <Pressable
+                            onPress={() => handleDeletePhoto(photo)}
+                            disabled={isDeletingPhoto}
+                            style={styles.photoRemove}
+                          >
+                            <Text style={styles.photoRemoveText}>×</Text>
+                          </Pressable>
+                        </View>
                       ))}
                     </View>
                 )}
@@ -1826,11 +1865,31 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 8,
   },
-  photo: {
+  photoItem: {
     width: "48%",
+  },
+  photo: {
+    width: "100%",
     height: 120,
     borderRadius: 16,
     backgroundColor: "#e2e8f0",
+  },
+  photoRemove: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    backgroundColor: "#ef4444",
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoRemoveText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 16,
   },
   photoPlaceholder: {
     width: "100%",

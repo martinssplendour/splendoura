@@ -104,6 +104,7 @@ export default function ProfilePage() {
   const [pendingVerificationPreview, setPendingVerificationPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
 
   const [username, setUsername] = useState("");
@@ -491,6 +492,36 @@ export default function ProfilePage() {
     setPendingPreviewUrl(null);
   };
 
+  const handleDeletePhoto = async (photoUrl: string) => {
+    if (!accessToken) {
+      setStatus("Please sign in to manage photos.");
+      return;
+    }
+    setIsDeletingPhoto(true);
+    setStatus(null);
+    try {
+      const res = await apiFetch("/users/me/photo", {
+        method: "DELETE",
+        token: accessToken,
+        body: JSON.stringify({ url: photoUrl }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.detail || "Unable to delete photo.");
+      }
+      const updated = await res.json();
+      const media = (updated.profile_media as Record<string, unknown>) || {};
+      setPhotos((media.photos as string[]) || []);
+      await refreshSession();
+      setStatus("Photo removed.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to delete photo.";
+      setStatus(message);
+    } finally {
+      setIsDeletingPhoto(false);
+    }
+  };
+
   const handleSelectVerification =
     (type: "photo" | "id") => (event: ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -741,12 +772,22 @@ export default function ProfilePage() {
             <div className="h-24 w-24 rounded-2xl bg-slate-100" />
           ) : (
             photos.map((photo) => (
-              <img
-                key={photo}
-                src={resolveMediaUrl(photo)}
-                alt="Profile"
-                className="h-24 w-24 rounded-2xl object-cover"
-              />
+              <div key={photo} className="relative">
+                <img
+                  src={resolveMediaUrl(photo)}
+                  alt="Profile"
+                  className="h-24 w-24 rounded-2xl object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleDeletePhoto(photo)}
+                  disabled={isDeletingPhoto}
+                  aria-label="Remove photo"
+                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                >
+                  ×
+                </button>
+              </div>
             ))
           )}
         </div>

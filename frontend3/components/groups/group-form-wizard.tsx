@@ -22,6 +22,7 @@ export default function GroupFormWizard() {
   const [pendingMedia, setPendingMedia] = useState<File[]>([]);
   const [pendingMediaIndex, setPendingMediaIndex] = useState(0);
   const [pendingMediaPreview, setPendingMediaPreview] = useState<string | null>(null);
+  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const { accessToken, user } = useAuth();
   const router = useRouter();
@@ -61,6 +62,18 @@ export default function GroupFormWizard() {
     return () => URL.revokeObjectURL(url);
   }, [pendingMedia, pendingMediaIndex]);
 
+  useEffect(() => {
+    if (mediaFiles.length === 0) {
+      setMediaPreviews([]);
+      return;
+    }
+    const urls = mediaFiles.map((file) => URL.createObjectURL(file));
+    setMediaPreviews(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [mediaFiles]);
+
   const pendingFile = pendingMedia[pendingMediaIndex];
   const pendingIsImage = Boolean(pendingFile?.type.startsWith("image/"));
 
@@ -93,6 +106,10 @@ export default function GroupFormWizard() {
     } catch {
       setSubmitError("Unable to crop this media. Try another file.");
     }
+  };
+
+  const handleRemoveMediaFile = (index: number) => {
+    setMediaFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSkipMedia = () => {
@@ -399,7 +416,41 @@ export default function GroupFormWizard() {
               Choose media
             </Button>
             {mediaFiles.length ? (
-              <p className="text-xs text-slate-500">{mediaFiles.length} files selected</p>
+              <div className="space-y-2 text-xs text-slate-500">
+                <p>{mediaFiles.length} files selected</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {mediaFiles.map((file, index) => {
+                    const preview = mediaPreviews[index];
+                    const isImage = file.type.startsWith("image/");
+                    return (
+                      <div
+                        key={`${file.name}-${index}`}
+                        className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                      >
+                        {isImage && preview ? (
+                          <img
+                            src={preview}
+                            alt={file.name || `Media ${index + 1}`}
+                            className="h-32 w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-32 w-full items-center justify-center bg-slate-100 text-xs text-slate-500">
+                            Video selected
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMediaFile(index)}
+                          className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700"
+                          aria-label="Remove media"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             ) : null}
             {pendingMediaPreview ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
