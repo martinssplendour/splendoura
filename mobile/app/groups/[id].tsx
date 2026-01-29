@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  Modal,
   Pressable,
   SafeAreaView,
   Share,
@@ -212,6 +213,7 @@ export default function GroupDetailScreen() {
   const [approvedMembers, setApprovedMembers] = useState<MemberProfile[]>([]);
   const [memberRequests, setMemberRequests] = useState<MemberRequest[]>([]);
   const [media, setMedia] = useState<GroupMedia[]>([]);
+  const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null);
   const [availability, setAvailability] = useState<GroupAvailability[]>([]);
   const [availabilitySelection, setAvailabilitySelection] = useState<Record<string, boolean>>({});
   const [plans, setPlans] = useState<GroupPlan[]>([]);
@@ -1419,15 +1421,20 @@ export default function GroupDetailScreen() {
                         resizeMode={ResizeMode.COVER}
                       />
                     ) : (
-                      <Image source={{ uri: sourceUrl || "" }} style={styles.media} />
+                      <Pressable onPress={() => setPreviewMediaUrl(item.url)}>
+                        <Image source={{ uri: sourceUrl || "" }} style={styles.media} />
+                      </Pressable>
                     )}
+                    {isCreator ? (
+                      <Pressable
+                        onPress={() => handleDeleteMedia(item.id)}
+                        style={styles.mediaRemove}
+                      >
+                        <Text style={styles.mediaRemoveText}>x</Text>
+                      </Pressable>
+                    ) : null}
                     <View style={styles.mediaFooter}>
                       {item.is_cover ? <Text style={styles.coverBadge}>Cover</Text> : null}
-                      {isCreator ? (
-                        <Pressable onPress={() => handleDeleteMedia(item.id)}>
-                          <Text style={styles.removeText}>Delete</Text>
-                        </Pressable>
-                      ) : null}
                     </View>
                   </View>
                 );
@@ -1858,6 +1865,27 @@ export default function GroupDetailScreen() {
         </ScrollView>
         <BottomNav />
       </View>
+      <Modal
+        visible={Boolean(previewMediaUrl)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewMediaUrl(null)}
+      >
+        <Pressable style={styles.lightboxBackdrop} onPress={() => setPreviewMediaUrl(null)}>
+          <Pressable style={styles.lightboxContent} onPress={() => {}}>
+            {previewMediaUrl ? (
+              <Image
+                source={{ uri: toAbsoluteUrl(previewMediaUrl) || "" }}
+                style={styles.lightboxImage}
+                resizeMode="contain"
+              />
+            ) : null}
+            <Pressable style={styles.lightboxClose} onPress={() => setPreviewMediaUrl(null)}>
+              <Text style={styles.lightboxCloseText}>x</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -2203,12 +2231,30 @@ const styles = StyleSheet.create({
   mediaCard: {
     width: "48%",
     gap: 6,
+    position: "relative",
   },
   media: {
     width: "100%",
     height: 140,
     borderRadius: 16,
     backgroundColor: "#e2e8f0",
+  },
+  mediaRemove: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mediaRemoveText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 16,
   },
   mediaFooter: {
     flexDirection: "row",
@@ -2391,6 +2437,41 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     gap: 6,
+  },
+  lightboxBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  lightboxContent: {
+    width: "100%",
+    maxHeight: "90%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 16,
+  },
+  lightboxClose: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxCloseText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 18,
   },
   status: {
     textAlign: "center",

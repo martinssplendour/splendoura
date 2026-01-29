@@ -49,6 +49,7 @@ export default function UserProfilePage() {
   const { accessToken } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -200,9 +201,36 @@ export default function UserProfilePage() {
                 key={photo}
                 src={resolveMediaUrl(photo)}
                 alt="Profile"
-                className="h-40 w-full rounded-2xl object-cover"
+                onClick={() => setPreviewPhoto(photo)}
+                className="h-40 w-full cursor-zoom-in rounded-2xl object-cover"
               />
             ))}
+          </div>
+        </div>
+      ) : null}
+
+      {previewPhoto ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <div
+            className="relative max-h-[90vh] max-w-[90vw]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <img
+              src={resolveMediaUrl(previewPhoto)}
+              alt="Full size profile"
+              className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain"
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewPhoto(null)}
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-lg font-semibold text-white hover:bg-rose-700"
+              aria-label="Close"
+            >
+              x
+            </button>
           </div>
         </div>
       ) : null}

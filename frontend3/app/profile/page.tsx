@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
@@ -105,6 +105,7 @@ export default function ProfilePage() {
   const [status, setStatus] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
 
   const [username, setUsername] = useState("");
@@ -776,7 +777,8 @@ export default function ProfilePage() {
                 <img
                   src={resolveMediaUrl(photo)}
                   alt="Profile"
-                  className="h-24 w-24 rounded-2xl object-cover"
+                  onClick={() => setPreviewPhoto(photo)}
+                  className="h-24 w-24 cursor-zoom-in rounded-2xl object-cover"
                 />
                 <button
                   type="button"
@@ -785,7 +787,7 @@ export default function ProfilePage() {
                   aria-label="Remove photo"
                   className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
                 >
-                  ×
+                  x
                 </button>
               </div>
             ))
@@ -853,6 +855,32 @@ export default function ProfilePage() {
         ) : null}
         {status ? <p className="text-sm text-slate-600">{status}</p> : null}
       </div>
+
+      {previewPhoto ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <div
+            className="relative max-h-[90vh] max-w-[90vw]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <img
+              src={resolveMediaUrl(previewPhoto)}
+              alt="Full size profile"
+              className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain"
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewPhoto(null)}
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-lg font-semibold text-white hover:bg-rose-700"
+              aria-label="Close"
+            >
+              x
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Identity & basics</h2>

@@ -155,6 +155,7 @@ export default function GroupDetailPage() {
   const [pendingMediaFiles, setPendingMediaFiles] = useState<File[]>([]);
   const [pendingMediaIndex, setPendingMediaIndex] = useState(0);
   const [pendingMediaPreview, setPendingMediaPreview] = useState<string | null>(null);
+  const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null);
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const [isCoverUpload, setIsCoverUpload] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
@@ -1116,19 +1117,32 @@ export default function GroupDetailPage() {
           <div className="mt-4 flex flex-wrap gap-2.5">
             {mediaItems.map((media) => (
               <div key={media.id} className="w-[48%] space-y-1.5">
-                {media.media_type === "image" ? (
-                  <img
-                    src={resolveMediaUrl(media.url)}
-                    alt="Group media"
-                    className="h-[140px] w-full rounded-2xl object-cover bg-slate-200"
-                  />
-                ) : (
-                  <video
-                    controls
-                    className="h-[140px] w-full rounded-2xl object-cover bg-slate-200"
-                    src={resolveMediaUrl(media.url)}
-                  />
-                )}
+                <div className="relative">
+                  {media.media_type === "image" ? (
+                    <img
+                      src={resolveMediaUrl(media.url)}
+                      alt="Group media"
+                      onClick={() => setPreviewMediaUrl(media.url)}
+                      className="h-[140px] w-full cursor-zoom-in rounded-2xl object-cover bg-slate-200"
+                    />
+                  ) : (
+                    <video
+                      controls
+                      className="h-[140px] w-full rounded-2xl object-cover bg-slate-200"
+                      src={resolveMediaUrl(media.url)}
+                    />
+                  )}
+                  {user?.id === group.creator_id ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMedia(media.id)}
+                      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700"
+                      aria-label="Remove media"
+                    >
+                      x
+                    </button>
+                  ) : null}
+                </div>
                 <div className="flex items-center justify-between">
                   {media.is_cover ? (
                     <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-800">
@@ -1137,15 +1151,6 @@ export default function GroupDetailPage() {
                   ) : (
                     <span />
                   )}
-                  {user?.id === group.creator_id ? (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteMedia(media.id)}
-                      className="text-[12px] font-semibold text-rose-500"
-                    >
-                      Delete
-                    </button>
-                  ) : null}
                 </div>
               </div>
             ))}
@@ -1242,6 +1247,32 @@ export default function GroupDetailPage() {
           <p className="mt-3 text-sm text-slate-500">Only the group admin can upload media.</p>
         )}
       </div>
+
+      {previewMediaUrl ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+          onClick={() => setPreviewMediaUrl(null)}
+        >
+          <div
+            className="relative max-h-[90vh] max-w-[90vw]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <img
+              src={resolveMediaUrl(previewMediaUrl)}
+              alt="Full size media"
+              className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain"
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewMediaUrl(null)}
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-lg font-semibold text-white hover:bg-rose-700"
+              aria-label="Close"
+            >
+              x
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
         <h2 className="text-lg font-semibold text-slate-900">Requirements</h2>

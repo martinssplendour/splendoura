@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form"; // Removed Resolver import as it's not needed directly
@@ -444,7 +444,7 @@ export default function GroupFormWizard() {
                           className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700"
                           aria-label="Remove media"
                         >
-                          ×
+                          x
                         </button>
                       </div>
                     );

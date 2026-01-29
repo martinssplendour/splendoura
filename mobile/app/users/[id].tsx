@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Modal,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -59,6 +61,7 @@ export default function UserProfileScreen() {
   const { accessToken, isLoading } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -215,12 +218,13 @@ export default function UserProfileScreen() {
             <Text style={styles.sectionTitle}>Photos</Text>
             <View style={styles.photoGrid}>
               {photos.map((photo) => (
-                <Image
-                  key={photo}
-                  source={{ uri: resolveMediaUrl(photo) }}
-                  style={styles.photo}
-                  resizeMode="contain"
-                />
+                <Pressable key={photo} onPress={() => setPreviewPhoto(photo)}>
+                  <Image
+                    source={{ uri: resolveMediaUrl(photo) }}
+                    style={styles.photo}
+                    resizeMode="cover"
+                  />
+                </Pressable>
               ))}
             </View>
           </View>
@@ -239,6 +243,27 @@ export default function UserProfileScreen() {
           </View>
         ) : null}
       </ScrollView>
+      <Modal
+        visible={Boolean(previewPhoto)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewPhoto(null)}
+      >
+        <Pressable style={styles.lightboxBackdrop} onPress={() => setPreviewPhoto(null)}>
+          <Pressable style={styles.lightboxContent} onPress={() => {}}>
+            {previewPhoto ? (
+              <Image
+                source={{ uri: resolveMediaUrl(previewPhoto) }}
+                style={styles.lightboxImage}
+                resizeMode="contain"
+              />
+            ) : null}
+            <Pressable style={styles.lightboxClose} onPress={() => setPreviewPhoto(null)}>
+              <Text style={styles.lightboxCloseText}>x</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -361,6 +386,41 @@ const styles = StyleSheet.create({
     width: "48%",
     height: 140,
     borderRadius: 16,
+  },
+  lightboxBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  lightboxContent: {
+    width: "100%",
+    maxHeight: "90%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 16,
+  },
+  lightboxClose: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxCloseText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 18,
   },
   detailJson: {
     fontSize: 12,

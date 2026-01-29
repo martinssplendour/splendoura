@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   SafeAreaView,
@@ -188,6 +189,7 @@ export default function ProfileScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     const details = (user?.profile_details as Record<string, unknown>) || {};
@@ -812,17 +814,19 @@ export default function ProfileScreen() {
                     <View style={styles.photoGrid}>
                       {photos.map((photo) => (
                         <View key={photo} style={styles.photoItem}>
-                          <Image
-                            source={{ uri: resolveMediaUrl(photo) }}
-                            style={styles.photo}
-                            resizeMode="cover"
-                          />
+                          <Pressable onPress={() => setPreviewPhoto(photo)}>
+                            <Image
+                              source={{ uri: resolveMediaUrl(photo) }}
+                              style={styles.photo}
+                              resizeMode="cover"
+                            />
+                          </Pressable>
                           <Pressable
                             onPress={() => handleDeletePhoto(photo)}
                             disabled={isDeletingPhoto}
                             style={styles.photoRemove}
                           >
-                            <Text style={styles.photoRemoveText}>×</Text>
+                            <Text style={styles.photoRemoveText}>x</Text>
                           </Pressable>
                         </View>
                       ))}
@@ -1745,6 +1749,27 @@ export default function ProfileScreen() {
         </KeyboardAvoidingView>
         <BottomNav />
       </View>
+      <Modal
+        visible={Boolean(previewPhoto)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewPhoto(null)}
+      >
+        <Pressable style={styles.lightboxBackdrop} onPress={() => setPreviewPhoto(null)}>
+          <Pressable style={styles.lightboxContent} onPress={() => {}}>
+            {previewPhoto ? (
+              <Image
+                source={{ uri: resolveMediaUrl(previewPhoto) }}
+                style={styles.lightboxImage}
+                resizeMode="contain"
+              />
+            ) : null}
+            <Pressable style={styles.lightboxClose} onPress={() => setPreviewPhoto(null)}>
+              <Text style={styles.lightboxCloseText}>x</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1890,6 +1915,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     lineHeight: 16,
+  },
+  lightboxBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  lightboxContent: {
+    width: "100%",
+    maxHeight: "90%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 16,
+  },
+  lightboxClose: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxCloseText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 18,
   },
   photoPlaceholder: {
     width: "100%",

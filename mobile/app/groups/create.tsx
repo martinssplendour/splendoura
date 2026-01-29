@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -339,7 +339,7 @@ export default function CreateGroupScreen() {
                       onPress={() => handleRemoveSelectedMedia(index)}
                       style={styles.selectedMediaRemove}
                     >
-                      <Text style={styles.selectedMediaRemoveText}>×</Text>
+                      <Text style={styles.selectedMediaRemoveText}>x</Text>
                     </Pressable>
                   </View>
                 ))}
