@@ -1,8 +1,8 @@
 // app/groups/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import SwipeDeck from "@/components/groups/swipe-deck";
@@ -25,6 +25,7 @@ const DEFAULT_FILTERS: GroupFilters = {
 };
 
 export default function BrowseGroups() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const creatorId = searchParams.get("creator_id");
   const filtersParam = searchParams.get("filters");
@@ -96,6 +97,27 @@ export default function BrowseGroups() {
     if (findTypeParam !== "open") return;
     setFindTypeOpen(true);
   }, [findTypeParam]);
+
+  useEffect(() => {
+    if (filtersParam === "open") return;
+    setDrawerOpen(false);
+  }, [filtersParam]);
+
+  useEffect(() => {
+    if (findTypeParam === "open") return;
+    setFindTypeOpen(false);
+  }, [findTypeParam]);
+
+  const clearQueryFlag = useCallback(
+    (key: "filters" | "findType") => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(searchParams?.toString());
+      params.delete(key);
+      const query = params.toString();
+      router.replace(query ? `/groups?${query}` : "/groups", { scroll: false });
+    },
+    [router, searchParams]
+  );
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -367,13 +389,22 @@ export default function BrowseGroups() {
         filters={filters}
         onChange={setFilters}
         onReset={() => setFilters(DEFAULT_FILTERS)}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          setDrawerOpen(false);
+          clearQueryFlag("filters");
+        }}
         showDistanceHelper={Boolean(
           filters.distance.trim() && (user?.location_lat == null || user?.location_lng == null)
         )}
       />
 
-      <FindMyTypeModal open={findTypeOpen} onClose={() => setFindTypeOpen(false)} />
+      <FindMyTypeModal
+        open={findTypeOpen}
+        onClose={() => {
+          setFindTypeOpen(false);
+          clearQueryFlag("findType");
+        }}
+      />
     </div>
   );
 }
