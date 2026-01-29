@@ -131,7 +131,7 @@ export default function LocationGate({ children }: LocationGateProps) {
 
   const statusMessage = useMemo(() => {
     if (permissionStatus === "denied") {
-      return "Location access is required to use Splendoura.";
+      return "Location access is required to use Splendoure.";
     }
     if (locationError) {
       return locationError;

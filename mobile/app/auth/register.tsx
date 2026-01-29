@@ -79,7 +79,7 @@ export default function RegisterScreen() {
         <View style={styles.card}>
           <Text style={styles.title}>Create your account</Text>
           <Text style={styles.subtitle}>
-            Join Splendoura and start building experiences together.
+            Join Splendoure and start building experiences together.
           </Text>
 
           <View style={styles.form}>

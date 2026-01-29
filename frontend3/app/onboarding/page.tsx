@@ -177,7 +177,7 @@ export default function OnboardingPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Finish setting up Splendoura</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">Finish setting up Splendoure</h1>
           <p className="text-xs text-slate-500">Step {step + 1} of 4 - {progress}% complete</p>
         </div>
         <button type="button" className="text-xs font-semibold text-blue-600" onClick={handleSkip}>

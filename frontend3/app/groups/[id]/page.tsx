@@ -463,7 +463,7 @@ export default function GroupDetailPage() {
   const handleShareGroup = async () => {
     if (!group) return;
     const url = typeof window !== "undefined" ? window.location.href : "";
-    const message = `Join my group on Splendoura: ${group.title}${url ? `\n${url}` : ""}`;
+    const message = `Join my group on Splendoure: ${group.title}${url ? `\n${url}` : ""}`;
     if (navigator.share) {
       try {
         await navigator.share({ text: message });
@@ -620,7 +620,7 @@ export default function GroupDetailPage() {
         : "Trusted contacts: not set yet.";
     const message = [
       `Plan: ${plan.title}`,
-      `Group: ${group?.title || "Splendoura group"}`,
+      `Group: ${group?.title || "Splendoure group"}`,
       plan.scheduled_at ? `When: ${new Date(plan.scheduled_at).toLocaleString()}` : "When: TBD",
       plan.location_name ? `Where: ${plan.location_name}` : "Where: TBD",
       contactLine,

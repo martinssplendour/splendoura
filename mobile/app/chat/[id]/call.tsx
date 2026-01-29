@@ -20,7 +20,7 @@ export default function ChatCallScreen() {
         return String(params.url);
       }
     }
-    const room = `splendoura-group-${params.id}`;
+    const room = `splendoure-group-${params.id}`;
     return `https://meet.jit.si/${room}?config.startWithVideoMuted=${
       mode === "voice" ? "true" : "false"
     }&config.startAudioOnly=${mode === "voice" ? "true" : "false"}`;

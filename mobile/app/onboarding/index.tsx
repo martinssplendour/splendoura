@@ -201,7 +201,7 @@ export default function OnboardingScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.title}>Finish setting up Splendoura</Text>
+            <Text style={styles.title}>Finish setting up Splendoure</Text>
             <Text style={styles.subtitle}>Step {step + 1} of 4 · {progress}% complete</Text>
           </View>
           <Pressable onPress={handleSkip}>

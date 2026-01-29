@@ -160,7 +160,7 @@ export default function LoginScreen() {
           </View>
 
           <Text style={styles.footer}>
-            New to Splendoura?{" "}
+            New to Splendoure?{" "}
             <Text style={styles.link} onPress={() => router.push("/auth/register")}>
               Create an account
             </Text>

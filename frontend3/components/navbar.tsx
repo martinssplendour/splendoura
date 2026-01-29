@@ -33,13 +33,13 @@ export default function Navbar() {
           >
             <Image
               src="/brand/icon.png"
-              alt="Splendoura"
+              alt="Splendoure"
               width={18}
               height={18}
               className="h-[18px] w-[18px]"
             />
             <span className="text-[18px] font-extrabold uppercase leading-none tracking-[0.07em] text-indigo-700">
-              Splendoura
+              Splendoure
             </span>
           </Link>
           {pathname?.startsWith("/groups") ? (

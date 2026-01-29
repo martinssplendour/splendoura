@@ -61,7 +61,7 @@ export default function RegisterPage() {
       <div className="rounded-none border-0 bg-white p-6 shadow-none sm:rounded-2xl sm:border sm:border-slate-200 sm:p-8 sm:shadow-sm">
         <h1 className="text-3xl font-bold text-slate-900">Create your account</h1>
         <p className="mt-2 text-sm text-slate-600">
-          Join Splendoura and start building experiences together.
+          Join Splendoure and start building experiences together.
         </p>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>

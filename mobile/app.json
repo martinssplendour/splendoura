@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Splendoura",
-    "slug": "splendoura",
+    "name": "Splendoure",
+    "slug": "splendoure",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "splendoura",
+    "scheme": "splendoure",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -15,12 +15,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.splendoura.app",
+      "bundleIdentifier": "com.splendoure.app",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Allow Splendoura to access your photos so you can upload profile images and group media.",
-        "NSLocationWhenInUseUsageDescription": "Allow Splendoura to access your location so we can show nearby groups.",
-        "NSMicrophoneUsageDescription": "Allow Splendoura to record voice notes and calls.",
-        "NSCameraUsageDescription": "Allow Splendoura to access your camera for video calls.",
+        "NSPhotoLibraryUsageDescription": "Allow Splendoure to access your photos so you can upload profile images and group media.",
+        "NSLocationWhenInUseUsageDescription": "Allow Splendoure to access your location so we can show nearby groups.",
+        "NSMicrophoneUsageDescription": "Allow Splendoure to record voice notes and calls.",
+        "NSCameraUsageDescription": "Allow Splendoure to access your camera for video calls.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
@@ -34,7 +34,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.splendoura.app",
+      "package": "com.splendoure.app",
       "permissions": [
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",

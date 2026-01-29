@@ -493,7 +493,7 @@ export default function ChatThreadScreen() {
   };
 
   const buildCallUrl = (mode: "voice" | "video") =>
-    `https://meet.jit.si/splendoura-group-${groupId}?config.startWithVideoMuted=${
+    `https://meet.jit.si/splendoure-group-${groupId}?config.startWithVideoMuted=${
       mode === "voice" ? "true" : "false"
     }&config.startAudioOnly=${mode === "voice" ? "true" : "false"}`;
 

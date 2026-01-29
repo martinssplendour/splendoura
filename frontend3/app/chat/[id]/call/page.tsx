@@ -16,7 +16,7 @@ export default function ChatCallPage() {
 
   const callUrl = useMemo(() => {
     if (!groupId) return "";
-    return `https://meet.jit.si/splendoura-group-${groupId}?config.startWithVideoMuted=${
+    return `https://meet.jit.si/splendoure-group-${groupId}?config.startWithVideoMuted=${
       mode === "voice" ? "true" : "false"
     }&config.startAudioOnly=${mode === "voice" ? "true" : "false"}`;
   }, [groupId, mode]);

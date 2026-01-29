@@ -11,7 +11,7 @@ const SECTIONS: {
   {
     title: "Overview",
     body:
-      "This Privacy Policy explains how Splendoura collects, uses, and shares information when you use our website, mobile app, and related services (the \"Services\").",
+      "This Privacy Policy explains how Splendoure collects, uses, and shares information when you use our website, mobile app, and related services (the \"Services\").",
   },
   {
     title: "Information we collect",
@@ -78,7 +78,7 @@ const SECTIONS: {
   {
     title: "Children's privacy",
     body:
-      "Splendoura is intended for adults. We do not knowingly collect information from anyone under 18.",
+      "Splendoure is intended for adults. We do not knowingly collect information from anyone under 18.",
   },
   {
     title: "Changes to this policy",
@@ -87,7 +87,7 @@ const SECTIONS: {
   },
   {
     title: "Contact",
-    body: "For questions or requests, contact us at privacy@splendoura.com.",
+    body: "For questions or requests, contact us at privacy@splendoure.com.",
   },
 ];
 
@@ -120,7 +120,7 @@ export default function PrivacyPolicyScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>More resources</Text>
           <Text style={styles.body}>See the Safety Center or contact us for support.</Text>
-          <Button variant="outline">Email privacy@splendoura.com</Button>
+          <Button variant="outline">Email privacy@splendoure.com</Button>
         </View>
       </ScrollView>
     </SafeAreaView>

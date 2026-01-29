@@ -11,7 +11,7 @@ const SECTIONS: {
   {
     title: "Overview",
     body:
-      "This Privacy Policy explains how Splendoura collects, uses, and shares information when you use our website, mobile app, and related services (the \"Services\").",
+      "This Privacy Policy explains how Splendoure collects, uses, and shares information when you use our website, mobile app, and related services (the \"Services\").",
   },
   {
     title: "Information we collect",
@@ -79,7 +79,7 @@ const SECTIONS: {
   {
     title: "Children's privacy",
     body:
-      "Splendoura is intended for adults. We do not knowingly collect information from anyone under 18. If you believe a minor has provided data, contact us and we will remove it.",
+      "Splendoure is intended for adults. We do not knowingly collect information from anyone under 18. If you believe a minor has provided data, contact us and we will remove it.",
   },
   {
     title: "Changes to this policy",
@@ -89,7 +89,7 @@ const SECTIONS: {
   {
     title: "Contact",
     body:
-      "For questions or requests, contact us at privacy@splendoura.com.",
+      "For questions or requests, contact us at privacy@splendoure.com.",
   },
 ];
 
@@ -131,7 +131,7 @@ export default function PrivacyPolicyPage() {
           </Link>
         </div>
         <Button asChild variant="outline" className="mt-4">
-          <a href="mailto:privacy@splendoura.com">Email privacy@splendoura.com</a>
+          <a href="mailto:privacy@splendoure.com">Email privacy@splendoure.com</a>
         </Button>
       </div>
     </div>

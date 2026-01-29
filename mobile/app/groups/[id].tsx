@@ -858,7 +858,7 @@ export default function GroupDetailScreen() {
         : "Trusted contacts: not set yet.";
     const message = [
       `Plan: ${plan.title}`,
-      `Group: ${group?.title || "Splendoura group"}`,
+      `Group: ${group?.title || "Splendoure group"}`,
       plan.scheduled_at ? `When: ${formatDateTime(plan.scheduled_at)}` : "When: TBD",
       plan.location_name ? `Where: ${plan.location_name}` : "Where: TBD",
       contactLine,

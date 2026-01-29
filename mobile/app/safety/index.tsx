@@ -50,10 +50,10 @@ export default function SafetyCenterScreen() {
           <Button
             variant="outline"
             onPress={() => {
-              Linking.openURL("mailto:safety@splendoura.com");
+              Linking.openURL("mailto:safety@splendoure.com");
             }}
           >
-            Email safety@splendoura.com
+            Email safety@splendoure.com
           </Button>
         </View>
       </ScrollView>

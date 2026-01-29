@@ -351,7 +351,7 @@ export default function GroupsScreen() {
             <View style={styles.headerText}>
               <View style={styles.appNameWrap}>
                 <Image source={require("../../assets/brand/icon.png")} style={styles.appLogo} />
-                <Text style={styles.appName}>Splendoura</Text>
+                <Text style={styles.appName}>Splendoure</Text>
               </View>
               <Text style={styles.title}>Discover plans and swipe to join</Text>
             </View>

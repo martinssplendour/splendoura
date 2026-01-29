@@ -44,7 +44,7 @@ export default function SafetyCenterPage() {
           Contact our safety team for help or reports.
         </p>
         <Button asChild variant="outline" className="mt-4">
-          <a href="mailto:safety@splendoura.com">Email safety@splendoura.com</a>
+          <a href="mailto:safety@splendoure.com">Email safety@splendoure.com</a>
         </Button>
       </div>
     </div>
