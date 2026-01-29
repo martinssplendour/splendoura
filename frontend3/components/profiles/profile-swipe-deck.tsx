@@ -341,7 +341,6 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
                         event.stopPropagation();
                         setImageIndex(idx);
                       }}
-                      onPointerDown={(event) => event.stopPropagation()}
                       className={`h-1 flex-1 rounded-full ${
                         idx === imageIndex ? "bg-white" : "bg-white/40"
                       }`}
@@ -356,7 +355,6 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
                       event.stopPropagation();
                       handlePrevImage();
                     }}
-                    onPointerDown={(event) => event.stopPropagation()}
                     aria-label="Previous image"
                   />
                   <button
@@ -366,7 +364,6 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
                       event.stopPropagation();
                       handleNextImage();
                     }}
-                    onPointerDown={(event) => event.stopPropagation()}
                     aria-label="Next image"
                   />
                 </div>
