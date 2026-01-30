@@ -119,6 +119,11 @@ export default function PrivacyPolicyPage() {
             We use reasonable security measures to protect your information, but no system is
             completely secure.
           </p>
+          <p className="mt-2">
+            We use HTTPS/TLS to protect data in transit. Data is stored by our hosting and storage
+            providers with encryption at rest. Photos are stored in private storage and accessed
+            using time‑limited signed URLs.
+          </p>
 
           <h2 className="mt-6 text-lg font-semibold text-slate-900">Children’s privacy</h2>
           <p>

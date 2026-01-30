@@ -108,6 +108,11 @@ export default function PrivacyPolicyScreen() {
           We use reasonable security measures to protect your information, but no system is
           completely secure.
         </Text>
+        <Text style={styles.paragraph}>
+          We use HTTPS/TLS to protect data in transit. Data is stored by our hosting and storage
+          providers with encryption at rest. Photos are stored in private storage and accessed
+          using time‑limited signed URLs.
+        </Text>
 
         <Text style={styles.sectionTitle}>Children’s privacy</Text>
         <Text style={styles.paragraph}>
