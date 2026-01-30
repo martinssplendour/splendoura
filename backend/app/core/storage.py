@@ -8,6 +8,44 @@ import httpx
 from app.core.config import settings
 
 
+def _supabase_headers() -> dict[str, str]:
+    service_key = settings.SUPABASE_SERVICE_ROLE_KEY or ""
+    return {
+        "Authorization": f"Bearer {service_key}",
+        "apikey": service_key,
+    }
+
+
+def build_public_url(object_key: str) -> str:
+    base_url = (settings.SUPABASE_URL or "").rstrip("/")
+    bucket = settings.SUPABASE_STORAGE_BUCKET or ""
+    encoded_key = quote(object_key, safe="/")
+    return f"{base_url}/storage/v1/object/public/{bucket}/{encoded_key}"
+
+
+def create_signed_url(object_key: str, *, expires_in: int | None = None) -> str:
+    if not supabase_storage_enabled():
+        raise RuntimeError("Supabase storage is not configured.")
+    base_url = (settings.SUPABASE_URL or "").rstrip("/")
+    bucket = settings.SUPABASE_STORAGE_BUCKET or ""
+    encoded_key = quote(object_key, safe="/")
+    sign_url = f"{base_url}/storage/v1/object/sign/{bucket}/{encoded_key}"
+    payload = {"expiresIn": expires_in or settings.SUPABASE_SIGNED_URL_EXPIRE_SECONDS}
+
+    with httpx.Client(timeout=20) as client:
+        response = client.post(sign_url, json=payload, headers=_supabase_headers())
+        if response.status_code >= 400:
+            raise RuntimeError(f"Supabase sign failed: {response.status_code} {response.text}")
+        data = response.json()
+
+    signed_path = data.get("signedURL") or data.get("signedUrl") or ""
+    if not signed_path:
+        raise RuntimeError("Supabase sign failed: missing signed URL")
+    if signed_path.startswith("http://") or signed_path.startswith("https://"):
+        return signed_path
+    return f"{base_url}{signed_path}"
+
+
 def supabase_storage_enabled() -> bool:
     return bool(
         settings.SUPABASE_URL
@@ -35,15 +73,13 @@ def upload_bytes_to_supabase(
         raise RuntimeError("Supabase storage is not configured.")
     base_url = (settings.SUPABASE_URL or "").rstrip("/")
     bucket = settings.SUPABASE_STORAGE_BUCKET or ""
-    service_key = settings.SUPABASE_SERVICE_ROLE_KEY or ""
     ext = _guess_extension(filename, content_type)
     object_key = f"{prefix}/{uuid.uuid4().hex}{ext}" if prefix else f"{uuid.uuid4().hex}{ext}"
     encoded_key = quote(object_key, safe="/")
     upload_url = f"{base_url}/storage/v1/object/{bucket}/{encoded_key}"
 
     headers = {
-        "Authorization": f"Bearer {service_key}",
-        "apikey": service_key,
+        **_supabase_headers(),
         "Content-Type": content_type or "application/octet-stream",
         "x-upsert": "true",
     }
@@ -57,4 +93,4 @@ def upload_bytes_to_supabase(
 
     if settings.SUPABASE_STORAGE_PUBLIC:
         return f"{base_url}/storage/v1/object/public/{bucket}/{encoded_key}"
-    raise RuntimeError("Supabase storage bucket is private; signed URLs not implemented.")
+    return f"/api/v1/storage/{encoded_key}"
