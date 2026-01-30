@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -31,6 +32,7 @@ export default function SettingsScreen() {
   const [typingIndicators, setTypingIndicators] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const details = (user?.profile_details as Record<string, unknown>) || {};
@@ -119,6 +121,45 @@ export default function SettingsScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDeleteAccount = () => {
+    if (!accessToken) {
+      setStatus("Sign in to delete your account.");
+      return;
+    }
+    Alert.alert(
+      "Delete account",
+      "This will remove your profile and sign you out.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            setStatus(null);
+            try {
+              const res = await apiFetch("/users/me", {
+                method: "DELETE",
+                token: accessToken,
+              });
+              if (!res.ok && res.status !== 204) {
+                const payload = await res.json().catch(() => null);
+                throw new Error(payload?.detail || "Unable to delete account.");
+              }
+              await logout();
+              router.replace("/");
+            } catch (err) {
+              const message = err instanceof Error ? err.message : "Unable to delete account.";
+              setStatus(message);
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -238,6 +279,16 @@ export default function SettingsScreen() {
             <Text style={styles.linkText}>Privacy policy</Text>
           </Pressable>
           <Text style={styles.helperText}>Terms, privacy policy, and support resources.</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Danger zone</Text>
+          <Text style={styles.helperText}>
+            Deleting your account removes your profile and signs you out.
+          </Text>
+          <Button variant="outline" onPress={handleDeleteAccount} disabled={deleting}>
+            {deleting ? "Deleting..." : "Delete account"}
+          </Button>
         </View>
 
         {status ? <Text style={styles.status}>{status}</Text> : null}

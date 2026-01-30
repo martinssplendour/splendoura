@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
@@ -56,6 +57,7 @@ function SettingsSection({ title, description, children }: SectionProps) {
 
 export default function SettingsPage() {
   const { user, accessToken, refreshSession, logout } = useAuth();
+  const router = useRouter();
   const [showOrientation, setShowOrientation] = useState(true);
   const [profileVisibility, setProfileVisibility] = useState(true);
   const [incognitoMode, setIncognitoMode] = useState(false);
@@ -68,6 +70,37 @@ export default function SettingsPage() {
   const [typingIndicators, setTypingIndicators] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (!accessToken) {
+      setStatus("Sign in to delete your account.");
+      return;
+    }
+    const confirmed = window.confirm(
+      "Delete your account? This will remove your profile and you will be signed out."
+    );
+    if (!confirmed) return;
+    setDeleting(true);
+    setStatus(null);
+    try {
+      const res = await apiFetch("/users/me", {
+        method: "DELETE",
+        token: accessToken,
+      });
+      if (!res.ok && res.status !== 204) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.detail || "Unable to delete account.");
+      }
+      await logout();
+      router.replace("/");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to delete account.";
+      setStatus(message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const details = (user?.profile_details as Record<string, unknown>) || {};
@@ -312,6 +345,20 @@ export default function SettingsPage() {
           </Link>
           <span>Contact support</span>
         </div>
+      </SettingsSection>
+
+      <SettingsSection title="Danger zone" description="Permanent account actions.">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          Deleting your account removes your profile and signs you out.
+        </div>
+        <Button
+          variant="outline"
+          onClick={handleDeleteAccount}
+          disabled={deleting}
+          className="border-rose-200 text-rose-600 hover:text-rose-700"
+        >
+          {deleting ? "Deleting..." : "Delete account"}
+        </Button>
       </SettingsSection>
 
       {status ? <p className="text-sm text-slate-600">{status}</p> : null}

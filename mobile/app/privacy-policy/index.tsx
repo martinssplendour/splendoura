@@ -95,7 +95,7 @@ export default function PrivacyPolicyScreen() {
         <Text style={styles.paragraph}>• Update or delete your profile information in settings.</Text>
         <Text style={styles.paragraph}>• Control location access in your device settings.</Text>
         <Text style={styles.paragraph}>• Manage notifications in the app settings.</Text>
-        <Text style={styles.paragraph}>• Request account deletion by contacting us at support@splendoure.com.</Text>
+        <Text style={styles.paragraph}>• Delete your account in settings or contact support@splendoure.com.</Text>
 
         <Text style={styles.sectionTitle}>Data retention</Text>
         <Text style={styles.paragraph}>

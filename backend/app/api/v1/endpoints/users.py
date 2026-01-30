@@ -1,5 +1,6 @@
 ﻿# backend/app/api/v1/endpoints/users.py
 from datetime import datetime, timezone
+from uuid import uuid4
 from typing import Any, List
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
@@ -214,6 +215,66 @@ def delete_profile_photo(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+def _extract_media_urls(media: dict | None) -> list[str]:
+    if not media:
+        return []
+    urls: list[str] = []
+    photos = media.get("photos") or []
+    if isinstance(photos, list):
+        urls.extend([item for item in photos if isinstance(item, str)])
+    for key in ("photo_verification_url", "id_verification_url"):
+        value = media.get(key)
+        if isinstance(value, str):
+            urls.append(value)
+    return urls
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(deps.rate_limit)])
+def delete_my_account(
+    *,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+) -> None:
+    if current_user.deleted_at is not None:
+        return
+
+    now = _utcnow()
+    scrub_suffix = f"{current_user.id}-{uuid4().hex[:8]}"
+    media_urls = _extract_media_urls(current_user.profile_media or {})
+
+    # Soft-delete related memberships
+    db.query(models.Membership).filter(
+        models.Membership.user_id == current_user.id,
+        models.Membership.deleted_at.is_(None),
+    ).update({models.Membership.deleted_at: now})
+
+    # Remove any DB-stored blobs linked to profile media
+    for url in media_urls:
+        if url.startswith("/api/v1/media/"):
+            try:
+                blob_id = int(url.split("/api/v1/media/")[1])
+                blob = db.query(MediaBlob).filter(MediaBlob.id == blob_id).first()
+                if blob:
+                    blob.deleted_at = now
+                    db.add(blob)
+            except (ValueError, IndexError):
+                continue
+
+    current_user.deleted_at = now
+    current_user.email = f"deleted-{scrub_suffix}@splendoure.local"
+    current_user.username = f"deleted-{scrub_suffix}"
+    current_user.full_name = "Deleted User"
+    current_user.bio = None
+    current_user.profile_image_url = None
+    current_user.profile_video_url = None
+    current_user.interests = None
+    current_user.profile_details = None
+    current_user.discovery_settings = None
+    current_user.profile_media = None
+    db.add(current_user)
+    db.commit()
 
 
 @router.post("/me/photo-verification", response_model=schemas.User, dependencies=[Depends(deps.rate_limit)])

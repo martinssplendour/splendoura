@@ -104,7 +104,7 @@ export default function PrivacyPolicyPage() {
             <li>Update or delete your profile information in settings.</li>
             <li>Control location access in your device settings.</li>
             <li>Manage notifications in the app settings.</li>
-            <li>Request account deletion by contacting us at support@splendoure.com.</li>
+            <li>Delete your account in settings or contact support@splendoure.com.</li>
           </ul>
 
           <h2 className="mt-6 text-lg font-semibold text-slate-900">Data retention</h2>
