@@ -89,7 +89,7 @@ const SECTIONS: {
   {
     title: "Contact",
     body:
-      "For questions or requests, contact us at privacy@splendoure.com.",
+      "For questions or requests, contact us at support@splendoure.com.",
   },
 ];
 
@@ -131,7 +131,7 @@ export default function PrivacyPolicyPage() {
           </Link>
         </div>
         <Button asChild variant="outline" className="mt-4">
-          <a href="mailto:privacy@splendoure.com">Email privacy@splendoure.com</a>
+          <a href="mailto:support@splendoure.com">Email support@splendoure.com</a>
         </Button>
       </div>
     </div>
