@@ -53,7 +53,7 @@ export default function LandingScreen() {
           <View style={styles.heroContent}>
             <View style={styles.header}>
               <View style={styles.iconWrap}>
-                <Image source={logoImage} style={styles.headerLogo} resizeMode="contain" />
+                <Image source={iconImage} style={styles.icon} resizeMode="contain" />
               </View>
               <View style={styles.headerActions}>
                 <Pressable onPress={() => router.push("/auth/login")}>
@@ -70,7 +70,7 @@ export default function LandingScreen() {
 
             <View style={styles.logoCard}>
               <View style={styles.logoInner}>
-                <Image source={iconImage} style={styles.centerIcon} resizeMode="contain" />
+                <Image source={logoImage} style={styles.logo} resizeMode="contain" />
               </View>
             </View>
 
@@ -162,18 +162,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   iconWrap: {
-    borderRadius: 999,
+    borderRadius: 14,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
-  headerLogo: {
-    width: 120,
-    height: 28,
+  icon: {
+    width: 40,
+    height: 40,
   },
   headerActions: {
     flexDirection: "row",
@@ -198,19 +198,24 @@ const styles = StyleSheet.create({
   },
   logoCard: {
     alignSelf: "center",
-    borderRadius: 28,
+    borderRadius: 22,
     backgroundColor: "rgba(255, 255, 255, 0.12)",
     padding: 16,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.25)",
   },
   logoInner: {
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: "hidden",
   },
   centerIcon: {
     width: 194,
     height: 194,
+  },
+  logo: {
+    width: 194,
+    height: 194,
+    borderRadius: 16,
   },
   title: {
     fontSize: 32,

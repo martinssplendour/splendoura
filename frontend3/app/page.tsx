@@ -39,14 +39,8 @@ export default function LandingPage() {
 
         <header className="relative z-10 flex items-center justify-between px-6 py-6 md:px-12">
           <div className="flex items-center gap-3">
-            <div className="inline-flex items-center justify-center overflow-hidden rounded-full bg-white/15 px-4 py-2 ring-1 ring-white/30">
-              <Image
-                src="/brand/logo.png"
-                alt="Splendoure logo"
-                width={140}
-                height={132}
-                className="h-8 w-auto md:h-9"
-              />
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[14px] bg-white/15 ring-1 ring-white/30">
+              <Image src="/brand/icon.png" alt="Splendoure icon" width={40} height={40} />
             </div>
           </div>
           <div className="flex items-center gap-4 text-sm">
@@ -60,14 +54,14 @@ export default function LandingPage() {
         </header>
 
         <section className="relative z-10 mx-auto flex max-w-5xl flex-col items-center px-6 pb-32 pt-10 text-center md:pt-16">
-          <div className="mb-6 rounded-[30px] bg-white/10 p-4 shadow-[0_24px_60px_rgba(0,0,0,0.35)] ring-1 ring-white/25 backdrop-blur-md">
-            <div className="relative overflow-hidden rounded-[22px]">
+          <div className="mb-6 rounded-[26px] bg-white/10 p-4 shadow-[0_24px_60px_rgba(0,0,0,0.35)] ring-1 ring-white/25 backdrop-blur-md">
+            <div className="relative overflow-hidden rounded-[18px]">
               <Image
-                src="/brand/icon.png"
-                alt="Splendoure app icon"
+                src="/brand/logo.png"
+                alt="Splendoure logo"
                 width={320}
-                height={320}
-                className="w-[194px] md:w-[246px]"
+                height={140}
+                className="w-[194px] rounded-[18px] md:w-[246px]"
               />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,_rgba(255,255,255,0.6),_transparent_55%)]" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/10" />
