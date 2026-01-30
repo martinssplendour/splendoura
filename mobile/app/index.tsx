@@ -162,19 +162,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   iconWrap: {
-    width: 140,
+    width: 48,
     height: 48,
-    borderRadius: 18,
+    borderRadius: 16,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 10,
   },
   headerLogo: {
-    width: 120,
-    height: 40,
+    width: 32,
+    height: 32,
   },
   headerActions: {
     flexDirection: "row",
@@ -201,7 +200,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     borderRadius: 28,
     backgroundColor: "rgba(255, 255, 255, 0.12)",
-    padding: 12,
+    padding: 14,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.25)",
   },
@@ -210,8 +209,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   centerIcon: {
-    width: 160,
-    height: 160,
+    width: 176,
+    height: 176,
   },
   title: {
     fontSize: 32,
