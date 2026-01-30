@@ -343,6 +343,9 @@ export default function SettingsPage() {
           <Link href="/privacy" className="font-semibold text-emerald-600 hover:text-emerald-700">
             Privacy policy
           </Link>
+          <Link href="/delete-account" className="font-semibold text-emerald-600 hover:text-emerald-700">
+            Delete account help
+          </Link>
           <span>Contact support</span>
         </div>
       </SettingsSection>
