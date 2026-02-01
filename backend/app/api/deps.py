@@ -70,6 +70,26 @@ def get_current_user(
     db.commit()
     return user
 
+
+def get_current_user_id(
+    token: str = Depends(oauth2_scheme),
+) -> int:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        user_id: str | None = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+        return int(user_id)
+    except (JWTError, ValueError):
+        raise credentials_exception
+
 def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:

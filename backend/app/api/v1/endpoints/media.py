@@ -37,7 +37,7 @@ def get_media(
 def get_storage_object(
     *,
     object_key: str,
-    current_user=Depends(deps.get_current_user),
+    current_user_id: int = Depends(deps.get_current_user_id),
 ):
     decoded_key = unquote(object_key)
     if settings.SUPABASE_STORAGE_PUBLIC:
@@ -50,7 +50,7 @@ def get_storage_object(
 def get_storage_signed_url(
     *,
     object_key: str,
-    current_user=Depends(deps.get_current_user),
+    current_user_id: int = Depends(deps.get_current_user_id),
 ):
     decoded_key = unquote(object_key)
     if settings.SUPABASE_STORAGE_PUBLIC:
