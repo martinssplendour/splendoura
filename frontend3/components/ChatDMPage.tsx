@@ -248,6 +248,17 @@ export default function ChatDMPage() {
   }, [accessToken, attachment, draft, groupId, ingestMessage, isSending]);
 
   useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
     setGroup(null);
     setMessages([]);
     setDraft("");
@@ -346,7 +357,7 @@ export default function ChatDMPage() {
   const showSend = Boolean(draft.trim()) || Boolean(attachment);
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50">
       <header className="shrink-0 border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-5 py-4">
           <Link
@@ -381,7 +392,7 @@ export default function ChatDMPage() {
         </div>
       </header>
 
-      <div className="relative flex-1 overflow-y-auto" ref={scrollRef}>
+      <div className="relative flex-1 overflow-y-auto overscroll-none" ref={scrollRef}>
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-5 py-4">
           {messages.length === 0 && !isLoading ? (
             <div className="text-center text-xs text-slate-400">
