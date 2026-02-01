@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, API_HOST } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { SignedAudio, SignedImage, SignedLink } from "@/components/signed-media";
+import { SignedAudio, SignedImage, SignedLink, SignedVideo } from "@/components/signed-media";
 
 type Group = {
   id: number;
@@ -71,6 +71,10 @@ export default function ChatDMPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [showNewPill, setShowNewPill] = useState(false);
   const [newMessageCount, setNewMessageCount] = useState(0);
+  const [activeMedia, setActiveMedia] = useState<{
+    type: "image" | "video";
+    src: string;
+  } | null>(null);
   const [layoutInsets, setLayoutInsets] = useState<{ top: number; bottom: number }>({
     top: 0,
     bottom: 0,
@@ -356,6 +360,22 @@ export default function ChatDMPage() {
     };
   }, [accessToken, groupId, ingestMessage]);
 
+  useEffect(() => {
+    if (!activeMedia) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveMedia(null);
+      }
+    };
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [activeMedia]);
+
   const headerTitle = group?.title || "Chat";
 
   const showSend = Boolean(draft.trim()) || Boolean(attachment);
@@ -424,6 +444,7 @@ export default function ChatDMPage() {
             const attachmentUrl = message.attachment_url || null;
             const isImage = message.attachment_type?.startsWith("image/");
             const isAudio = message.attachment_type?.startsWith("audio/");
+            const isVideo = message.attachment_type?.startsWith("video/");
             const messageText = describeMessage(message);
 
             return (
@@ -444,16 +465,35 @@ export default function ChatDMPage() {
                     <p className="whitespace-pre-wrap">{messageText}</p>
                   )}
                   {attachmentUrl && isImage ? (
-                    <SignedImage
-                      src={attachmentUrl}
-                      alt="Attachment"
-                      className="mt-2 max-h-48 rounded-xl object-cover"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setActiveMedia({ type: "image", src: attachmentUrl })}
+                      className="mt-2 block w-full overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    >
+                      <SignedImage
+                        src={attachmentUrl}
+                        alt="Attachment"
+                        className="max-h-48 w-full rounded-xl object-cover"
+                      />
+                    </button>
+                  ) : null}
+                  {attachmentUrl && isVideo ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveMedia({ type: "video", src: attachmentUrl })}
+                      className={`mt-2 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${
+                        isMine
+                          ? "border-emerald-400/50 text-emerald-50"
+                          : "border-slate-200 text-emerald-600"
+                      }`}
+                    >
+                      Play video
+                    </button>
                   ) : null}
                   {attachmentUrl && isAudio ? (
                     <SignedAudio className="mt-2 w-full" controls src={attachmentUrl} />
                   ) : null}
-                  {attachmentUrl && !isImage && !isAudio ? (
+                  {attachmentUrl && !isImage && !isAudio && !isVideo ? (
                     <SignedLink
                       src={attachmentUrl}
                       target="_blank"
@@ -550,6 +590,41 @@ export default function ChatDMPage() {
           </div>
         ) : null}
       </footer>
+
+      {activeMedia ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 px-4 py-6"
+          onClick={() => setActiveMedia(null)}
+        >
+          <div
+            className="relative w-full max-w-3xl rounded-2xl bg-slate-950 p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveMedia(null)}
+              className="absolute right-3 top-3 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20"
+            >
+              Close
+            </button>
+            <div className="flex max-h-[80vh] items-center justify-center">
+              {activeMedia.type === "image" ? (
+                <SignedImage
+                  src={activeMedia.src}
+                  alt="Attachment preview"
+                  className="max-h-[78vh] w-auto max-w-full rounded-xl object-contain"
+                />
+              ) : (
+                <SignedVideo
+                  src={activeMedia.src}
+                  controls
+                  className="max-h-[78vh] w-full rounded-xl"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
