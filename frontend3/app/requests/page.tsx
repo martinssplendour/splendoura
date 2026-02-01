@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { SignedImage } from "@/components/signed-media";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
@@ -182,13 +183,13 @@ export default function RequestsPage() {
                 className="flex flex-col gap-4 rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
-                  {request.user?.profile_image_url ? (
-                    <img
-                      src={resolveMediaUrl(request.user.profile_image_url)}
-                      alt={displayName}
-                      className="h-12 w-12 rounded-full object-cover"
-                    />
-                  ) : (
+                    {request.user?.profile_image_url ? (
+                      <SignedImage
+                        src={request.user.profile_image_url}
+                        alt={displayName}
+                        className="h-12 w-12 rounded-full object-cover"
+                      />
+                    ) : (
                     <div className="h-12 w-12 rounded-full bg-slate-200" />
                   )}
                 <div>

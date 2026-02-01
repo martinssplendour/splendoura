@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { apiFetch, API_HOST, resolveMediaUrl } from "@/lib/api";
+import { apiFetch, API_HOST } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SignedAudio, SignedImage, SignedLink } from "@/components/signed-media";
 
 type Group = {
   id: number;
@@ -370,8 +371,8 @@ export default function ChatDMPage() {
       <header className="shrink-0 border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-5 py-4">
           {group?.cover_image_url ? (
-            <img
-              src={resolveMediaUrl(group.cover_image_url)}
+            <SignedImage
+              src={group.cover_image_url}
               alt={headerTitle}
               className="h-11 w-11 rounded-full object-cover"
             />
@@ -420,9 +421,7 @@ export default function ChatDMPage() {
 
           {messages.map((message) => {
             const isMine = message.sender_id === user?.id;
-            const attachmentUrl = message.attachment_url
-              ? resolveMediaUrl(message.attachment_url)
-              : null;
+            const attachmentUrl = message.attachment_url || null;
             const isImage = message.attachment_type?.startsWith("image/");
             const isAudio = message.attachment_type?.startsWith("audio/");
             const messageText = describeMessage(message);
@@ -445,18 +444,18 @@ export default function ChatDMPage() {
                     <p className="whitespace-pre-wrap">{messageText}</p>
                   )}
                   {attachmentUrl && isImage ? (
-                    <img
+                    <SignedImage
                       src={attachmentUrl}
                       alt="Attachment"
                       className="mt-2 max-h-48 rounded-xl object-cover"
                     />
                   ) : null}
                   {attachmentUrl && isAudio ? (
-                    <audio className="mt-2 w-full" controls src={attachmentUrl} />
+                    <SignedAudio className="mt-2 w-full" controls src={attachmentUrl} />
                   ) : null}
                   {attachmentUrl && !isImage && !isAudio ? (
-                    <a
-                      href={attachmentUrl}
+                    <SignedLink
+                      src={attachmentUrl}
                       target="_blank"
                       rel="noreferrer"
                       className={`mt-2 inline-flex text-xs font-semibold underline ${
@@ -464,7 +463,7 @@ export default function ChatDMPage() {
                       }`}
                     >
                       View attachment
-                    </a>
+                    </SignedLink>
                   ) : null}
                   <span
                     className={`mt-1 block text-[11px] ${

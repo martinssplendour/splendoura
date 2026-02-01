@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { apiFetch, resolveMediaUrl, API_HOST } from "@/lib/api";
+import { apiFetch, API_HOST } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { SignedImage } from "@/components/signed-media";
 
 type ThreadType = "group" | "dm";
 
@@ -309,8 +310,8 @@ export default function ChatPage() {
                 className="flex items-center gap-3 rounded-2xl border border-transparent bg-white px-3 py-3 transition hover:border-slate-200"
               >
                 {thread.avatarUrl ? (
-                  <img
-                    src={resolveMediaUrl(thread.avatarUrl)}
+                  <SignedImage
+                    src={thread.avatarUrl}
                     alt={thread.title}
                     className="h-12 w-12 rounded-xl object-cover"
                   />

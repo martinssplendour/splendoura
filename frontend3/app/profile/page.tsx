@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { Settings } from "lucide-react";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { cropImageToAspect } from "@/lib/image-processing";
+import { SignedImage } from "@/components/signed-media";
 
 const ORIENTATION_OPTIONS = [
   "straight",
@@ -774,8 +775,8 @@ export default function ProfilePage() {
           ) : (
             photos.map((photo) => (
               <div key={photo} className="relative">
-                <img
-                  src={resolveMediaUrl(photo)}
+                <SignedImage
+                  src={photo}
                   alt="Profile"
                   onClick={() => setPreviewPhoto(photo)}
                   className="h-24 w-24 cursor-zoom-in rounded-2xl object-cover"
@@ -865,8 +866,8 @@ export default function ProfilePage() {
             className="relative max-h-[90vh] max-w-[90vw]"
             onClick={(event) => event.stopPropagation()}
           >
-            <img
-              src={resolveMediaUrl(previewPhoto)}
+            <SignedImage
+              src={previewPhoto}
               alt="Full size profile"
               className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain"
             />

@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } f
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import JoinRequestButton, { GroupRequirement } from "@/components/groups/join-request-button";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { cropImageToAspect } from "@/lib/image-processing";
+import { SignedImage, SignedVideo } from "@/components/signed-media";
 
 interface GroupDetail {
   id: number;
@@ -938,8 +939,8 @@ export default function GroupDetailPage() {
           <p className="text-xs font-semibold uppercase text-slate-400">Creator</p>
           <div className="mt-3 flex flex-wrap items-center gap-4">
             {creator.profile_image_url ? (
-              <img
-                src={resolveMediaUrl(creator.profile_image_url)}
+              <SignedImage
+                src={creator.profile_image_url}
                 alt={creator.full_name}
                 className="h-16 w-16 rounded-2xl object-cover"
               />
@@ -1046,8 +1047,8 @@ export default function GroupDetailPage() {
             {approvedProfiles.map((member) => (
               <div key={member.id} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3">
                 {member.profile_image_url ? (
-                  <img
-                    src={resolveMediaUrl(member.profile_image_url)}
+                  <SignedImage
+                    src={member.profile_image_url}
                     alt={member.full_name}
                     className="h-12 w-12 rounded-xl object-cover"
                   />
@@ -1119,17 +1120,17 @@ export default function GroupDetailPage() {
               <div key={media.id} className="w-[48%] space-y-1.5">
                 <div className="relative">
                   {media.media_type === "image" ? (
-                    <img
-                      src={resolveMediaUrl(media.url)}
+                    <SignedImage
+                      src={media.url}
                       alt="Group media"
                       onClick={() => setPreviewMediaUrl(media.url)}
                       className="h-[140px] w-full cursor-zoom-in rounded-2xl object-cover bg-slate-200"
                     />
                   ) : (
-                    <video
+                    <SignedVideo
                       controls
                       className="h-[140px] w-full rounded-2xl object-cover bg-slate-200"
-                      src={resolveMediaUrl(media.url)}
+                      src={media.url}
                     />
                   )}
                   {user?.id === group.creator_id ? (
@@ -1257,8 +1258,8 @@ export default function GroupDetailPage() {
             className="relative max-h-[90vh] max-w-[90vw]"
             onClick={(event) => event.stopPropagation()}
           >
-            <img
-              src={resolveMediaUrl(previewMediaUrl)}
+            <SignedImage
+              src={previewMediaUrl}
               alt="Full size media"
               className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain"
             />

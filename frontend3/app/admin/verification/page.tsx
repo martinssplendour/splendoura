@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { SignedImage } from "@/components/signed-media";
 
 interface PendingUser {
   id: number;
@@ -68,8 +69,8 @@ export default function VerificationAdminPage() {
             <div key={entry.id} className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex flex-wrap items-center gap-4">
                 {entry.profile_image_url ? (
-                  <img
-                    src={resolveMediaUrl(entry.profile_image_url)}
+                  <SignedImage
+                    src={entry.profile_image_url}
                     alt={entry.full_name}
                     className="h-16 w-16 rounded-2xl object-cover"
                   />

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { SignedImage } from "@/components/signed-media";
 
 interface UserProfile {
   id: number;
@@ -113,8 +114,8 @@ export default function UserProfilePage() {
       <div className="rounded-none border-0 bg-white p-6 sm:rounded-3xl sm:border sm:border-slate-200">
         <div className="flex flex-wrap items-center gap-4">
           {profile.profile_image_url ? (
-            <img
-              src={resolveMediaUrl(profile.profile_image_url)}
+            <SignedImage
+              src={profile.profile_image_url}
               alt={profile.full_name || "User profile"}
               className="h-20 w-20 rounded-2xl object-cover"
             />
@@ -197,9 +198,9 @@ export default function UserProfilePage() {
           <h2 className="text-lg font-semibold text-slate-900">Photos</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
             {photos.map((photo) => (
-              <img
+              <SignedImage
                 key={photo}
-                src={resolveMediaUrl(photo)}
+                src={photo}
                 alt="Profile"
                 onClick={() => setPreviewPhoto(photo)}
                 className="h-40 w-full cursor-zoom-in rounded-2xl object-cover"
@@ -218,8 +219,8 @@ export default function UserProfilePage() {
             className="relative max-h-[90vh] max-w-[90vw]"
             onClick={(event) => event.stopPropagation()}
           >
-            <img
-              src={resolveMediaUrl(previewPhoto)}
+            <SignedImage
+              src={previewPhoto}
               alt="Full size profile"
               className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain"
             />

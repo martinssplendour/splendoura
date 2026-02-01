@@ -40,3 +40,22 @@ def get_storage_object(
         return RedirectResponse(storage.build_public_url(decoded_key))
     signed_url = storage.create_signed_url(decoded_key)
     return RedirectResponse(signed_url)
+
+
+@router.get("/storage/signed/{object_key:path}")
+def get_storage_signed_url(
+    *,
+    object_key: str,
+    current_user=Depends(deps.get_current_user),
+):
+    decoded_key = unquote(object_key)
+    if settings.SUPABASE_STORAGE_PUBLIC:
+        return {
+            "signed_url": storage.build_public_url(decoded_key),
+            "expires_in": 0,
+        }
+    signed_url = storage.create_signed_url(decoded_key)
+    return {
+        "signed_url": signed_url,
+        "expires_in": settings.SUPABASE_SIGNED_URL_EXPIRE_SECONDS,
+    }

@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { SignedImage } from "@/components/signed-media";
 
 interface MembershipItem {
   id: number;
@@ -240,8 +241,8 @@ export default function NotificationsPage() {
                 >
                   <div className="flex items-center gap-3">
                     {request.user?.profile_image_url ? (
-                      <img
-                        src={resolveMediaUrl(request.user.profile_image_url)}
+                      <SignedImage
+                        src={request.user.profile_image_url}
                         alt={displayName}
                         className="h-12 w-12 rounded-full object-cover"
                       />

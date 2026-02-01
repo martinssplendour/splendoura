@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import type { SwipeGroup } from "@/components/groups/types";
 import CardChips from "@/components/groups/card-chips";
-import { resolveMediaUrl } from "@/lib/api";
+import { SignedImage } from "@/components/signed-media";
 
 interface EventCardProps {
   group: SwipeGroup;
@@ -68,8 +68,8 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
       >
         <div className="relative h-[360px] w-full sm:h-[480px]">
           {activeImage ? (
-            <img
-              src={resolveMediaUrl(activeImage)}
+            <SignedImage
+              src={activeImage}
               alt={group.title}
               className="h-full w-full object-cover"
             />
@@ -97,8 +97,8 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
               aria-label="View creator profile"
             >
               {creatorAvatarUrl ? (
-                <img
-                  src={resolveMediaUrl(creatorAvatarUrl)}
+                <SignedImage
+                  src={creatorAvatarUrl}
                   alt={creatorName}
                   className="h-full w-full object-cover"
                 />
@@ -154,8 +154,8 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           {creatorName ? (
             <div className="flex items-center gap-1 text-[9px] text-slate-500">
               {creatorAvatarUrl ? (
-                <img
-                  src={resolveMediaUrl(creatorAvatarUrl)}
+                <SignedImage
+                  src={creatorAvatarUrl}
                   alt={creatorName}
                   className="h-3.5 w-3.5 rounded-full object-cover"
                 />

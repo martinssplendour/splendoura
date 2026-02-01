@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { cropImageToAspect } from "@/lib/image-processing";
+import { SignedImage } from "@/components/signed-media";
 
 const promptDefaults = ["", "", ""];
 
@@ -267,8 +268,8 @@ export default function OnboardingPage() {
         <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Add a photo</h2>
           {user?.profile_image_url ? (
-            <img
-              src={resolveMediaUrl(user.profile_image_url)}
+            <SignedImage
+              src={user.profile_image_url}
               alt="Profile"
               className="h-48 w-full rounded-2xl object-cover"
             />

@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { SignedImage } from "@/components/signed-media";
 
 type Intent = "friendship" | "relationship" | "mutual_benefits";
 
@@ -544,8 +545,8 @@ export default function FindMyTypeModal({
                           className="flex flex-1 items-center gap-3"
                         >
                           {result.user.profile_image_url ? (
-                            <img
-                              src={resolveMediaUrl(result.user.profile_image_url)}
+                            <SignedImage
+                              src={result.user.profile_image_url}
                               alt={name}
                               className="h-12 w-12 rounded-full object-cover"
                             />

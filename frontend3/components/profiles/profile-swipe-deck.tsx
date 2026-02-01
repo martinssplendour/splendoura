@@ -5,8 +5,9 @@ import type { PointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SignedImage } from "@/components/signed-media";
 
 const SWIPE_RATIO = 0.3;
 
@@ -320,8 +321,8 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
         >
           <div className="relative h-[520px] w-full overflow-hidden rounded-[32px] bg-slate-900">
             {activeImage ? (
-              <img
-                src={resolveMediaUrl(activeImage)}
+              <SignedImage
+                src={activeImage}
                 alt={name}
                 className="absolute inset-0 h-full w-full object-cover"
               />
