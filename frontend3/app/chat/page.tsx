@@ -51,6 +51,10 @@ interface Thread {
 }
 
 const MAX_BADGE_COUNT = 99;
+const THREAD_CACHE_KEY = "chatThreadsCache:v1";
+const THREAD_CACHE_TTL_MS = 2 * 60 * 1000;
+const HYDRATE_CONCURRENCY = 4;
+const MAX_THREAD_HYDRATE = 20;
 
 function formatInboxTime(value?: string | null) {
   if (!value) return "";
@@ -103,15 +107,50 @@ function sortThreads(threads: Thread[]) {
   });
 }
 
+function readThreadCache() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(THREAD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { savedAt: number; threads: Thread[] };
+    if (!parsed?.savedAt || !Array.isArray(parsed.threads)) return null;
+    if (Date.now() - parsed.savedAt > THREAD_CACHE_TTL_MS) return null;
+    return parsed.threads;
+  } catch {
+    return null;
+  }
+}
+
+function writeThreadCache(threads: Thread[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      THREAD_CACHE_KEY,
+      JSON.stringify({ savedAt: Date.now(), threads })
+    );
+  } catch {
+    // ignore cache write errors
+  }
+}
+
 export default function ChatPage() {
   const { accessToken, user } = useAuth();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const socketsRef = useRef<Record<number, WebSocket>>({});
+  const loadIdRef = useRef(0);
+
+  useEffect(() => {
+    const cached = readThreadCache();
+    if (cached && cached.length > 0) {
+      setThreads(cached);
+    }
+  }, []);
 
   const loadThreads = useCallback(async () => {
     if (!accessToken || !user?.id) return;
+    const loadId = ++loadIdRef.current;
     setIsLoading(true);
     setStatus(null);
     try {
@@ -123,12 +162,40 @@ export default function ChatPage() {
       }
       const groups: ChatGroup[] = await res.json();
 
-      const groupThreads = await Promise.all(
-        groups.map(async (group) => {
+      const baseThreads: Thread[] = groups.map((group) => ({
+        id: `group-${group.id}`,
+        type: "group",
+        title: group.title,
+        avatarUrl: group.cover_image_url,
+        lastMessageText: "Tap to open",
+        lastMessageAt: group.updated_at || group.created_at || undefined,
+        unreadCount: 0,
+        unreadIds: [],
+        createdAt: group.created_at,
+        groupId: group.id,
+      }));
+
+      setThreads(sortThreads(baseThreads));
+      setIsLoading(false);
+      writeThreadCache(sortThreads(baseThreads));
+
+      const sortedGroups = [...groups].sort((a, b) => {
+        const aTime = new Date(a.updated_at || a.created_at || 0).getTime();
+        const bTime = new Date(b.updated_at || b.created_at || 0).getTime();
+        return bTime - aTime;
+      });
+      const hydrateTargets = sortedGroups.slice(0, MAX_THREAD_HYDRATE);
+      const updates: Record<number, Thread> = {};
+      let idx = 0;
+
+      const worker = async () => {
+        while (idx < hydrateTargets.length) {
+          const current = hydrateTargets[idx];
+          idx += 1;
           let messages: GroupMessage[] = [];
           try {
             // TODO: Replace with a backend inbox summary endpoint.
-            const messageRes = await apiFetch(`/groups/${group.id}/messages`, { token: accessToken });
+            const messageRes = await apiFetch(`/groups/${current.id}/messages`, { token: accessToken });
             if (messageRes.ok) {
               messages = await messageRes.json();
             }
@@ -145,25 +212,34 @@ export default function ChatPage() {
             )
             .map((message) => message.id);
 
-          return {
-            id: `group-${group.id}`,
+          updates[current.id] = {
+            id: `group-${current.id}`,
             type: "group",
-            title: group.title,
-            avatarUrl: group.cover_image_url,
+            title: current.title,
+            avatarUrl: current.cover_image_url,
             lastMessageId: lastMessage?.id,
             lastMessageSenderId: lastMessage?.sender_id,
             lastMessageText: buildPreview(lastMessage, "group", user.id),
-            lastMessageAt: lastMessage?.created_at || group.updated_at || group.created_at || undefined,
+            lastMessageAt: lastMessage?.created_at || current.updated_at || current.created_at || undefined,
             unreadCount: unreadIds.length,
             unreadIds,
             lastReadAt: unreadIds.length === 0 ? lastMessage?.created_at : undefined,
-            createdAt: group.created_at,
-            groupId: group.id,
-          } satisfies Thread;
-        })
-      );
+            createdAt: current.created_at,
+            groupId: current.id,
+          };
+        }
+      };
 
-      setThreads(sortThreads(groupThreads));
+      await Promise.all(Array.from({ length: HYDRATE_CONCURRENCY }, worker));
+      if (loadIdRef.current !== loadId) return;
+      setThreads((prev) => {
+        const next = prev.map((thread) =>
+          thread.groupId && updates[thread.groupId] ? updates[thread.groupId] : thread
+        );
+        const sorted = sortThreads(next);
+        writeThreadCache(sorted);
+        return sorted;
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to load conversations.";
       setStatus(message);
