@@ -13,6 +13,7 @@ export default function Navbar() {
   const { user, logout } = useAuth() || {};
   const pathname = usePathname();
   const isGroups = pathname?.startsWith("/groups");
+  const isChatDetail = pathname?.startsWith("/chat/") && pathname !== "/chat";
 
   const isActive = (href: string, aliases: string[] = []) =>
     pathname === href ||
@@ -26,28 +27,32 @@ export default function Navbar() {
   return (
     <nav className="bg-slate-50">
       <div className="container mx-auto flex items-start justify-between gap-2.5 px-4 py-4">
-        <div className="flex flex-col gap-1">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 shadow-[0_2px_6px_rgba(99,102,241,0.15)]"
-          >
-            <Image
-              src="/brand/icon.png"
-              alt="Splendoure"
-              width={18}
-              height={18}
-              className="h-[18px] w-[18px]"
-            />
-            <span className="text-[18px] font-extrabold uppercase leading-none tracking-[0.07em] text-indigo-700">
-              Splendoure
-            </span>
-          </Link>
-          {pathname?.startsWith("/groups") ? (
-            <p className="text-[11px] font-semibold text-slate-600/70">
-              Discover plans and swipe to join
-            </p>
-          ) : null}
-        </div>
+        {!isChatDetail ? (
+          <div className="flex flex-col gap-1">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 shadow-[0_2px_6px_rgba(99,102,241,0.15)]"
+            >
+              <Image
+                src="/brand/icon.png"
+                alt="Splendoure"
+                width={18}
+                height={18}
+                className="h-[18px] w-[18px]"
+              />
+              <span className="text-[18px] font-extrabold uppercase leading-none tracking-[0.07em] text-indigo-700">
+                Splendoure
+              </span>
+            </Link>
+            {pathname?.startsWith("/groups") ? (
+              <p className="text-[11px] font-semibold text-slate-600/70">
+                Discover plans and swipe to join
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div />
+        )}
 
         {/* Right Side Actions */}
         <div className="mt-0.5 flex items-start gap-3">
@@ -114,7 +119,7 @@ export default function Navbar() {
       </div>
 
       {user ? (
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-50 translate-y-[20%] border-t border-slate-200 bg-white md:hidden">
           <div className="flex h-[72px] items-center justify-around px-3">
             <Link
               href="/groups"

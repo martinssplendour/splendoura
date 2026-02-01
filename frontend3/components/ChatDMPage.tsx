@@ -356,9 +356,6 @@ export default function ChatDMPage() {
   }, [accessToken, groupId, ingestMessage]);
 
   const headerTitle = group?.title || "Chat";
-  const headerSubtitle = group
-    ? `${group.activity_type || "Group chat"} - ${group.approved_members ?? 0} members`
-    : "Loading chat details...";
 
   const showSend = Boolean(draft.trim()) || Boolean(attachment);
 
@@ -372,12 +369,6 @@ export default function ChatDMPage() {
     >
       <header className="shrink-0 border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-5 py-4">
-          <Link
-            href="/chat"
-            className="text-xs font-semibold text-slate-500 hover:text-slate-700"
-          >
-            Back
-          </Link>
           {group?.cover_image_url ? (
             <img
               src={resolveMediaUrl(group.cover_image_url)}
@@ -391,7 +382,9 @@ export default function ChatDMPage() {
           )}
           <div className="flex-1">
             <p className="text-base font-semibold text-slate-900">{headerTitle}</p>
-            <p className="text-xs text-slate-500">{headerSubtitle}</p>
+            <p className="text-xs text-slate-500">
+              {group ? `${group.approved_members ?? 0} members` : "Loading chat details..."}
+            </p>
           </div>
           {groupId ? (
             <Link
