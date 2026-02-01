@@ -185,6 +185,9 @@
     -webkit-text-size-adjust: 100%;
     scrollbar-gutter: stable;
   }
+  body.no-scroll {
+    overflow: hidden;
+  }
   body {
     /* Updated: Removed the hardcoded radial-gradient that broke dark mode.
        Uses the @theme variables defined above. 
