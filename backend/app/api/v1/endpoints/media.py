@@ -1,3 +1,4 @@
+import hashlib
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -66,6 +67,7 @@ def get_storage_signed_url(
 def debug_storage_settings(current_user=Depends(deps.get_current_user)):
     service_role_key = settings.SUPABASE_SERVICE_ROLE_KEY or ""
     service_role_claims: dict[str, str | int | None] = {}
+    service_role_hash: str | None = None
     if service_role_key:
         try:
             claims = jwt.get_unverified_claims(service_role_key)
@@ -74,10 +76,14 @@ def debug_storage_settings(current_user=Depends(deps.get_current_user)):
                 "ref": claims.get("ref"),
                 "role": claims.get("role"),
             }
+            digest = hashlib.sha256(service_role_key.encode("utf-8")).hexdigest()
+            service_role_hash = digest[:12]
         except Exception:
             service_role_claims = {"error": "invalid_jwt"}
+            service_role_hash = None
     else:
         service_role_claims = {"error": "missing"}
+        service_role_hash = None
 
     return {
         "storage_enabled": storage.supabase_storage_enabled(),
@@ -86,4 +92,5 @@ def debug_storage_settings(current_user=Depends(deps.get_current_user)):
         "supabase_storage_public": settings.SUPABASE_STORAGE_PUBLIC,
         "supabase_signed_url_expires": settings.SUPABASE_SIGNED_URL_EXPIRE_SECONDS,
         "supabase_service_role": service_role_claims,
+        "supabase_service_role_key_hash": service_role_hash,
     }
