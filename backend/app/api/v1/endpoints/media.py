@@ -59,3 +59,14 @@ def get_storage_signed_url(
         "signed_url": signed_url,
         "expires_in": settings.SUPABASE_SIGNED_URL_EXPIRE_SECONDS,
     }
+
+
+@router.get("/debug/storage")
+def debug_storage_settings(current_user=Depends(deps.get_current_user)):
+    return {
+        "storage_enabled": storage.supabase_storage_enabled(),
+        "supabase_url": settings.SUPABASE_URL,
+        "supabase_storage_bucket": settings.SUPABASE_STORAGE_BUCKET,
+        "supabase_storage_public": settings.SUPABASE_STORAGE_PUBLIC,
+        "supabase_signed_url_expires": settings.SUPABASE_SIGNED_URL_EXPIRE_SECONDS,
+    }
