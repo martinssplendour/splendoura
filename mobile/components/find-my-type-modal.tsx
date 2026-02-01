@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -14,9 +13,10 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
+import { SignedImage } from "@/components/signed-media";
 
 type Intent = "friendship" | "relationship" | "mutual_benefits";
 type CriterionType = "range" | "number" | "single" | "multi" | "text" | "text_list";
@@ -647,10 +647,7 @@ export default function FindMyTypeModal({ visible, onClose }: ModalProps) {
                             onPress={() => router.push(`/users/${result.user.id}`)}
                           >
                             {result.user.profile_image_url ? (
-                              <Image
-                                source={{ uri: resolveMediaUrl(result.user.profile_image_url) }}
-                                style={styles.avatar}
-                              />
+                              <SignedImage uri={result.user.profile_image_url} style={styles.avatar} />
                             ) : (
                               <View style={styles.avatarFallback} />
                             )}

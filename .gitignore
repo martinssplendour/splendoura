@@ -12,3 +12,6 @@ backend/uploads/
 node_modules/
 **/node_modules/
 mobile/.expo/
+.expo/
+backend/.venv/
+mobile/assets/images/playstore-icon-512.png

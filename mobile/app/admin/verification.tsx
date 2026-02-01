@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -11,8 +10,9 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/ui/Button";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SignedImage } from "@/components/signed-media";
 
 interface PendingUser {
   id: number;
@@ -128,15 +128,12 @@ export default function VerificationAdminScreen() {
             <View key={entry.id} style={styles.card}>
               <View style={styles.cardRow}>
                 {entry.profile_media?.photo_verification_url ? (
-                  <Image
-                    source={{ uri: resolveMediaUrl(entry.profile_media.photo_verification_url) }}
+                  <SignedImage
+                    uri={entry.profile_media.photo_verification_url}
                     style={styles.avatar}
                   />
                 ) : entry.profile_image_url ? (
-                  <Image
-                    source={{ uri: resolveMediaUrl(entry.profile_image_url) }}
-                    style={styles.avatar}
-                  />
+                  <SignedImage uri={entry.profile_image_url} style={styles.avatar} />
                 ) : null}
                 <View style={styles.cardBody}>
                   <Text style={styles.cardTitle}>{entry.full_name}</Text>
@@ -165,7 +162,7 @@ export default function VerificationAdminScreen() {
               <View key={`id-${entry.id}`} style={styles.card}>
                 <View style={styles.cardRow}>
                   {idUrl ? (
-                    <Image source={{ uri: resolveMediaUrl(idUrl) }} style={styles.avatar} />
+                    <SignedImage uri={idUrl} style={styles.avatar} />
                   ) : null}
                   <View style={styles.cardBody}>
                     <Text style={styles.cardTitle}>{entry.full_name}</Text>

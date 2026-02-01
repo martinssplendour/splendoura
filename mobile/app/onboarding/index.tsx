@@ -18,9 +18,10 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { buildFormFile, type UploadAsset } from "@/lib/uploads";
+import { SignedImage } from "@/components/signed-media";
 
 const promptDefaults = ["", "", ""];
 
@@ -284,10 +285,7 @@ export default function OnboardingScreen() {
             <Text style={styles.sectionTitle}>Add a photo</Text>
             <Text style={styles.helper}>Profiles with photos get more requests.</Text>
             {user?.profile_image_url ? (
-              <Image
-                source={{ uri: resolveMediaUrl(user.profile_image_url) }}
-                style={styles.photo}
-              />
+              <SignedImage uri={user.profile_image_url} style={styles.photo} />
             ) : null}
             {photo ? (
               <Image source={{ uri: photo.uri }} style={styles.photo} />

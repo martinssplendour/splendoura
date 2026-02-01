@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -15,8 +14,9 @@ import { useRouter } from "expo-router";
 
 import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav";
 import { Button } from "@/components/ui/Button";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SignedImage } from "@/components/signed-media";
 
 interface ChatGroup {
   id: number;
@@ -108,10 +108,7 @@ export default function ChatListScreen() {
                       ]}
                     >
                       {group.cover_image_url ? (
-                        <Image
-                          source={{ uri: resolveMediaUrl(group.cover_image_url) }}
-                          style={styles.avatar}
-                        />
+                        <SignedImage uri={group.cover_image_url} style={styles.avatar} />
                       ) : (
                         <View style={styles.avatarPlaceholder} />
                       )}

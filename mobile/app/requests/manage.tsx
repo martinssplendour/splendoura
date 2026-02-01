@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -14,8 +13,9 @@ import { useRouter } from "expo-router";
 
 import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav";
 import { Button } from "@/components/ui/Button";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SignedImage } from "@/components/signed-media";
 
 interface MembershipItem {
   id: number;
@@ -180,10 +180,7 @@ export default function ManageRequestsScreen() {
                 <View key={`${request.group_id}-${request.user_id}`} style={styles.card}>
                   <View style={styles.cardRow}>
                     {request.user?.profile_image_url ? (
-                      <Image
-                        source={{ uri: resolveMediaUrl(request.user.profile_image_url) }}
-                        style={styles.avatar}
-                      />
+                      <SignedImage uri={request.user.profile_image_url} style={styles.avatar} />
                     ) : (
                       <View style={styles.avatarPlaceholder} />
                     )}

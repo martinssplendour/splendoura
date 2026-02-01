@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -13,8 +12,9 @@ import {
 import { useRouter } from "expo-router";
 
 import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SignedImage } from "@/components/signed-media";
 
 interface MembershipItem {
   id: number;
@@ -258,10 +258,7 @@ export default function NotificationsScreen() {
                     <View key={`${request.group_id}-${request.user_id}`} style={styles.requestCard}>
                       <View style={styles.requestRow}>
                         {request.user?.profile_image_url ? (
-                          <Image
-                            source={{ uri: resolveMediaUrl(request.user.profile_image_url) }}
-                            style={styles.avatar}
-                          />
+                          <SignedImage uri={request.user.profile_image_url} style={styles.avatar} />
                         ) : (
                           <View style={styles.avatarPlaceholder} />
                         )}

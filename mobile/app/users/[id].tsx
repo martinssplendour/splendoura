@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Modal,
   Pressable,
   SafeAreaView,
@@ -15,8 +14,9 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SignedImage } from "@/components/signed-media";
 
 interface UserProfile {
   id: number;
@@ -143,10 +143,7 @@ export default function UserProfileScreen() {
         <View style={styles.card}>
           <View style={styles.profileRow}>
             {profile.profile_image_url ? (
-              <Image
-                source={{ uri: resolveMediaUrl(profile.profile_image_url) }}
-                style={styles.avatar}
-              />
+              <SignedImage uri={profile.profile_image_url} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder} />
             )}
@@ -219,11 +216,7 @@ export default function UserProfileScreen() {
             <View style={styles.photoGrid}>
               {photos.map((photo) => (
                 <Pressable key={photo} onPress={() => setPreviewPhoto(photo)}>
-                  <Image
-                    source={{ uri: resolveMediaUrl(photo) }}
-                    style={styles.photo}
-                    resizeMode="cover"
-                  />
+                  <SignedImage uri={photo} style={styles.photo} resizeMode="cover" />
                 </Pressable>
               ))}
             </View>
@@ -252,11 +245,7 @@ export default function UserProfileScreen() {
         <Pressable style={styles.lightboxBackdrop} onPress={() => setPreviewPhoto(null)}>
           <Pressable style={styles.lightboxContent} onPress={() => {}}>
             {previewPhoto ? (
-              <Image
-                source={{ uri: resolveMediaUrl(previewPhoto) }}
-                style={styles.lightboxImage}
-                resizeMode="contain"
-              />
+              <SignedImage uri={previewPhoto} style={styles.lightboxImage} resizeMode="contain" />
             ) : null}
             <Pressable style={styles.lightboxClose} onPress={() => setPreviewPhoto(null)}>
               <Text style={styles.lightboxCloseText}>x</Text>

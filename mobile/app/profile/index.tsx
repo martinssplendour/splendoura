@@ -18,12 +18,13 @@ import {
 
 import { BottomNav, BOTTOM_NAV_HEIGHT } from "@/components/navigation/BottomNav";
 import { Button } from "@/components/ui/Button";
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter, type Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { buildFormFile, type UploadAsset } from "@/lib/uploads";
+import { SignedImage } from "@/components/signed-media";
 
 const GENDER_OPTIONS = ["male", "female", "other", "other_custom"] as const;
 const ORIENTATION_OPTIONS = [
@@ -815,11 +816,7 @@ export default function ProfileScreen() {
                       {photos.map((photo) => (
                         <View key={photo} style={styles.photoItem}>
                           <Pressable onPress={() => setPreviewPhoto(photo)}>
-                            <Image
-                              source={{ uri: resolveMediaUrl(photo) }}
-                              style={styles.photo}
-                              resizeMode="cover"
-                            />
+                            <SignedImage uri={photo} style={styles.photo} resizeMode="cover" />
                           </Pressable>
                           <Pressable
                             onPress={() => handleDeletePhoto(photo)}

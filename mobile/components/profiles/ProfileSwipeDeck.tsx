@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   type GestureResponderEvent,
-  Image,
   PanResponder,
   type PanResponderGestureState,
   Pressable,
@@ -15,8 +14,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 
-import { apiFetch, resolveMediaUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SignedImage } from "@/components/signed-media";
 
 const SWIPE_RATIO = 0.3;
 
@@ -318,10 +318,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
             onPress={() => router.push(`/users/${current.user.id}`)}
           >
             {activeImage ? (
-              <Image
-                source={{ uri: resolveMediaUrl(activeImage) }}
-                style={styles.image}
-              />
+              <SignedImage uri={activeImage} style={styles.image} />
             ) : (
               <View style={styles.imageFallback}>
                 <Text style={styles.fallbackText}>No photo yet</Text>

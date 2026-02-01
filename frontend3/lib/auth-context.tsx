@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 // This prevents "undefined" errors if the .env file isn't loading correctly
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 // -----------------------------------------------
+const ACCESS_TOKEN_KEY = "access_token";
+const REFRESH_TOKEN_KEY = "refresh_token";
 
 export interface User {
   id: number;
@@ -61,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshSession = useCallback(async () => {
     try {
-      const storedRefresh = refreshToken || localStorage.getItem("refresh_token");
+      const storedRefresh = refreshToken || localStorage.getItem(REFRESH_TOKEN_KEY);
       if (!storedRefresh) {
         return false;
       }
@@ -76,7 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data: { access_token: string; refresh_token: string } = await res.json();
         setAccessToken(data.access_token);
         setRefreshToken(data.refresh_token);
-        localStorage.setItem("refresh_token", data.refresh_token);
+        localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
+        localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
 
         const userRes = await fetch(`${API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${data.access_token}` },
@@ -96,6 +99,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initAuth = async () => {
+      const storedAccess = localStorage.getItem(ACCESS_TOKEN_KEY);
+      const storedRefresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+      if (storedAccess) {
+        setAccessToken(storedAccess);
+      }
+      if (storedRefresh) {
+        setRefreshToken(storedRefresh);
+      }
       // Only fetch user if we have a token (or after refresh)
       const success = await refreshSession();
       
@@ -117,7 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (data: AuthResponse, redirectTo?: string) => {
     setAccessToken(data.access_token);
     setRefreshToken(data.refresh_token);
-    localStorage.setItem("refresh_token", data.refresh_token);
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
     setUser(data.user);
     router.push(redirectTo || "/groups");
   };
@@ -125,7 +137,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setAccessToken(null);
     setRefreshToken(null);
-    localStorage.removeItem("refresh_token");
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     setUser(null);
     router.push("/");
   };
