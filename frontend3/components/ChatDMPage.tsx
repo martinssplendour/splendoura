@@ -70,6 +70,10 @@ export default function ChatDMPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [showNewPill, setShowNewPill] = useState(false);
   const [newMessageCount, setNewMessageCount] = useState(0);
+  const [layoutInsets, setLayoutInsets] = useState<{ top: number; bottom: number }>({
+    top: 0,
+    bottom: 0,
+  });
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -248,17 +252,6 @@ export default function ChatDMPage() {
   }, [accessToken, attachment, draft, groupId, ingestMessage, isSending]);
 
   useEffect(() => {
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-    };
-  }, []);
-
-  useEffect(() => {
     setGroup(null);
     setMessages([]);
     setDraft("");
@@ -281,6 +274,19 @@ export default function ChatDMPage() {
   useEffect(() => {
     loadMessages();
   }, [loadMessages]);
+
+  useLayoutEffect(() => {
+    const updateInsets = () => {
+      const nav = document.querySelector("nav");
+      const top = nav ? Math.round(nav.getBoundingClientRect().height) : 0;
+      const bottomNav = nav?.querySelector(".fixed.bottom-0") as HTMLElement | null;
+      const bottom = bottomNav ? Math.round(bottomNav.getBoundingClientRect().height) : 0;
+      setLayoutInsets({ top, bottom });
+    };
+    updateInsets();
+    window.addEventListener("resize", updateInsets);
+    return () => window.removeEventListener("resize", updateInsets);
+  }, []);
 
   useLayoutEffect(() => {
     const pending = pendingPrependRef.current;
@@ -357,7 +363,13 @@ export default function ChatDMPage() {
   const showSend = Boolean(draft.trim()) || Boolean(attachment);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50">
+    <div
+      className="flex min-h-0 flex-col bg-slate-50"
+      style={{
+        height: `calc(100vh - ${layoutInsets.top}px)`,
+        paddingBottom: layoutInsets.bottom ? `${layoutInsets.bottom}px` : undefined,
+      }}
+    >
       <header className="shrink-0 border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-5 py-4">
           <Link
@@ -392,7 +404,10 @@ export default function ChatDMPage() {
         </div>
       </header>
 
-      <div className="relative flex-1 overflow-y-auto overscroll-none" ref={scrollRef}>
+      <div
+        className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain"
+        ref={scrollRef}
+      >
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-5 py-4">
           {messages.length === 0 && !isLoading ? (
             <div className="text-center text-xs text-slate-400">
