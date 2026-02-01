@@ -33,19 +33,6 @@ def get_media(
     return Response(content=media.data, media_type=media.content_type, headers=headers)
 
 
-@router.get("/storage/{object_key:path}")
-def get_storage_object(
-    *,
-    object_key: str,
-    current_user_id: int = Depends(deps.get_current_user_id),
-):
-    decoded_key = unquote(object_key)
-    if settings.SUPABASE_STORAGE_PUBLIC:
-        return RedirectResponse(storage.build_public_url(decoded_key))
-    signed_url = storage.create_signed_url(decoded_key)
-    return RedirectResponse(signed_url)
-
-
 @router.get("/storage/signed/{object_key:path}")
 def get_storage_signed_url(
     *,
@@ -63,6 +50,19 @@ def get_storage_signed_url(
         "signed_url": signed_url,
         "expires_in": settings.SUPABASE_SIGNED_URL_EXPIRE_SECONDS,
     }
+
+
+@router.get("/storage/{object_key:path}")
+def get_storage_object(
+    *,
+    object_key: str,
+    current_user_id: int = Depends(deps.get_current_user_id),
+):
+    decoded_key = unquote(object_key)
+    if settings.SUPABASE_STORAGE_PUBLIC:
+        return RedirectResponse(storage.build_public_url(decoded_key))
+    signed_url = storage.create_signed_url(decoded_key)
+    return RedirectResponse(signed_url)
 
 
 @router.get("/debug/storage")
