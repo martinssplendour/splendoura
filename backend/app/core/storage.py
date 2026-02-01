@@ -43,6 +43,10 @@ def create_signed_url(object_key: str, *, expires_in: int | None = None) -> str:
         raise RuntimeError("Supabase sign failed: missing signed URL")
     if signed_path.startswith("http://") or signed_path.startswith("https://"):
         return signed_path
+    if signed_path.startswith("/object/"):
+        signed_path = f"/storage/v1{signed_path}"
+    elif signed_path.startswith("/storage/") and not signed_path.startswith("/storage/v1/"):
+        signed_path = f"/storage/v1{signed_path[len('/storage'):]}"
     return f"{base_url}{signed_path}"
 
 
