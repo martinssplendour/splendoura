@@ -144,7 +144,9 @@ export default function ChatPage() {
   useEffect(() => {
     const cached = readThreadCache();
     if (cached && cached.length > 0) {
-      setThreads(cached);
+      const sorted = sortThreads(cached);
+      setThreads(sorted);
+      writeThreadCache(sorted);
       hasCachedThreadsRef.current = true;
     }
   }, []);
