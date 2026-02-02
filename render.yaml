@@ -42,3 +42,19 @@ services:
         value: "nudenet"
       - key: NUDITY_MIN_CONFIDENCE
         value: "0.35"
+      - key: FRONTEND_BASE_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_USE_TLS
+        sync: false
+      - key: SMTP_USE_SSL
+        sync: false
+      - key: SMTP_FROM
+        sync: false

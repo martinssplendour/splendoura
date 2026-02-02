@@ -37,6 +37,15 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str | None = None
     RESET_TOKEN_DEBUG: bool = False
 
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_USE_TLS: bool = True
+    SMTP_USE_SSL: bool = False
+    SMTP_FROM: str = "support@splendoure.com"
+
     model_config = SettingsConfigDict(
         case_sensitive=True,
         env_file=os.getenv("ENV_FILE", ".env"),

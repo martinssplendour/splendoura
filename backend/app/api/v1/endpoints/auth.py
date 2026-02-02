@@ -3,14 +3,15 @@ from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from secrets import token_urlsafe
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from urllib.parse import quote
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 
 from app import crud, schemas, models
 from app.api import deps
-from app.core import security
+from app.core import security, email as email_utils
 from app.core.config import settings
 
 router = APIRouter()
@@ -67,9 +68,10 @@ def login_access_token(
 @router.post("/forgot-password", dependencies=[Depends(deps.rate_limit)])
 def forgot_password(
     payload: schemas.PasswordResetRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(deps.get_db),
 ) -> Any:
-    """Generate a password reset token (email delivery to be integrated)."""
+    """Generate a password reset token and send a reset email."""
     user = crud.user.get_by_email(db, email=payload.email)
     reset_token = None
 
@@ -81,6 +83,14 @@ def forgot_password(
         )
         db.add(user)
         db.commit()
+
+        reset_link = (
+            f"{settings.FRONTEND_BASE_URL.rstrip('/')}/auth/reset?token="
+            f"{quote(reset_token)}"
+        )
+        background_tasks.add_task(
+            email_utils.send_password_reset_email, user.email, reset_link
+        )
 
     response: dict[str, Any] = {
         "detail": "If an account exists, a reset link has been sent."
