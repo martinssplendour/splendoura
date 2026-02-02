@@ -401,7 +401,7 @@ export default function ChatDMPage() {
               {headerTitle.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="flex-1 -translate-y-[45%]">
+          <div className="flex-1 -translate-y-[55%]">
             <p className="text-base font-semibold text-slate-900">{headerTitle}</p>
             <p className="text-xs text-slate-500">
               {group ? `${group.approved_members ?? 0} members` : "Loading chat details..."}
