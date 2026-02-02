@@ -424,7 +424,10 @@ export default function ChatDMPage() {
         className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain"
         ref={scrollRef}
       >
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-5 py-4">
+        <div
+          className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-5 pt-3 pb-24"
+          style={{ paddingBottom: "calc(96px + env(safe-area-inset-bottom))" }}
+        >
           {messages.length === 0 && !isLoading ? (
             <div className="text-center text-xs text-slate-400">
               No messages yet. Start the conversation.
@@ -536,8 +539,11 @@ export default function ChatDMPage() {
         ) : null}
       </div>
 
-      <footer className="shrink-0 border-t border-slate-200 bg-white shadow-[0_-12px_30px_rgba(15,23,42,0.08)]">
-        <div className="mx-auto flex w-full max-w-3xl items-end gap-3 px-5 py-4 -translate-y-full bg-white">
+      <footer
+        className="shrink-0 border-t border-slate-200 bg-white shadow-[0_-12px_30px_rgba(15,23,42,0.08)]"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="mx-auto flex w-full max-w-3xl items-end gap-3 px-5 py-4 bg-white">
           <label
             className={`flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 ${
               isSending ? "text-slate-300" : "text-slate-500 hover:text-slate-700"
