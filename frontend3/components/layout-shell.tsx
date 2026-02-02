@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 export default function LayoutShell({ children }: { children: ReactNode }) {
@@ -9,6 +9,7 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   const isLanding = pathname === "/";
   const isChat = pathname?.startsWith("/chat");
   const isDiscoverIndex = pathname === "/groups";
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -21,15 +22,36 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const updateMatch = () => setIsMobile(mediaQuery.matches);
+    updateMatch();
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", updateMatch);
+    } else {
+      // @ts-expect-error - legacy Safari
+      mediaQuery.addListener(updateMatch);
+    }
+    return () => {
+      if (mediaQuery.addEventListener) {
+        mediaQuery.removeEventListener("change", updateMatch);
+      } else {
+        // @ts-expect-error - legacy Safari
+        mediaQuery.removeListener(updateMatch);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof document === "undefined") return;
-    const shouldLock = isChat || isDiscoverIndex;
+    const shouldLock = (isChat || isDiscoverIndex) && isMobile;
     document.body.classList.toggle("no-scroll", shouldLock);
     document.documentElement.classList.toggle("no-scroll", shouldLock);
     return () => {
       document.body.classList.remove("no-scroll");
       document.documentElement.classList.remove("no-scroll");
     };
-  }, [isChat, isDiscoverIndex]);
+  }, [isChat, isDiscoverIndex, isMobile]);
 
   return (
     <main
