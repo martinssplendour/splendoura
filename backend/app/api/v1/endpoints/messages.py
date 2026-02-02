@@ -120,6 +120,8 @@ def list_messages(
     db: Session = Depends(deps.get_db),
     id: int,
     since: datetime | None = None,
+    before: datetime | None = None,
+    limit: int | None = None,
     current_user: models.User = Depends(deps.get_current_user),
 ):
     require_group_member(db, group_id=id, user_id=current_user.id)
@@ -129,7 +131,26 @@ def list_messages(
     )
     if since:
         query = query.filter(models.GroupMessage.created_at > since)
-    messages = query.order_by(models.GroupMessage.created_at.asc()).all()
+    if before:
+        query = query.filter(models.GroupMessage.created_at < before)
+
+    messages: list[models.GroupMessage]
+    if limit and limit > 0:
+        if since:
+            messages = (
+                query.order_by(models.GroupMessage.created_at.asc())
+                .limit(limit)
+                .all()
+            )
+        else:
+            messages = (
+                query.order_by(models.GroupMessage.created_at.desc())
+                .limit(limit)
+                .all()
+            )
+            messages.reverse()
+    else:
+        messages = query.order_by(models.GroupMessage.created_at.asc()).all()
     if not messages:
         return messages
     message_ids = [message.id for message in messages]

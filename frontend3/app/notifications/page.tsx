@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -41,11 +41,39 @@ type SystemNotice = {
   ctaHref?: string;
 };
 
+const REQUESTS_CACHE_PREFIX = "notificationRequestsCache:v1:";
+
+function readRequestsCache(userId: number) {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(`${REQUESTS_CACHE_PREFIX}${userId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { savedAt: number; requests: RequestItem[] };
+    if (!parsed?.requests || !Array.isArray(parsed.requests)) return null;
+    return parsed.requests;
+  } catch {
+    return null;
+  }
+}
+
+function writeRequestsCache(userId: number, requests: RequestItem[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      `${REQUESTS_CACHE_PREFIX}${userId}`,
+      JSON.stringify({ savedAt: Date.now(), requests })
+    );
+  } catch {
+    // ignore cache write errors
+  }
+}
+
 export default function NotificationsPage() {
   const { accessToken, user } = useAuth();
   const [requests, setRequests] = useState<RequestItem[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const hasCachedRequestsRef = useRef(false);
 
   const systemNotices = useMemo<SystemNotice[]>(() => {
     if (!user) return [];
@@ -88,9 +116,21 @@ export default function NotificationsPage() {
   }, [user]);
 
   useEffect(() => {
+    if (!user?.id) return;
+    const cached = readRequestsCache(user.id);
+    if (cached && cached.length >= 0) {
+      setRequests(cached);
+      setLoadingRequests(false);
+      hasCachedRequestsRef.current = true;
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
     async function loadRequests() {
       setRequestError(null);
-      setLoadingRequests(true);
+      if (!hasCachedRequestsRef.current) {
+        setLoadingRequests(true);
+      }
       try {
         if (!accessToken || !user?.id) {
           setLoadingRequests(false);
@@ -154,6 +194,7 @@ export default function NotificationsPage() {
         }
 
         setRequests(nextRequests);
+        writeRequestsCache(user.id, nextRequests);
         setLoadingRequests(false);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unable to load join requests.";

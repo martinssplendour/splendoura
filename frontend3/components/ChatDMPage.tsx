@@ -86,7 +86,6 @@ export default function ChatDMPage() {
   const pendingPrependRef = useRef<{ prevScrollTop: number; prevScrollHeight: number } | null>(null);
   const hasInitialScrollRef = useRef(false);
   const allMessagesRef = useRef<GroupMessage[]>([]);
-  const visibleStartIndexRef = useRef(0);
   const pendingReadIdsRef = useRef<Set<number>>(new Set());
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -142,7 +141,9 @@ export default function ChatDMPage() {
     setIsLoading(true);
     setStatus(null);
     try {
-      const res = await apiFetch(`/groups/${groupId}/messages`, { token: accessToken });
+      const res = await apiFetch(`/groups/${groupId}/messages?limit=${PAGE_SIZE}`, {
+        token: accessToken,
+      });
       if (!res.ok) {
         setStatus("Unable to load messages for this chat.");
         setIsLoading(false);
@@ -151,10 +152,8 @@ export default function ChatDMPage() {
       const data: GroupMessage[] = await res.json();
       writeMessageCache(groupId, data);
       allMessagesRef.current = data;
-      const startIndex = Math.max(data.length - PAGE_SIZE, 0);
-      visibleStartIndexRef.current = startIndex;
-      setMessages(data.slice(startIndex));
-      setHasMore(startIndex > 0);
+      setMessages(data);
+      setHasMore(data.length === PAGE_SIZE);
       setShowNewPill(false);
       setNewMessageCount(0);
 
@@ -177,7 +176,7 @@ export default function ChatDMPage() {
   }, [accessToken, groupId, user?.id]);
 
   const loadOlderMessages = useCallback(() => {
-    if (isFetchingOlder || !hasMore) return;
+    if (!accessToken || !groupId || isFetchingOlder || !hasMore) return;
     const container = scrollRef.current;
     if (!container) return;
     setIsFetchingOlder(true);
@@ -186,13 +185,36 @@ export default function ChatDMPage() {
       prevScrollHeight: container.scrollHeight,
     };
 
-    // TODO: Replace with a paginated backend endpoint for older messages.
-    const nextStart = Math.max(visibleStartIndexRef.current - PAGE_SIZE, 0);
-    visibleStartIndexRef.current = nextStart;
-    setMessages(allMessagesRef.current.slice(nextStart));
-    setHasMore(nextStart > 0);
-    requestAnimationFrame(() => setIsFetchingOlder(false));
-  }, [hasMore, isFetchingOlder]);
+    const oldest = allMessagesRef.current[0];
+    const before = oldest?.created_at;
+    const beforeParam = before ? `&before=${encodeURIComponent(before)}` : "";
+
+    void (async () => {
+      try {
+        const res = await apiFetch(
+          `/groups/${groupId}/messages?limit=${PAGE_SIZE}${beforeParam}`,
+          { token: accessToken }
+        );
+        if (!res.ok) {
+          setHasMore(false);
+          return;
+        }
+        const older: GroupMessage[] = await res.json();
+        if (older.length === 0) {
+          setHasMore(false);
+          return;
+        }
+        allMessagesRef.current = [...older, ...allMessagesRef.current];
+        setMessages((prev) => [...older, ...prev]);
+        setHasMore(older.length === PAGE_SIZE);
+        writeMessageCache(groupId, allMessagesRef.current);
+      } catch {
+        setHasMore(false);
+      } finally {
+        requestAnimationFrame(() => setIsFetchingOlder(false));
+      }
+    })();
+  }, [accessToken, groupId, hasMore, isFetchingOlder]);
 
   const ingestMessage = useCallback(
     (incoming: GroupMessage, options?: { forceScroll?: boolean }) => {
@@ -272,7 +294,6 @@ export default function ChatDMPage() {
     setShowNewPill(false);
     setNewMessageCount(0);
     allMessagesRef.current = [];
-    visibleStartIndexRef.current = 0;
     pendingReadIdsRef.current.clear();
     hasInitialScrollRef.current = false;
   }, [groupId]);
@@ -282,10 +303,8 @@ export default function ChatDMPage() {
     const cached = readMessageCache(groupId);
     if (!cached || cached.length === 0) return;
     allMessagesRef.current = cached;
-    const startIndex = Math.max(cached.length - PAGE_SIZE, 0);
-    visibleStartIndexRef.current = startIndex;
-    setMessages(cached.slice(startIndex));
-    setHasMore(startIndex > 0);
+    setMessages(cached);
+    setHasMore(cached.length >= PAGE_SIZE);
     setShowNewPill(false);
     setNewMessageCount(0);
     setIsLoading(false);
