@@ -391,7 +391,7 @@ export default function ChatDMPage() {
       }}
     >
       <header className="shrink-0 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-2">
+        <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 pt-0 pb-2">
           {group?.cover_image_url ? (
             <SignedImage
               src={group.cover_image_url}
@@ -539,11 +539,8 @@ export default function ChatDMPage() {
         ) : null}
       </div>
 
-      <footer
-        className="shrink-0 border-t border-slate-200 bg-white shadow-[0_-12px_30px_rgba(15,23,42,0.08)]"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <div className="mx-auto flex w-full max-w-3xl items-end gap-3 px-5 py-4 bg-white">
+      <footer className="shrink-0 border-t border-slate-200 bg-white shadow-[0_-12px_30px_rgba(15,23,42,0.08)]">
+        <div className="mx-auto flex w-full max-w-3xl items-end gap-3 bg-white px-5 pt-3 pb-0">
           <label
             className={`flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 ${
               isSending ? "text-slate-300" : "text-slate-500 hover:text-slate-700"
