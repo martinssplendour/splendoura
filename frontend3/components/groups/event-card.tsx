@@ -66,7 +66,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
         style={style}
         onClick={onClick}
       >
-        <div className="relative h-[360px] w-full sm:h-[480px]">
+        <div className="relative h-[var(--ui-event-image-height)] w-full">
           {activeImage ? (
             <SignedImage
               src={activeImage}
@@ -93,7 +93,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
             <Link
               href={`/users/${group.creator_id}`}
               onClick={(event) => event.stopPropagation()}
-              className="absolute right-4 top-6 z-10 h-[80px] w-[80px] overflow-hidden rounded-full border-2 border-white/80 bg-slate-900/40 shadow-md"
+              className="absolute right-4 top-6 z-10 h-[var(--ui-avatar-size)] w-[var(--ui-avatar-size)] overflow-hidden rounded-full border-2 border-white/80 bg-slate-900/40 shadow-md"
               aria-label="View creator profile"
             >
               {creatorAvatarUrl ? (

@@ -1124,12 +1124,12 @@ export default function GroupDetailPage() {
                       src={media.url}
                       alt="Group media"
                       onClick={() => setPreviewMediaUrl(media.url)}
-                      className="h-[140px] w-full cursor-zoom-in rounded-2xl object-cover bg-slate-200"
+                      className="h-[clamp(110px,22vw,140px)] w-full cursor-zoom-in rounded-2xl object-cover bg-slate-200"
                     />
                   ) : (
                     <SignedVideo
                       controls
-                      className="h-[140px] w-full rounded-2xl object-cover bg-slate-200"
+                      className="h-[clamp(110px,22vw,140px)] w-full rounded-2xl object-cover bg-slate-200"
                       src={media.url}
                     />
                   )}

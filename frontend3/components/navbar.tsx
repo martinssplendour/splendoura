@@ -117,7 +117,7 @@ export default function Navbar() {
 
       {user ? (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white md:hidden">
-          <div className="flex h-[72px] items-center justify-around px-3">
+          <div className="flex h-[var(--ui-bottom-nav-height)] items-center justify-around px-3">
             <Link
               href="/groups"
               className={`rounded-full px-3 py-2 text-xs font-semibold ${

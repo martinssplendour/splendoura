@@ -297,7 +297,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
                 opacity: 0.5,
               }}
             >
-              <div className="h-[520px] w-full rounded-[32px] bg-slate-200" />
+              <div className="h-[var(--ui-profile-card-height)] w-full rounded-[var(--ui-radius-lg)] bg-slate-200" />
             </div>
           ))}
         </div>
@@ -319,7 +319,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
             router.push(`/users/${current.user.id}`);
           }}
         >
-          <div className="relative h-[520px] w-full overflow-hidden rounded-[32px] bg-slate-900">
+          <div className="relative h-[var(--ui-profile-card-height)] w-full overflow-hidden rounded-[var(--ui-radius-lg)] bg-slate-900">
             {activeImage ? (
               <SignedImage
                 src={activeImage}
