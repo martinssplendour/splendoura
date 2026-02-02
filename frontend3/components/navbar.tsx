@@ -26,9 +26,9 @@ export default function Navbar() {
 
   return (
     <nav className="bg-slate-50">
-      <div className="container mx-auto flex items-start justify-between gap-2.5 px-4 py-4">
+      <div className="container mx-auto flex items-start justify-between gap-2 px-4 py-2">
         {!isChatDetail ? (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             <Link
               href="/"
               className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 shadow-[0_2px_6px_rgba(99,102,241,0.15)]"
@@ -45,7 +45,7 @@ export default function Navbar() {
               </span>
             </Link>
             {pathname?.startsWith("/groups") ? (
-              <p className="text-[11px] font-semibold text-slate-600/70">
+              <p className="text-[10px] font-semibold text-slate-600/70">
                 Discover plans and swipe to join
               </p>
             ) : null}
@@ -55,9 +55,9 @@ export default function Navbar() {
         )}
 
         {/* Right Side Actions */}
-        <div className="mt-0.5 flex items-start gap-3">
+        <div className="mt-0 flex items-start gap-3">
           {isGroups ? (
-            <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-col items-end gap-1.5">
               <div className="flex items-center gap-2">
                 <Link
                   href="/groups?filters=open"
