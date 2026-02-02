@@ -310,17 +310,47 @@ export default function ChatDMPage() {
   }, [loadMessages]);
 
   useLayoutEffect(() => {
+    let frameId: number | null = null;
     const updateInsets = () => {
-      const nav = document.querySelector("nav");
-      const top = nav ? Math.round(nav.getBoundingClientRect().height) : 0;
-      const bottomNav = nav?.querySelector(".fixed.bottom-0") as HTMLElement | null;
-      const bottom = bottomNav ? Math.round(bottomNav.getBoundingClientRect().height) : 0;
-      setLayoutInsets({ top, bottom });
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+      frameId = window.requestAnimationFrame(() => {
+        const nav = document.querySelector("nav");
+        const top = nav ? Math.round(nav.getBoundingClientRect().height) : 0;
+        const bottomNav = nav?.querySelector(".fixed.bottom-0") as HTMLElement | null;
+        const bottom = bottomNav ? Math.round(bottomNav.getBoundingClientRect().height) : 0;
+        setLayoutInsets({ top, bottom });
+      });
     };
+
     updateInsets();
     window.addEventListener("resize", updateInsets);
-    return () => window.removeEventListener("resize", updateInsets);
-  }, []);
+
+    const nav = document.querySelector("nav");
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && nav) {
+      resizeObserver = new ResizeObserver(updateInsets);
+      resizeObserver.observe(nav);
+      const bottomNav = nav.querySelector(".fixed.bottom-0") as HTMLElement | null;
+      if (bottomNav) {
+        resizeObserver.observe(bottomNav);
+      }
+    }
+
+    let mutationObserver: MutationObserver | null = null;
+    if (typeof MutationObserver !== "undefined" && nav) {
+      mutationObserver = new MutationObserver(updateInsets);
+      mutationObserver.observe(nav, { childList: true, subtree: true, attributes: true });
+    }
+
+    return () => {
+      window.removeEventListener("resize", updateInsets);
+      if (resizeObserver) resizeObserver.disconnect();
+      if (mutationObserver) mutationObserver.disconnect();
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [user?.id]);
 
   useLayoutEffect(() => {
     const pending = pendingPrependRef.current;
