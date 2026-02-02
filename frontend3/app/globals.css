@@ -50,6 +50,7 @@
 
 /* Light Mode Variables */
 :root {
+  --app-height: 100vh;
   /* Glass Effect - Light */
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.3);

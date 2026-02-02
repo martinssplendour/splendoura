@@ -11,6 +11,16 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   const isDiscoverIndex = pathname === "/groups";
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const setAppHeight = () => {
+      document.documentElement.style.setProperty("--app-height", `${window.innerHeight}px`);
+    };
+    setAppHeight();
+    window.addEventListener("resize", setAppHeight);
+    return () => window.removeEventListener("resize", setAppHeight);
+  }, []);
+
+  useEffect(() => {
     if (typeof document === "undefined") return;
     const shouldLock = isChat || isDiscoverIndex;
     document.body.classList.toggle("no-scroll", shouldLock);

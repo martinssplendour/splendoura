@@ -384,8 +384,10 @@ export default function ChatDMPage() {
     <div
       className="flex min-h-0 flex-col bg-slate-50"
       style={{
-        height: `calc(100vh - ${layoutInsets.top}px)`,
-        paddingBottom: layoutInsets.bottom ? `${layoutInsets.bottom}px` : undefined,
+        height: `calc(var(--app-height, 100vh) - ${layoutInsets.top}px)`,
+        paddingBottom: layoutInsets.bottom
+          ? `calc(${layoutInsets.bottom}px + env(safe-area-inset-bottom))`
+          : undefined,
       }}
     >
       <header className="shrink-0 border-b border-slate-200 bg-white">
