@@ -6,6 +6,7 @@ import { apiFetch, API_HOST } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { SignedImage } from "@/components/signed-media";
+import { writeMessageCache } from "@/lib/chat-cache";
 
 type ThreadType = "group" | "dm";
 
@@ -52,7 +53,7 @@ interface Thread {
 
 const MAX_BADGE_COUNT = 99;
 const THREAD_CACHE_KEY = "chatThreadsCache:v1";
-const THREAD_CACHE_TTL_MS = 2 * 60 * 1000;
+const THREAD_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const HYDRATE_CONCURRENCY = 4;
 const MAX_THREAD_HYDRATE = 20;
 
@@ -202,6 +203,7 @@ export default function ChatPage() {
           } catch {
             messages = [];
           }
+          writeMessageCache(current.id, messages);
 
           const lastMessage = messages.length ? messages[messages.length - 1] : null;
           const unreadIds = messages

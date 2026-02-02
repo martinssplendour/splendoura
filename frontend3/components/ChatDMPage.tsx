@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { apiFetch, API_HOST } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SignedAudio, SignedImage, SignedLink, SignedVideo } from "@/components/signed-media";
+import { readMessageCache, writeMessageCache } from "@/lib/chat-cache";
 
 type Group = {
   id: number;
@@ -148,6 +149,7 @@ export default function ChatDMPage() {
         return;
       }
       const data: GroupMessage[] = await res.json();
+      writeMessageCache(groupId, data);
       allMessagesRef.current = data;
       const startIndex = Math.max(data.length - PAGE_SIZE, 0);
       visibleStartIndexRef.current = startIndex;
@@ -198,6 +200,9 @@ export default function ChatDMPage() {
       if (!alreadyExists) {
         allMessagesRef.current = [...allMessagesRef.current, incoming];
       }
+      if (groupId) {
+        writeMessageCache(groupId, allMessagesRef.current);
+      }
 
       setMessages((prev) => {
         if (prev.some((message) => message.id === incoming.id)) return prev;
@@ -220,7 +225,7 @@ export default function ChatDMPage() {
         setNewMessageCount((count) => count + 1);
       }
     },
-    [isNearBottom, markMessagesRead, scrollToBottom, user?.id]
+    [groupId, isNearBottom, markMessagesRead, scrollToBottom, user?.id]
   );
 
   const handleSend = useCallback(async () => {
@@ -271,6 +276,30 @@ export default function ChatDMPage() {
     pendingReadIdsRef.current.clear();
     hasInitialScrollRef.current = false;
   }, [groupId]);
+
+  useEffect(() => {
+    if (!groupId) return;
+    const cached = readMessageCache(groupId);
+    if (!cached || cached.length === 0) return;
+    allMessagesRef.current = cached;
+    const startIndex = Math.max(cached.length - PAGE_SIZE, 0);
+    visibleStartIndexRef.current = startIndex;
+    setMessages(cached.slice(startIndex));
+    setHasMore(startIndex > 0);
+    setShowNewPill(false);
+    setNewMessageCount(0);
+    setIsLoading(false);
+    if (user?.id) {
+      const unreadIds = cached
+        .filter(
+          (message) =>
+            message.sender_id !== user.id &&
+            !(message.read_by || []).includes(user.id)
+        )
+        .map((message) => message.id);
+      pendingReadIdsRef.current = new Set(unreadIds);
+    }
+  }, [groupId, user?.id]);
 
   useEffect(() => {
     loadGroup();
