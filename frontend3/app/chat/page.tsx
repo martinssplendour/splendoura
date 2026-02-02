@@ -54,8 +54,7 @@ interface Thread {
 const MAX_BADGE_COUNT = 99;
 const THREAD_CACHE_KEY = "chatThreadsCache:v1";
 const THREAD_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const HYDRATE_CONCURRENCY = 4;
-const MAX_THREAD_HYDRATE = 20;
+const HYDRATE_CONCURRENCY = 6;
 
 function formatInboxTime(value?: string | null) {
   if (!value) return "";
@@ -115,7 +114,6 @@ function readThreadCache() {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { savedAt: number; threads: Thread[] };
     if (!parsed?.savedAt || !Array.isArray(parsed.threads)) return null;
-    if (Date.now() - parsed.savedAt > THREAD_CACHE_TTL_MS) return null;
     return parsed.threads;
   } catch {
     return null;
@@ -139,6 +137,7 @@ export default function ChatPage() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const hasCachedThreadsRef = useRef(false);
   const socketsRef = useRef<Record<number, WebSocket>>({});
   const loadIdRef = useRef(0);
 
@@ -146,13 +145,16 @@ export default function ChatPage() {
     const cached = readThreadCache();
     if (cached && cached.length > 0) {
       setThreads(cached);
+      hasCachedThreadsRef.current = true;
     }
   }, []);
 
   const loadThreads = useCallback(async () => {
     if (!accessToken || !user?.id) return;
     const loadId = ++loadIdRef.current;
-    setIsLoading(true);
+    if (!hasCachedThreadsRef.current) {
+      setIsLoading(true);
+    }
     setStatus(null);
     try {
       const res = await apiFetch("/users/me/groups", { token: accessToken });
@@ -185,7 +187,7 @@ export default function ChatPage() {
         const bTime = new Date(b.updated_at || b.created_at || 0).getTime();
         return bTime - aTime;
       });
-      const hydrateTargets = sortedGroups.slice(0, MAX_THREAD_HYDRATE);
+      const hydrateTargets = sortedGroups;
       const updates: Record<number, Thread> = {};
       let idx = 0;
 
