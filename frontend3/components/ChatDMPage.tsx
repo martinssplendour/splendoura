@@ -389,7 +389,7 @@ export default function ChatDMPage() {
       }}
     >
       <header className="shrink-0 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-5 py-4">
+        <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-5 py-2.5">
           {group?.cover_image_url ? (
             <SignedImage
               src={group.cover_image_url}
@@ -401,7 +401,7 @@ export default function ChatDMPage() {
               {headerTitle.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="flex-1 -translate-y-[55%]">
+          <div className="flex-1">
             <p className="text-base font-semibold text-slate-900">{headerTitle}</p>
             <p className="text-xs text-slate-500">
               {group ? `${group.approved_members ?? 0} members` : "Loading chat details..."}
