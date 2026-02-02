@@ -26,8 +26,8 @@ export default function Navbar() {
 
   return (
     <nav className="bg-slate-50">
-      <div className="container mx-auto flex items-start justify-between gap-2 px-4 py-2">
-        {!isChatDetail ? (
+      {!isChatDetail ? (
+        <div className="container mx-auto flex items-start justify-between gap-2 px-4 py-2">
           <div className="flex flex-col gap-0.5">
             <Link
               href="/"
@@ -50,73 +50,70 @@ export default function Navbar() {
               </p>
             ) : null}
           </div>
-        ) : (
-          <div />
-        )}
-
-        {/* Right Side Actions */}
-        <div className="mt-0 flex items-start gap-3">
-          {isGroups ? (
-            <div className="flex flex-col items-end gap-1.5">
-              <div className="flex items-center gap-2">
+          {/* Right Side Actions */}
+          <div className="mt-0 flex items-start gap-3">
+            {isGroups ? (
+              <div className="flex flex-col items-end gap-1.5">
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/groups?filters=open"
+                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    Filters
+                  </Link>
+                  <Link
+                    href="/groups/create"
+                    className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    Create group
+                  </Link>
+                </div>
                 <Link
-                  href="/groups?filters=open"
-                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm sm:px-4 sm:py-2 sm:text-sm"
+                  href="/groups?findType=open"
+                  className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 sm:px-4 sm:py-2 sm:text-sm"
                 >
-                  Filters
-                </Link>
-                <Link
-                  href="/groups/create"
-                  className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:px-4 sm:py-2 sm:text-sm"
-                >
-                  Create group
+                  Find my type
                 </Link>
               </div>
-              <Link
-                href="/groups?findType=open"
-                className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 sm:px-4 sm:py-2 sm:text-sm"
-              >
-                Find my type
-              </Link>
-            </div>
-          ) : null}
-          <div className={`items-center gap-3 ${user ? "hidden md:flex" : "flex"}`}>
-            {user ? (
-              <>
-                <span className="text-sm text-slate-600">
-                  Hello, {user.full_name || user.name || "User"}
-                </span>
-                <Link href="/profile">
-                  <Button variant="ghost">Profile</Button>
-                </Link>
-                <Link href="/chat">
-                  <Button variant="ghost">Chat</Button>
-                </Link>
-                <Link href="/notifications">
-                  <Button variant="ghost">Notifications</Button>
-                </Link>
-                {user.role === "admin" ? (
-                  <Link href="/admin/verification">
-                    <Button variant="ghost">Admin</Button>
+            ) : null}
+            <div className={`items-center gap-3 ${user ? "hidden md:flex" : "flex"}`}>
+              {user ? (
+                <>
+                  <span className="text-sm text-slate-600">
+                    Hello, {user.full_name || user.name || "User"}
+                  </span>
+                  <Link href="/profile">
+                    <Button variant="ghost">Profile</Button>
                   </Link>
-                ) : null}
-                <Button variant="ghost" onClick={() => logout && logout()}>
-                  Sign Out
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/login">
-                  <Button variant="ghost">Sign In</Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button>Get Started</Button>
-                </Link>
-              </>
-            )}
+                  <Link href="/chat">
+                    <Button variant="ghost">Chat</Button>
+                  </Link>
+                  <Link href="/notifications">
+                    <Button variant="ghost">Notifications</Button>
+                  </Link>
+                  {user.role === "admin" ? (
+                    <Link href="/admin/verification">
+                      <Button variant="ghost">Admin</Button>
+                    </Link>
+                  ) : null}
+                  <Button variant="ghost" onClick={() => logout && logout()}>
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/login">
+                    <Button variant="ghost">Sign In</Button>
+                  </Link>
+                  <Link href="/auth/register">
+                    <Button>Get Started</Button>
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       {user ? (
         <div className="fixed bottom-0 left-0 right-0 z-50 translate-y-[20%] border-t border-slate-200 bg-white md:hidden">
