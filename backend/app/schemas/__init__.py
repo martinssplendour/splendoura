@@ -35,3 +35,4 @@ from .match_request import (
     MatchCandidate,
     MatchInvite,
 )
+from .inbox import InboxMessage, InboxThread

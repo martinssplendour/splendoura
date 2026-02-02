@@ -4,6 +4,7 @@ from uuid import uuid4
 from typing import Any, List
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 
 from app import crud, models, schemas
@@ -13,6 +14,7 @@ from app.models.group_extras import GroupMedia
 from app.models.media import MediaBlob
 from app.models.membership import JoinStatus
 from app.models.user import VerificationStatus
+from app.models.message import GroupMessageRead
 from app.core.storage import supabase_storage_enabled, upload_bytes_to_supabase
 
 router = APIRouter()
@@ -135,6 +137,110 @@ def list_my_groups(
             ).first()
         group.cover_image_url = cover.url if cover else None
     return groups
+
+
+@router.get("/me/inbox", response_model=List[schemas.InboxThread])
+def list_my_inbox(
+    *,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    groups = (
+        db.query(models.Group)
+        .join(models.Membership, models.Membership.group_id == models.Group.id)
+        .filter(
+            models.Membership.user_id == current_user.id,
+            models.Membership.join_status == JoinStatus.APPROVED,
+            models.Membership.deleted_at.is_(None),
+            models.Group.deleted_at.is_(None),
+        )
+        .all()
+    )
+    if not groups:
+        return []
+
+    group_ids = [group.id for group in groups]
+
+    covers = (
+        db.query(GroupMedia)
+        .filter(
+            GroupMedia.group_id.in_(group_ids),
+            GroupMedia.deleted_at.is_(None),
+        )
+        .order_by(
+            GroupMedia.group_id.asc(),
+            GroupMedia.is_cover.desc(),
+            GroupMedia.created_at.desc(),
+        )
+        .all()
+    )
+    cover_map: dict[int, str] = {}
+    for cover in covers:
+        if cover.group_id not in cover_map:
+            cover_map[cover.group_id] = cover.url
+
+    messages = (
+        db.query(models.GroupMessage)
+        .filter(
+            models.GroupMessage.group_id.in_(group_ids),
+            models.GroupMessage.deleted_at.is_(None),
+        )
+        .order_by(
+            models.GroupMessage.group_id.asc(),
+            models.GroupMessage.created_at.desc(),
+            models.GroupMessage.id.desc(),
+        )
+        .all()
+    )
+    last_message_map: dict[int, models.GroupMessage] = {}
+    for message in messages:
+        if message.group_id not in last_message_map:
+            last_message_map[message.group_id] = message
+
+    unread_rows = (
+        db.query(models.GroupMessage.group_id, func.count(models.GroupMessage.id))
+        .outerjoin(
+            GroupMessageRead,
+            (GroupMessageRead.message_id == models.GroupMessage.id)
+            & (GroupMessageRead.user_id == current_user.id),
+        )
+        .filter(
+            models.GroupMessage.group_id.in_(group_ids),
+            models.GroupMessage.deleted_at.is_(None),
+            models.GroupMessage.sender_id != current_user.id,
+            GroupMessageRead.id.is_(None),
+        )
+        .group_by(models.GroupMessage.group_id)
+        .all()
+    )
+    unread_map = {group_id: count for group_id, count in unread_rows}
+
+    items: list[schemas.InboxThread] = []
+    for group in groups:
+        last_message = last_message_map.get(group.id)
+        last_message_at = (
+            last_message.created_at
+            if last_message
+            else group.updated_at or group.created_at
+        )
+        items.append(
+            schemas.InboxThread(
+                group_id=group.id,
+                title=group.title,
+                cover_image_url=cover_map.get(group.id),
+                last_message=last_message,
+                last_message_at=last_message_at,
+                unread_count=unread_map.get(group.id, 0),
+                updated_at=group.updated_at,
+                created_at=group.created_at,
+            )
+        )
+
+    items.sort(
+        key=lambda item: item.last_message_at or item.updated_at or item.created_at or _utcnow(),
+        reverse=True,
+    )
+    return items
 
 @router.post("/me/photo", response_model=schemas.User, dependencies=[Depends(deps.rate_limit)])
 def upload_profile_photo(

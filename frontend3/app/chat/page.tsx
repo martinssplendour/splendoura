@@ -10,18 +10,6 @@ import { writeMessageCache } from "@/lib/chat-cache";
 
 type ThreadType = "group" | "dm";
 
-interface ChatGroup {
-  id: number;
-  title: string;
-  activity_type: string;
-  location?: string | null;
-  approved_members?: number | null;
-  max_participants?: number | null;
-  cover_image_url?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
-
 interface GroupMessage {
   id: number;
   sender_id: number;
@@ -32,6 +20,17 @@ interface GroupMessage {
   meta?: Record<string, unknown> | null;
   created_at: string;
   read_by?: number[];
+}
+
+interface InboxThreadSummary {
+  group_id: number;
+  title: string;
+  cover_image_url?: string | null;
+  last_message?: GroupMessage | null;
+  last_message_at?: string | null;
+  unread_count?: number;
+  updated_at?: string | null;
+  created_at?: string | null;
 }
 
 interface Thread {
@@ -159,38 +158,41 @@ export default function ChatPage() {
     }
     setStatus(null);
     try {
-      const res = await apiFetch("/users/me/groups", { token: accessToken });
+      const res = await apiFetch("/users/me/inbox", { token: accessToken });
       if (!res.ok) {
         setStatus("Unable to load your conversations.");
         setIsLoading(false);
         return;
       }
-      const groups: ChatGroup[] = await res.json();
+      const inbox: InboxThreadSummary[] = await res.json();
 
-      const baseThreads: Thread[] = groups.map((group) => ({
-        id: `group-${group.id}`,
+      const baseThreads: Thread[] = inbox.map((item) => ({
+        id: `group-${item.group_id}`,
         type: "group",
-        title: group.title,
-        avatarUrl: group.cover_image_url,
-        lastMessageText: "Tap to open",
-        lastMessageAt: group.updated_at || group.created_at || undefined,
-        unreadCount: 0,
+        title: item.title,
+        avatarUrl: item.cover_image_url,
+        lastMessageId: item.last_message?.id,
+        lastMessageSenderId: item.last_message?.sender_id,
+        lastMessageText: buildPreview(item.last_message || null, "group", user.id),
+        lastMessageAt:
+          item.last_message_at || item.updated_at || item.created_at || undefined,
+        unreadCount: item.unread_count ?? 0,
         unreadIds: [],
-        createdAt: group.created_at,
-        groupId: group.id,
+        createdAt: item.created_at,
+        groupId: item.group_id,
       }));
 
-      setThreads(sortThreads(baseThreads));
+      const sortedThreads = sortThreads(baseThreads);
+      setThreads(sortedThreads);
       setIsLoading(false);
-      writeThreadCache(sortThreads(baseThreads));
+      writeThreadCache(sortedThreads);
 
-      const sortedGroups = [...groups].sort((a, b) => {
-        const aTime = new Date(a.updated_at || a.created_at || 0).getTime();
-        const bTime = new Date(b.updated_at || b.created_at || 0).getTime();
+      const sortedGroups = [...inbox].sort((a, b) => {
+        const aTime = new Date(a.last_message_at || a.updated_at || a.created_at || 0).getTime();
+        const bTime = new Date(b.last_message_at || b.updated_at || b.created_at || 0).getTime();
         return bTime - aTime;
       });
       const hydrateTargets = sortedGroups;
-      const updates: Record<number, Thread> = {};
       let idx = 0;
 
       const worker = async () => {
@@ -199,53 +201,18 @@ export default function ChatPage() {
           idx += 1;
           let messages: GroupMessage[] = [];
           try {
-            // TODO: Replace with a backend inbox summary endpoint.
-            const messageRes = await apiFetch(`/groups/${current.id}/messages`, { token: accessToken });
+            const messageRes = await apiFetch(`/groups/${current.group_id}/messages`, { token: accessToken });
             if (messageRes.ok) {
               messages = await messageRes.json();
             }
           } catch {
             messages = [];
           }
-          writeMessageCache(current.id, messages);
-
-          const lastMessage = messages.length ? messages[messages.length - 1] : null;
-          const unreadIds = messages
-            .filter(
-              (message) =>
-                message.sender_id !== user.id &&
-                !(message.read_by || []).includes(user.id)
-            )
-            .map((message) => message.id);
-
-          updates[current.id] = {
-            id: `group-${current.id}`,
-            type: "group",
-            title: current.title,
-            avatarUrl: current.cover_image_url,
-            lastMessageId: lastMessage?.id,
-            lastMessageSenderId: lastMessage?.sender_id,
-            lastMessageText: buildPreview(lastMessage, "group", user.id),
-            lastMessageAt: lastMessage?.created_at || current.updated_at || current.created_at || undefined,
-            unreadCount: unreadIds.length,
-            unreadIds,
-            lastReadAt: unreadIds.length === 0 ? lastMessage?.created_at : undefined,
-            createdAt: current.created_at,
-            groupId: current.id,
-          };
+          writeMessageCache(current.group_id, messages);
         }
       };
 
       await Promise.all(Array.from({ length: HYDRATE_CONCURRENCY }, worker));
-      if (loadIdRef.current !== loadId) return;
-      setThreads((prev) => {
-        const next = prev.map((thread) =>
-          thread.groupId && updates[thread.groupId] ? updates[thread.groupId] : thread
-        );
-        const sorted = sortThreads(next);
-        writeThreadCache(sorted);
-        return sorted;
-      });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to load conversations.";
       setStatus(message);
@@ -332,10 +299,10 @@ export default function ChatPage() {
 
   const handleThreadOpen = useCallback(
     (thread: Thread) => {
-      if (!accessToken || !thread.groupId) {
+      if (!thread.groupId) {
         return;
       }
-      if (thread.unreadIds.length > 0) {
+      if (accessToken && thread.unreadIds.length > 0) {
         void apiFetch(`/groups/${thread.groupId}/messages/read`, {
           method: "POST",
           token: accessToken,
