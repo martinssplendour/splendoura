@@ -343,7 +343,7 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
           style={{
             transform,
             transition: isDragging || isAnimating ? "none" : "transform 0.25s ease",
-            touchAction: "pan-y",
+            touchAction: "pan-x",
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}

@@ -8,16 +8,18 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isLanding = pathname === "/";
   const isChat = pathname?.startsWith("/chat");
-  const isDiscover = pathname?.startsWith("/groups");
+  const isDiscoverIndex = pathname === "/groups";
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const shouldLock = isChat || isDiscover;
+    const shouldLock = isChat || isDiscoverIndex;
     document.body.classList.toggle("no-scroll", shouldLock);
+    document.documentElement.classList.toggle("no-scroll", shouldLock);
     return () => {
       document.body.classList.remove("no-scroll");
+      document.documentElement.classList.remove("no-scroll");
     };
-  }, [isChat, isDiscover]);
+  }, [isChat, isDiscoverIndex]);
 
   return (
     <main
@@ -26,7 +28,7 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
           ? "flex-1 min-h-0"
           : isChat
             ? "flex-1 min-h-0 overflow-hidden px-0 py-0"
-            : isDiscover
+            : isDiscoverIndex
               ? "flex-1 min-h-0 overflow-hidden container mx-auto px-4 py-6"
               : "flex-1 min-h-0 container mx-auto px-4 py-8 pb-24 md:pb-8"
       }
