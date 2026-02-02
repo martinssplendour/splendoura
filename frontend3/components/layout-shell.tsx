@@ -26,17 +26,15 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
     const updateMatch = () => setIsMobile(mediaQuery.matches);
     updateMatch();
-    if (mediaQuery.addEventListener) {
+    if (typeof mediaQuery.addEventListener === "function") {
       mediaQuery.addEventListener("change", updateMatch);
-    } else {
-      // @ts-expect-error - legacy Safari
+    } else if (typeof mediaQuery.addListener === "function") {
       mediaQuery.addListener(updateMatch);
     }
     return () => {
-      if (mediaQuery.addEventListener) {
+      if (typeof mediaQuery.removeEventListener === "function") {
         mediaQuery.removeEventListener("change", updateMatch);
-      } else {
-        // @ts-expect-error - legacy Safari
+      } else if (typeof mediaQuery.removeListener === "function") {
         mediaQuery.removeListener(updateMatch);
       }
     };
