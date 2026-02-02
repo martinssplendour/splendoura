@@ -401,7 +401,7 @@ export default function ChatDMPage() {
               {headerTitle.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="flex-1 -translate-y-[45%]">
+          <div className="flex-1 -translate-y-[55%]">
             <p className="text-base font-semibold text-slate-900">{headerTitle}</p>
             <p className="text-xs text-slate-500">
               {group ? `${group.approved_members ?? 0} members` : "Loading chat details..."}
@@ -535,9 +535,9 @@ export default function ChatDMPage() {
       </div>
 
       <footer className="shrink-0 border-t border-slate-200 bg-white shadow-[0_-12px_30px_rgba(15,23,42,0.08)]">
-        <div className="mx-auto flex w-full max-w-3xl items-end gap-3 px-5 py-4 -translate-y-full bg-white">
+        <div className="mx-auto flex w-full max-w-3xl items-end gap-2 px-4 py-2 -translate-y-full bg-white">
           <label
-            className={`flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 ${
+            className={`flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 ${
               isSending ? "text-slate-300" : "text-slate-500 hover:text-slate-700"
             }`}
             title="Attach file"
@@ -560,14 +560,14 @@ export default function ChatDMPage() {
               }
             }}
             placeholder={groupId ? "Type a message" : "Select a chat"}
-            className="min-h-[42px] flex-1 resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            className="min-h-[30px] flex-1 resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
             disabled={!groupId || isSending}
           />
           <button
             type="button"
             onClick={handleSend}
             disabled={!showSend || isSending || !groupId}
-            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSending ? "Sending..." : "Send"}
           </button>
