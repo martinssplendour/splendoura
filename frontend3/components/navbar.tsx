@@ -116,7 +116,7 @@ export default function Navbar() {
       ) : null}
 
       {user ? (
-        <div className="fixed bottom-0 left-0 right-0 z-50 translate-y-[20%] border-t border-slate-200 bg-white md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white md:hidden">
           <div className="flex h-[72px] items-center justify-around px-3">
             <Link
               href="/groups"
