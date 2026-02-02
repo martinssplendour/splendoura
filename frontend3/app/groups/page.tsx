@@ -355,7 +355,7 @@ export default function BrowseGroups() {
               {categoryConfig.find((category) => category.id === activeCategory)?.description}
             </div>
 
-            <div className="-mx-4 sm:mx-0">
+            <div className="-mx-4 -mt-4 sm:mx-0 sm:-mt-5">
               {activeCategory === "profiles" ? (
                 profilesLoading ? (
                   <SwipeDeckSkeleton />

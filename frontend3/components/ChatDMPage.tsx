@@ -401,7 +401,7 @@ export default function ChatDMPage() {
               {headerTitle.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="flex-1 -translate-y-[35%]">
+          <div className="flex-1 -translate-y-[45%]">
             <p className="text-base font-semibold text-slate-900">{headerTitle}</p>
             <p className="text-xs text-slate-500">
               {group ? `${group.approved_members ?? 0} members` : "Loading chat details..."}
@@ -535,7 +535,7 @@ export default function ChatDMPage() {
       </div>
 
       <footer className="shrink-0 border-t border-slate-200 bg-white shadow-[0_-12px_30px_rgba(15,23,42,0.08)]">
-        <div className="mx-auto flex w-full max-w-3xl items-end gap-3 px-5 py-4 -translate-y-[120%] bg-white">
+        <div className="mx-auto flex w-full max-w-3xl items-end gap-3 px-5 py-4 -translate-y-full bg-white">
           <label
             className={`flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 ${
               isSending ? "text-slate-300" : "text-slate-500 hover:text-slate-700"
