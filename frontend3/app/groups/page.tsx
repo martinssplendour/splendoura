@@ -333,7 +333,7 @@ export default function BrowseGroups() {
             </div>
           </div>
 
-          <div className="space-y-4 sm:space-y-6 -translate-y-[15%]">
+          <div className="space-y-4 sm:space-y-6 translate-y-[10%]">
             <div className="flex flex-nowrap items-center gap-1 overflow-x-auto sm:flex-wrap sm:gap-2 sm:overflow-visible">
               {categoryConfig.map((category) => (
                 <button
