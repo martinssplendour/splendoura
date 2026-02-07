@@ -94,10 +94,10 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           {hasTopLeftMeta ? (
             <div className="absolute left-3 top-6 z-10 max-w-[70%] text-white drop-shadow">
               {creatorName ? (
-                <p className="text-[10px] font-semibold">{creatorName}</p>
+                <p className="text-[30px] font-semibold leading-none">{creatorName}</p>
               ) : null}
               {locationLabel ? (
-                <p className="text-[9px] text-white/80">{locationLabel}</p>
+                <p className="text-[27px] text-white/85 leading-none">{locationLabel}</p>
               ) : null}
             </div>
           ) : null}
@@ -150,7 +150,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           </div>
           {overlayLabel ? (
             <div
-              className={`absolute left-3 ${hasTopLeftMeta ? "top-12" : "top-3"} rounded-xl border px-2 py-1 text-[10px] font-semibold uppercase tracking-widest ${
+              className={`absolute left-3 ${hasTopLeftMeta ? "top-24" : "top-3"} rounded-xl border px-2 py-1 text-[10px] font-semibold uppercase tracking-widest ${
                 overlayLabel.variant === "like"
                   ? "border-emerald-400 text-emerald-200"
                   : "border-red-300 text-red-200"
@@ -163,21 +163,6 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
         </div>
 
         <div className="flex-1 space-y-1 p-2 sm:p-3">
-          {creatorName ? (
-            <div className="flex items-center gap-1 text-[9px] text-slate-500">
-              {creatorAvatarUrl ? (
-                <SignedImage
-                  src={creatorAvatarUrl}
-                  alt={creatorName}
-                  className="h-3.5 w-3.5 rounded-full object-cover"
-                />
-              ) : (
-                <div className="h-3.5 w-3.5 rounded-full bg-slate-200" />
-              )}
-              <span className="font-semibold text-slate-700">{creatorName}</span>
-              {locationLabel ? <span className="text-slate-400"> | {locationLabel}</span> : null}
-            </div>
-          ) : null}
           <div>
             <p className="mt-0.5 text-[10px] text-slate-600 line-clamp-1">
               {group.description}

@@ -47,8 +47,10 @@ export default function CardChips({ group }: { group: SwipeGroup }) {
   const trimLabel = (value: string, max = 28) =>
     value.length > max ? `${value.slice(0, Math.max(max - 3, 0))}...` : value;
 
+  const showCategory = group.category && group.category !== "friendship";
+
   const chips: Chip[] = [
-    ...(group.category
+    ...(showCategory
       ? [
           {
             label: CATEGORY_LABELS[group.category] || group.category,
