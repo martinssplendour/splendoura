@@ -57,6 +57,8 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
     const safeIndex = Math.min(activeImageIndex ?? 0, Math.max(images.length - 1, 0));
     const activeImage = images.length > 0 ? images[safeIndex] : null;
 
+    const hasTopLeftMeta = Boolean(creatorName || locationLabel);
+
     return (
       <div
         ref={ref}
@@ -87,6 +89,16 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
                   }`}
                 />
               ))}
+            </div>
+          ) : null}
+          {hasTopLeftMeta ? (
+            <div className="absolute left-3 top-6 z-10 max-w-[70%] text-white drop-shadow">
+              {creatorName ? (
+                <p className="text-[10px] font-semibold">{creatorName}</p>
+              ) : null}
+              {locationLabel ? (
+                <p className="text-[9px] text-white/80">{locationLabel}</p>
+              ) : null}
             </div>
           ) : null}
           {creatorName ? (
@@ -138,7 +150,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           </div>
           {overlayLabel ? (
             <div
-              className={`absolute left-3 top-3 rounded-xl border px-2 py-1 text-[10px] font-semibold uppercase tracking-widest ${
+              className={`absolute left-3 ${hasTopLeftMeta ? "top-12" : "top-3"} rounded-xl border px-2 py-1 text-[10px] font-semibold uppercase tracking-widest ${
                 overlayLabel.variant === "like"
                   ? "border-emerald-400 text-emerald-200"
                   : "border-red-300 text-red-200"
