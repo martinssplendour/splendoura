@@ -4,7 +4,6 @@ import { forwardRef } from "react";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import type { SwipeGroup } from "@/components/groups/types";
-import CardChips from "@/components/groups/card-chips";
 import { SignedImage } from "@/components/signed-media";
 
 interface EventCardProps {
@@ -42,11 +41,41 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
     },
     ref
   ) => {
+    const costLabelMap: Record<SwipeGroup["cost_type"], string> = {
+      free: "Free",
+      shared: "Shared cost",
+      fully_paid: "Fully paid",
+      custom: "Custom",
+    };
+    const costLabel = costLabelMap[group.cost_type] || group.cost_type.replace("_", " ");
+    const spotsLeft =
+      group.max_participants != null
+        ? Math.max(group.max_participants - (group.approved_members ?? 0), 0)
+        : null;
     const costLine = `${group.cost_type.replace("_", " ")} - ${
       group.max_participants
         ? `${Math.max(group.max_participants - (group.approved_members ?? 0), 0)} spots left`
         : "Open spots"
     }`;
+    const offersList = Array.isArray(group.offerings)
+      ? group.offerings
+          .map((offer) => String(offer).trim())
+          .filter(Boolean)
+          .slice(0, 3)
+      : [];
+    const offersLine = offersList.length > 0 ? `Offers: ${offersList.join(", ")}` : null;
+    const expectationsList = (
+      Array.isArray(group.expectations)
+        ? group.expectations
+        : typeof group.expectations === "string"
+          ? group.expectations.split(",")
+          : []
+    )
+      .map((value) => String(value).trim())
+      .filter(Boolean)
+      .slice(0, 3);
+    const expectationsLine =
+      expectationsList.length > 0 ? `Expectations: ${expectationsList.join(", ")}` : null;
 
     const images =
       imageUrls && imageUrls.length > 0
@@ -175,15 +204,18 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
               {group.description}
             </p>
           </div>
-
-          <CardChips group={group} />
-          <Link
-            href={`/groups/${group.id}#creator`}
-            onClick={(event) => event.stopPropagation()}
-            className="inline-flex text-[9px] font-semibold uppercase tracking-wide text-blue-600"
-          >
-            View creator profile
-          </Link>
+          <p className="text-[9px] text-slate-500 line-clamp-1">{costLabel}</p>
+          {spotsLeft != null ? (
+            <p className="text-[9px] text-slate-500 line-clamp-1">
+              {spotsLeft} spots left
+            </p>
+          ) : null}
+          {offersLine ? (
+            <p className="text-[9px] text-slate-500 line-clamp-1">{offersLine}</p>
+          ) : null}
+          {expectationsLine ? (
+            <p className="text-[9px] text-slate-500 line-clamp-1">{expectationsLine}</p>
+          ) : null}
         </div>
 
         {footer ? (
