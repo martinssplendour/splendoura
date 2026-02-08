@@ -11,6 +11,8 @@ This repo is ready to deploy on Render (Docker) with a Supabase Postgres databas
    - `DATABASE_URL` (Supabase connection string with `?sslmode=require`)
    - `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`
    - `CORS_ORIGINS` (your production web domains)
+   - `FRONTEND_BASE_URL` (your web app base URL for reset links)
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_USE_SSL`, `SMTP_FROM`
    - Optional: `SENTRY_DSN` (error reporting)
 4. Deploy. The container runs `alembic upgrade head` on startup via `backend/entrypoint.sh`.
 
