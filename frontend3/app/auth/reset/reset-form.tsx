@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -10,9 +9,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 export default function ResetPasswordForm() {
-  const searchParams = useSearchParams();
-  const tokenFromQuery = searchParams.get("token") || "";
-  const [token, setToken] = useState(tokenFromQuery);
+  const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,13 +47,13 @@ export default function ResetPasswordForm() {
     <>
       <h1 className="text-3xl font-bold text-slate-900">Reset password</h1>
       <p className="mt-2 text-sm text-slate-600">
-        Paste your reset token and choose a new password.
+        Enter the 6-digit reset code from your email and choose a new password.
       </p>
 
       <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700" htmlFor="token">
-            Reset token
+            Reset code
           </label>
           <input
             id="token"
@@ -65,7 +62,10 @@ export default function ResetPasswordForm() {
             value={token}
             onChange={(event) => setToken(event.target.value)}
             className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="Paste your reset token"
+            placeholder="6-digit code"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="one-time-code"
           />
         </div>
 

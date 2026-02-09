@@ -1,10 +1,9 @@
 # backend/app/api/v1/endpoints/auth.py
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
-from secrets import token_urlsafe
+from secrets import randbelow
 from typing import Any
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from urllib.parse import quote
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
@@ -76,7 +75,7 @@ def forgot_password(
     reset_token = None
 
     if user:
-        reset_token = token_urlsafe(32)
+        reset_token = str(randbelow(1_000_000)).zfill(6)
         user.password_reset_token_hash = sha256(reset_token.encode("utf-8")).hexdigest()
         user.password_reset_expires_at = datetime.now(timezone.utc) + timedelta(
             minutes=settings.RESET_TOKEN_EXPIRE_MINUTES
@@ -85,11 +84,10 @@ def forgot_password(
         db.commit()
 
         reset_link = (
-            f"{settings.FRONTEND_BASE_URL.rstrip('/')}/auth/reset?token="
-            f"{quote(reset_token)}"
+            f"{settings.FRONTEND_BASE_URL.rstrip('/')}/auth/reset"
         )
         background_tasks.add_task(
-            email_utils.send_password_reset_email, user.email, reset_link
+            email_utils.send_password_reset_email, user.email, reset_link, reset_token
         )
 
     response: dict[str, Any] = {
@@ -105,6 +103,11 @@ def reset_password(
     db: Session = Depends(deps.get_db),
 ) -> Any:
     """Reset a user's password using a valid token."""
+    if not payload.token.isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset code must be numeric.",
+        )
     token_hash = sha256(payload.token.encode("utf-8")).hexdigest()
     now = datetime.now(timezone.utc)
     user = (

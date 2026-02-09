@@ -46,15 +46,17 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str) -> N
         logger.exception("Failed to send email to %s", to_email)
 
 
-def send_password_reset_email(to_email: str, reset_link: str) -> None:
+def send_password_reset_email(to_email: str, reset_link: str, reset_code: str) -> None:
     subject = "Reset your Splendoure password"
     text_body = (
         "We received a request to reset your password.\n\n"
+        f"Reset code: {reset_code}\n"
         f"Reset your password using this link:\n{reset_link}\n\n"
         "If you did not request this, you can ignore this email."
     )
     html_body = f"""
     <p>We received a request to reset your password.</p>
+    <p><strong>Reset code:</strong> {reset_code}</p>
     <p><a href="{reset_link}">Reset your password</a></p>
     <p>If you did not request this, you can ignore this email.</p>
     """
