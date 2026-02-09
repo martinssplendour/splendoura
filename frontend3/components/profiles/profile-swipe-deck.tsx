@@ -272,6 +272,12 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
     setImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
   }, [imageUrls.length]);
 
+  const handleOpenProfile = useCallback(() => {
+    if (!current) return;
+    if (Math.abs(drag.x) > 6 || isDragging) return;
+    router.push(`/users/${current.user.id}`);
+  }, [current, drag.x, isDragging, router]);
+
   if (!current) {
     return (
       <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
@@ -314,10 +320,6 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          onClick={() => {
-            if (Math.abs(drag.x) > 6 || isDragging) return;
-            router.push(`/users/${current.user.id}`);
-          }}
         >
           <div className="relative h-[var(--ui-profile-card-height)] w-full overflow-hidden rounded-[var(--ui-radius-lg)] bg-slate-900">
             {activeImage ? (
@@ -370,7 +372,13 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
                 </div>
               </>
             ) : null}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent px-6 pb-6 pt-16">
+            <div
+              className="absolute inset-x-0 bottom-0 cursor-pointer bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent px-6 pb-6 pt-16"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleOpenProfile();
+              }}
+            >
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <p className="text-2xl font-semibold text-white">
@@ -384,7 +392,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
                   className="h-10 w-10 rounded-full bg-white/20 text-white"
                   onClick={(event) => {
                     event.stopPropagation();
-                    router.push(`/users/${current.user.id}`);
+                    handleOpenProfile();
                   }}
                 >
                   ↑

@@ -8,7 +8,7 @@ import { SignedImage } from "@/components/signed-media";
 
 interface EventCardProps {
   group: SwipeGroup;
-  onClick?: () => void;
+  onInfoClick?: () => void;
   overlayLabel?: { text: string; variant: "like" | "nope"; opacity: number } | null;
   footer?: ReactNode;
   className?: string;
@@ -26,7 +26,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
   (
     {
       group,
-      onClick,
+      onInfoClick,
       overlayLabel,
       footer,
       className,
@@ -87,6 +87,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
     const activeImage = images.length > 0 ? images[safeIndex] : null;
 
     const hasTopLeftMeta = Boolean(creatorName || locationLabel);
+    const infoClickable = Boolean(onInfoClick);
 
     return (
       <div
@@ -95,7 +96,6 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           className || ""
         }`}
         style={style}
-        onClick={onClick}
       >
         <div className="relative h-[var(--ui-event-image-height)] w-full">
           {activeImage ? (
@@ -179,7 +179,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
               />
             </div>
           ) : null}
-          <div className="absolute bottom-3 left-3 right-3 text-white">
+          <div className="pointer-events-none absolute bottom-3 left-3 right-3 text-white">
             <p className="text-[9px] uppercase tracking-wide text-white/70">Featured</p>
             <h2 className="mt-1 text-base font-semibold">{group.title}</h2>
             <p className="text-[9px] text-white/80">{costLine}</p>
@@ -198,7 +198,10 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           ) : null}
         </div>
 
-        <div className="flex-1 space-y-1 p-2 sm:p-3">
+        <div
+          className={`flex-1 space-y-1 p-2 sm:p-3 ${infoClickable ? "cursor-pointer" : ""}`}
+          onClick={onInfoClick}
+        >
           <div>
             <p className="mt-0.5 text-[10px] text-slate-600 line-clamp-1">
               {group.description}

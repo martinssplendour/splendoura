@@ -312,6 +312,12 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
     setImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
   }, [imageUrls.length]);
 
+  const handleOpenDetails = useCallback(() => {
+    if (!current) return;
+    if (Math.abs(drag.x) > 6 || isDragging) return;
+    router.push(`/groups/${current.id}`);
+  }, [current, drag.x, isDragging, router]);
+
   if (!current) {
     return <EmptyState />;
   }
@@ -349,10 +355,6 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          onClick={() => {
-            if (Math.abs(drag.x) > 6 || isDragging) return;
-            router.push(`/groups/${current.id}`);
-          }}
         >
           <EventCard
             group={current}
@@ -364,6 +366,7 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
             creatorName={creatorName}
             creatorAvatarUrl={creatorAvatar}
             locationLabel={userLocation}
+            onInfoClick={handleOpenDetails}
             footer={
               <div className="flex flex-col gap-3">
                 <div className="grid grid-cols-4 gap-2">
@@ -421,7 +424,7 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
                 <button
                   type="button"
                   className="text-xs font-semibold uppercase tracking-wide text-slate-500"
-                  onClick={() => router.push(`/groups/${current.id}`)}
+                  onClick={handleOpenDetails}
                   onPointerDown={(event) => event.stopPropagation()}
                 >
                   View details
