@@ -71,6 +71,7 @@ export default function SettingsPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
 
   const handleDeleteAccount = async () => {
     if (!accessToken) {
@@ -99,6 +100,29 @@ export default function SettingsPage() {
       setStatus(message);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleClearCache = async () => {
+    if (typeof window === "undefined") return;
+    setClearingCache(true);
+    setStatus(null);
+    try {
+      const exactKeys = ["signedMediaCache:v1", "chatThreadsCache:v1", "onboarding_skipped"];
+      const prefixKeys = ["chatMessagesCache:v1:", "notificationRequestsCache:v1:"];
+      Object.keys(localStorage).forEach((key) => {
+        if (exactKeys.includes(key) || prefixKeys.some((prefix) => key.startsWith(prefix))) {
+          localStorage.removeItem(key);
+        }
+      });
+      await refreshSession();
+      setStatus("Cache cleared. Reloading...");
+      setTimeout(() => window.location.reload(), 300);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to clear cache.";
+      setStatus(message);
+    } finally {
+      setClearingCache(false);
     }
   };
 
@@ -348,6 +372,21 @@ export default function SettingsPage() {
           </Link>
           <span>Contact support</span>
         </div>
+      </SettingsSection>
+
+      <SettingsSection title="App data" description="Refresh cached data and media.">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          Clears cached images, chat threads, and notifications so the latest data is pulled from
+          the database. You will stay signed in.
+        </div>
+        <Button
+          variant="outline"
+          onClick={handleClearCache}
+          disabled={clearingCache}
+          className="border-slate-200 text-slate-700 hover:text-slate-900"
+        >
+          {clearingCache ? "Clearing..." : "Clear cache & refresh"}
+        </Button>
       </SettingsSection>
 
       <SettingsSection title="Danger zone" description="Permanent account actions.">
