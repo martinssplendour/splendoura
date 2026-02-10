@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { SignedImage } from "@/components/signed-media";
+import { getProfilePhotoThumb } from "@/lib/media";
 
 interface UserProfile {
   id: number;
@@ -28,6 +29,7 @@ interface UserProfile {
   profile_media?: {
     photos?: string[];
     photo_verified?: boolean;
+    photo_thumbs?: Record<string, string> | null;
   } | null;
   profile_details?: Record<string, unknown> | null;
 }
@@ -197,15 +199,18 @@ export default function UserProfilePage() {
         <div className="rounded-none border-0 bg-white p-6 sm:rounded-3xl sm:border sm:border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">Photos</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-            {photos.map((photo) => (
-              <SignedImage
-                key={photo}
-                src={photo}
-                alt="Profile"
-                onClick={() => setPreviewPhoto(photo)}
-                className="h-40 w-full cursor-zoom-in rounded-2xl object-cover"
-              />
-            ))}
+            {photos.map((photo) => {
+              const thumbUrl = getProfilePhotoThumb(photo, profile.profile_media, true);
+              return (
+                <SignedImage
+                  key={photo}
+                  src={thumbUrl || photo}
+                  alt="Profile"
+                  onClick={() => setPreviewPhoto(photo)}
+                  className="h-40 w-full cursor-zoom-in rounded-2xl object-cover"
+                />
+              );
+            })}
           </div>
         </div>
       ) : null}

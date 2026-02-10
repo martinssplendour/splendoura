@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SignedImage } from "@/components/signed-media";
+import { getProfilePhotoThumb } from "@/lib/media";
 
 const SWIPE_RATIO = 0.3;
 
@@ -23,6 +24,7 @@ type ProfileUser = {
   profile_image_url?: string | null;
   profile_media?: {
     photos?: string[];
+    photo_thumbs?: Record<string, string> | null;
   } | null;
 };
 
@@ -73,8 +75,13 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
     const photos = Array.isArray(current.user.profile_media?.photos)
       ? current.user.profile_media?.photos || []
       : [];
-    const fallback = current.user.profile_image_url ? [current.user.profile_image_url] : [];
-    const combined = Array.from(new Set([...photos, ...fallback]));
+    const thumbPhotos = photos.map((photo) =>
+      getProfilePhotoThumb(photo, current.user.profile_media, true)
+    );
+    const fallback = current.user.profile_image_url
+      ? [getProfilePhotoThumb(current.user.profile_image_url, current.user.profile_media, true)]
+      : [];
+    const combined = Array.from(new Set([...thumbPhotos, ...fallback]));
     return combined;
   }, [current]);
 

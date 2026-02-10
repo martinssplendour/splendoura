@@ -60,6 +60,7 @@ interface MemberRequest {
 interface GroupMedia {
   id: number;
   url: string;
+  thumb_url?: string | null;
   media_type: "image" | "video";
   is_cover: boolean;
 }
@@ -1121,7 +1122,7 @@ export default function GroupDetailPage() {
                 <div className="relative">
                   {media.media_type === "image" ? (
                     <SignedImage
-                      src={media.url}
+                      src={media.thumb_url || media.url}
                       alt="Group media"
                       onClick={() => setPreviewMediaUrl(media.url)}
                       className="h-[clamp(110px,22vw,140px)] w-full cursor-zoom-in rounded-2xl object-cover bg-slate-200"

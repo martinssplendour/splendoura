@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { cropImageToAspect } from "@/lib/image-processing";
 import { SignedImage } from "@/components/signed-media";
+import { getProfilePhotoThumb } from "@/lib/media";
 
 const ORIENTATION_OPTIONS = [
   "straight",
@@ -773,14 +774,16 @@ export default function ProfilePage() {
           {photos.length === 0 ? (
             <div className="h-24 w-24 rounded-2xl bg-slate-100" />
           ) : (
-            photos.map((photo) => (
-              <div key={photo} className="relative">
-                <SignedImage
-                  src={photo}
-                  alt="Profile"
-                  onClick={() => setPreviewPhoto(photo)}
-                  className="h-24 w-24 cursor-zoom-in rounded-2xl object-cover"
-                />
+            photos.map((photo) => {
+              const thumbUrl = getProfilePhotoThumb(photo, user?.profile_media, true);
+              return (
+                <div key={photo} className="relative">
+                  <SignedImage
+                    src={thumbUrl || photo}
+                    alt="Profile"
+                    onClick={() => setPreviewPhoto(photo)}
+                    className="h-24 w-24 cursor-zoom-in rounded-2xl object-cover"
+                  />
                 <button
                   type="button"
                   onClick={() => handleDeletePhoto(photo)}
@@ -790,8 +793,9 @@ export default function ProfilePage() {
                 >
                   x
                 </button>
-              </div>
-            ))
+                </div>
+              );
+            })
           )}
         </div>
         <div className="flex flex-wrap items-center gap-3">

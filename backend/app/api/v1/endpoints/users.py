@@ -15,7 +15,12 @@ from app.models.media import MediaBlob
 from app.models.membership import JoinStatus
 from app.models.user import VerificationStatus
 from app.models.message import GroupMessageRead
-from app.core.storage import supabase_storage_enabled, upload_bytes_to_supabase
+from app.core.storage import (
+    supabase_public_storage_enabled,
+    supabase_storage_enabled,
+    upload_bytes_to_supabase,
+    upload_public_image_with_thumbnail,
+)
 
 router = APIRouter()
 
@@ -135,7 +140,7 @@ def list_my_groups(
                 GroupMedia.group_id == group.id,
                 GroupMedia.deleted_at.is_(None),
             ).first()
-        group.cover_image_url = cover.url if cover else None
+        group.cover_image_url = (cover.thumb_url or cover.url) if cover else None
     return groups
 
 
@@ -177,7 +182,7 @@ def list_my_inbox(
     cover_map: dict[int, str] = {}
     for cover in covers:
         if cover.group_id not in cover_map:
-            cover_map[cover.group_id] = cover.url
+            cover_map[cover.group_id] = cover.thumb_url or cover.url
 
     messages = (
         db.query(models.GroupMessage)
@@ -254,12 +259,22 @@ def upload_profile_photo(
         raise HTTPException(status_code=400, detail="Only image uploads are allowed.")
 
     file_bytes = file.file.read()
-    if supabase_storage_enabled():
+    photo_url = None
+    thumb_url = None
+    if supabase_public_storage_enabled():
+        photo_url, thumb_url = upload_public_image_with_thumbnail(
+            prefix=f"users/{current_user.id}",
+            filename=file.filename,
+            content_type=file.content_type,
+            data=file_bytes,
+        )
+    elif supabase_storage_enabled():
         photo_url = upload_bytes_to_supabase(
             prefix=f"users/{current_user.id}",
             filename=file.filename,
             content_type=file.content_type,
             data=file_bytes,
+            public=False,
         )
     else:
         blob = MediaBlob(
@@ -278,6 +293,14 @@ def upload_profile_photo(
         raise HTTPException(status_code=400, detail="You can upload up to 9 photos.")
     photos.append(photo_url)
     media["photos"] = photos
+    if thumb_url:
+        thumbs = media.get("photo_thumbs")
+        if not isinstance(thumbs, dict):
+            thumbs = {}
+        thumbs[photo_url] = thumb_url
+        media["photo_thumbs"] = thumbs
+        if current_user.profile_image_url == photo_url:
+            media["profile_image_thumb_url"] = thumb_url
     current_user.profile_media = media
     if current_user.verification_status != VerificationStatus.VERIFIED:
         current_user.verification_status = VerificationStatus.PENDING
@@ -305,8 +328,19 @@ def delete_profile_photo(
         raise HTTPException(status_code=404, detail="Photo not found.")
     photos = [photo for photo in photos if photo != url]
     media["photos"] = photos
+    thumbs = media.get("photo_thumbs")
+    if isinstance(thumbs, dict) and url in thumbs:
+        thumbs.pop(url, None)
+        if thumbs:
+            media["photo_thumbs"] = thumbs
+        else:
+            media.pop("photo_thumbs", None)
     if current_user.profile_image_url == url:
         current_user.profile_image_url = photos[0] if photos else None
+        if current_user.profile_image_url and isinstance(thumbs, dict):
+            media["profile_image_thumb_url"] = thumbs.get(current_user.profile_image_url)
+        else:
+            media.pop("profile_image_thumb_url", None)
     current_user.profile_media = media
     if url.startswith("/api/v1/media/"):
         try:
@@ -399,6 +433,7 @@ def upload_photo_verification(
             filename=file.filename,
             content_type=file.content_type,
             data=file_bytes,
+            public=False,
         )
     else:
         blob = MediaBlob(
@@ -439,6 +474,7 @@ def upload_id_verification(
             filename=file.filename,
             content_type=file.content_type,
             data=file_bytes,
+            public=False,
         )
     else:
         blob = MediaBlob(

@@ -10,7 +10,13 @@ from sqlalchemy.orm import Session
 from app import crud, models, schemas
 from app.api import deps
 from app.core.push import get_group_member_ids, get_push_tokens, send_expo_push
-from app.core.storage import supabase_storage_enabled, upload_bytes_to_supabase
+from app.core.storage import (
+    supabase_public_storage_enabled,
+    supabase_storage_enabled,
+    upload_bytes_to_supabase,
+    upload_public_bytes_to_supabase,
+    upload_public_image_with_thumbnail,
+)
 from app.models.group import AppliesTo, Group, GroupCategory, GroupRequirement, GroupStatus, GroupVisibility
 from app.models.group_extras import (
     GroupAvailability,
@@ -147,7 +153,7 @@ def read_groups(
                 GroupMedia.group_id == group.id,
                 GroupMedia.deleted_at.is_(None),
             ).first()
-        group.cover_image_url = cover.url if cover else None
+        group.cover_image_url = (cover.thumb_url or cover.url) if cover else None
     if sort == "recent":
         min_dt = datetime.min.replace(tzinfo=timezone.utc)
         groups = sorted(
@@ -279,7 +285,7 @@ def discover_groups(
                 GroupMedia.group_id == group.id,
                 GroupMedia.deleted_at.is_(None),
             ).first()
-        group.cover_image_url = cover.url if cover else None
+        group.cover_image_url = (cover.thumb_url or cover.url) if cover else None
         group_tags = set(group.tags or [])
         group.shared_tags = list(user_interests.intersection(group_tags))
         distance_km = None
@@ -348,7 +354,7 @@ def read_group(
             GroupMedia.group_id == group.id,
             GroupMedia.deleted_at.is_(None),
         ).first()
-    group.cover_image_url = cover.url if cover else None
+    group.cover_image_url = (cover.thumb_url or cover.url) if cover else None
     return group
 
 @router.get("/{id}/approved-members", response_model=List[schemas.User])
@@ -687,12 +693,29 @@ def upload_group_media(
             GroupMedia.is_cover.is_(True),
             GroupMedia.deleted_at.is_(None),
         ).update({GroupMedia.is_cover: False})
-    if supabase_storage_enabled():
+    thumb_url = None
+    if supabase_public_storage_enabled():
+        if media_type == GroupMediaType.IMAGE:
+            url, thumb_url = upload_public_image_with_thumbnail(
+                prefix=f"groups/{id}",
+                filename=file.filename,
+                content_type=content_type,
+                data=file_bytes,
+            )
+        else:
+            url = upload_public_bytes_to_supabase(
+                prefix=f"groups/{id}",
+                filename=file.filename,
+                content_type=content_type,
+                data=file_bytes,
+            )
+    elif supabase_storage_enabled():
         url = upload_bytes_to_supabase(
             prefix=f"groups/{id}",
             filename=file.filename,
             content_type=content_type,
             data=file_bytes,
+            public=False,
         )
     elif media_type == GroupMediaType.IMAGE:
         blob = MediaBlob(
@@ -717,6 +740,7 @@ def upload_group_media(
         group_id=id,
         uploader_id=current_user.id,
         url=url,
+        thumb_url=thumb_url,
         media_type=media_type,
         is_cover=is_cover,
     )

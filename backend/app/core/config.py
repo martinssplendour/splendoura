@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     SUPABASE_STORAGE_BUCKET: str | None = None
     SUPABASE_STORAGE_PUBLIC: bool = True
     SUPABASE_SIGNED_URL_EXPIRE_SECONDS: int = 3600
+    SUPABASE_PUBLIC_STORAGE_BUCKET: str | None = None
+    SUPABASE_PUBLIC_STORAGE_CACHE_CONTROL: str = "public, max-age=31536000, immutable"
+    SUPABASE_PUBLIC_THUMBNAIL_MAX_SIZE: int = 720
 
     SENTRY_DSN: str | None = None
     SENTRY_ENVIRONMENT: str = "production"

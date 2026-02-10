@@ -203,6 +203,7 @@ def create_message(
                 filename=file.filename,
                 content_type=attachment_type,
                 data=file_bytes,
+                public=False,
             )
         elif attachment_type.startswith("image/"):
             blob = MediaBlob(

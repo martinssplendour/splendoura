@@ -16,6 +16,7 @@ class GroupMedia(Base, TimestampMixin, SoftDeleteMixin):
     group_id = Column(Integer, ForeignKey("groups.id"), index=True)
     uploader_id = Column(Integer, ForeignKey("users.id"), index=True)
     url = Column(String, nullable=False)
+    thumb_url = Column(String, nullable=True)
     media_type = Column(
         Enum(GroupMediaType, values_callable=lambda x: [e.value for e in x], name="groupmediatype")
     )

@@ -9,6 +9,7 @@ class GroupMedia(BaseModel):
     group_id: int
     uploader_id: int
     url: str
+    thumb_url: Optional[str] = None
     media_type: GroupMediaType
     is_cover: bool
     created_at: datetime

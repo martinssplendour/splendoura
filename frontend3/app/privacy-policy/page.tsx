@@ -121,8 +121,8 @@ export default function PrivacyPolicyPage() {
           </p>
           <p className="mt-2">
             We use HTTPS/TLS to protect data in transit. Data is stored by our hosting and storage
-            providers with encryption at rest. Photos are stored in private storage and accessed
-            using time‑limited signed URLs.
+            providers with encryption at rest. Profile and group photos are stored in public media
+            storage for fast delivery, while verification images remain private and use signed URLs.
           </p>
 
           <h2 className="mt-6 text-lg font-semibold text-slate-900">Children’s privacy</h2>

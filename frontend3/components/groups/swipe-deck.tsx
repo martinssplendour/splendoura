@@ -19,6 +19,7 @@ const SWIPE_RATIO = 0.3;
 type GroupMedia = {
   id: number;
   url: string;
+  thumb_url?: string | null;
   media_type: "image" | "video";
   is_cover?: boolean | null;
 };
@@ -65,7 +66,9 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
           return;
         }
         const data: GroupMedia[] = await res.json();
-        const images = data.filter((item) => item.media_type === "image").map((item) => item.url);
+        const images = data
+          .filter((item) => item.media_type === "image")
+          .map((item) => item.thumb_url || item.url);
         const combined = Array.from(new Set([...images, ...fallback]));
         if (active) setImageUrls(combined.length > 0 ? combined : fallback);
       } catch {
