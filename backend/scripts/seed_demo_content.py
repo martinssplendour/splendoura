@@ -237,7 +237,6 @@ def _openai_image(prompt: str) -> tuple[bytes, str] | None:
         "model": model,
         "prompt": prompt,
         "size": "1024x1024",
-        "response_format": "b64_json",
     }
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -263,11 +262,22 @@ def _openai_image(prompt: str) -> tuple[bytes, str] | None:
     except Exception as exc:
         _log_image(f"[openai] invalid JSON response: {exc}")
         return None
-    b64 = (data.get("data") or [{}])[0].get("b64_json")
-    if not b64:
-        _log_image("[openai] missing image data in response")
-        return None
-    return base64.b64decode(b64), "image/png"
+    entry = (data.get("data") or [{}])[0]
+    b64 = entry.get("b64_json")
+    if b64:
+        return base64.b64decode(b64), "image/png"
+    url = entry.get("url")
+    if url:
+        try:
+            image_response = httpx.get(url, timeout=30.0)
+            image_response.raise_for_status()
+            content_type = image_response.headers.get("Content-Type", "image/png")
+            return image_response.content, content_type
+        except Exception as exc:
+            _log_image(f"[openai] failed to download image url: {exc}")
+            return None
+    _log_image("[openai] missing image data in response")
+    return None
 
 
 def _gemini_image(prompt: str) -> tuple[bytes, str] | None:
