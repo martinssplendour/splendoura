@@ -293,6 +293,7 @@ def seed_demo_profiles(
         random.seed(seed_value)
     password = os.getenv("SEED_DEMO_PASSWORD", "splendoura_demo_123")
     created_users: list[User] = []
+    created_count = 0
     round_index = 0
 
     for _ in range(count):
@@ -360,6 +361,8 @@ def seed_demo_profiles(
         db.commit()
         db.refresh(user)
         created_users.append(user)
+        created_count += 1
+        print(f"Created demo profile {created_count}/{count}: {user.full_name} (@{user.username})")
 
     return created_users
 
@@ -437,6 +440,7 @@ def seed_demo_groups(
 
         db.commit()
         created += 1
+        print(f"Created demo group {created}/{count}: {group.title}")
 
     return created
 
