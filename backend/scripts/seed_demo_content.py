@@ -110,6 +110,11 @@ GROUP_DESCRIPTION_TEMPLATES = [
 ]
 
 
+def _log_image(message: str) -> None:
+    if os.getenv("SEED_DEMO_LOG_IMAGES", "").lower() in {"1", "true", "yes"}:
+        print(message)
+
+
 def _unique_username(db, base: str) -> str:
     candidate = base
     counter = 1
@@ -261,6 +266,7 @@ def _provider_sequence(provider_mode: str) -> list[str]:
 def _generate_image(prompt: str, provider_mode: str, round_index: int) -> tuple[bytes, str] | None:
     providers = _provider_sequence(provider_mode)
     if not providers:
+        _log_image("No image providers available (set OPENAI_API_KEY and/or GEMINI_API_KEY).")
         return None
     provider = providers[round_index % len(providers)]
     if provider == "openai":
@@ -359,17 +365,23 @@ def seed_demo_profiles(
             generated = _generate_image(prompt, provider_mode, round_index)
             round_index += 1
             if not generated:
+                _log_image(f"[profile:{username}] image generation failed for photo {index + 1}/{photos_per_user}")
                 continue
             data, content_type = generated
-            url, thumb_url = _store_public_image(
-                data=data,
-                content_type=content_type,
-                prefix=f"users/{username}",
-                filename=f"{username}-portrait-{index}.png",
-            )
+            try:
+                url, thumb_url = _store_public_image(
+                    data=data,
+                    content_type=content_type,
+                    prefix=f"users/{username}",
+                    filename=f"{username}-portrait-{index}.png",
+                )
+            except Exception as exc:
+                _log_image(f"[profile:{username}] upload failed for photo {index + 1}/{photos_per_user}: {exc}")
+                continue
             photos.append(url)
             if thumb_url:
                 thumbs[url] = thumb_url
+            _log_image(f"[profile:{username}] uploaded photo {index + 1}/{photos_per_user}: {url}")
 
         if photos:
             user.profile_image_url = photos[0]
@@ -447,21 +459,28 @@ def seed_demo_groups(
         round_index += 1
         if generated:
             data, content_type = generated
-            url, thumb_url = _store_public_image(
-                data=data,
-                content_type=content_type,
-                prefix=f"groups/{group.id}",
-                filename=f"group-{group.id}-cover.png",
-            )
-            media = GroupMedia(
-                group_id=group.id,
-                uploader_id=creator.id,
-                url=url,
-                thumb_url=thumb_url,
-                media_type=GroupMediaType.IMAGE,
-                is_cover=True,
-            )
-            db.add(media)
+            try:
+                url, thumb_url = _store_public_image(
+                    data=data,
+                    content_type=content_type,
+                    prefix=f"groups/{group.id}",
+                    filename=f"group-{group.id}-cover.png",
+                )
+            except Exception as exc:
+                _log_image(f"[group:{group.id}] upload failed: {exc}")
+            else:
+                media = GroupMedia(
+                    group_id=group.id,
+                    uploader_id=creator.id,
+                    url=url,
+                    thumb_url=thumb_url,
+                    media_type=GroupMediaType.IMAGE,
+                    is_cover=True,
+                )
+                db.add(media)
+                _log_image(f"[group:{group.id}] uploaded cover: {url}")
+        else:
+            _log_image(f"[group:{group.id}] image generation failed.")
 
         db.commit()
         created += 1
