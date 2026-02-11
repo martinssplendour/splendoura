@@ -253,6 +253,11 @@ export default function UserProfilePage() {
           <pre className="mt-3 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
             {JSON.stringify(details, null, 2)}
           </pre>
+          {Boolean((details as Record<string, unknown>).demo_profile) ? (
+            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-amber-600">
+              Demo profile
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>
