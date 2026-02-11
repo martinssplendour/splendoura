@@ -89,18 +89,18 @@ GROUP_ACTIVITY_TYPES = [
     "picnic",
 ]
 
-DEFAULT_LOCATIONS = [
-    ("Cape Town", "South Africa"),
-    ("Ibiza", "Spain"),
-    ("Lagos", "Nigeria"),
-    ("Paris", "France"),
-    ("Dubai", "UAE"),
-    ("Santorini", "Greece"),
-    ("Bali", "Indonesia"),
-    ("London", "United Kingdom"),
-    ("Barcelona", "Spain"),
-    ("New York", "USA"),
-    ("Miami", "USA"),
+DEFAULT_LOCATIONS: list[tuple[str, str, float | None, float | None]] = [
+    ("Cape Town", "South Africa", -33.9249, 18.4241),
+    ("Ibiza", "Spain", 38.9067, 1.4206),
+    ("Lagos", "Nigeria", 6.5244, 3.3792),
+    ("Paris", "France", 48.8566, 2.3522),
+    ("Dubai", "UAE", 25.2048, 55.2708),
+    ("Santorini", "Greece", 36.3932, 25.4615),
+    ("Bali", "Indonesia", -8.65, 115.2167),
+    ("London", "United Kingdom", 51.5074, -0.1278),
+    ("Barcelona", "Spain", 41.3874, 2.1686),
+    ("New York", "USA", 40.7128, -74.0060),
+    ("Miami", "USA", 25.7617, -80.1918),
 ]
 
 GROUP_DESCRIPTION_TEMPLATES = [
@@ -149,24 +149,43 @@ def _pick_category(category_mode: str) -> str:
     )
 
 
-def _parse_locations(raw: str | None) -> list[tuple[str, str]]:
+def _parse_locations(raw: str | None) -> list[tuple[str, str, float | None, float | None]]:
     if not raw:
         return DEFAULT_LOCATIONS
-    parsed: list[tuple[str, str]] = []
+    fallback = {
+        (city.lower(), country.lower()): (lat, lng)
+        for city, country, lat, lng in DEFAULT_LOCATIONS
+    }
+    parsed: list[tuple[str, str, float | None, float | None]] = []
     for entry in raw.split(";"):
         entry = entry.strip()
         if not entry:
             continue
         if "|" in entry:
-            city, country = entry.split("|", 1)
+            parts = [part.strip() for part in entry.split("|")]
         elif "," in entry:
-            city, country = entry.split(",", 1)
+            parts = [part.strip() for part in entry.split(",")]
         else:
             continue
-        city = city.strip()
-        country = country.strip()
+        if len(parts) < 2:
+            continue
+        city = parts[0]
+        country = parts[1]
+        lat = None
+        lng = None
+        if len(parts) >= 4:
+            try:
+                lat = float(parts[2])
+            except (TypeError, ValueError):
+                lat = None
+            try:
+                lng = float(parts[3])
+            except (TypeError, ValueError):
+                lng = None
+        else:
+            lat, lng = fallback.get((city.lower(), country.lower()), (None, None))
         if city and country:
-            parsed.append((city, country))
+            parsed.append((city, country, lat, lng))
     return parsed or DEFAULT_LOCATIONS
 
 
@@ -287,7 +306,7 @@ def seed_demo_profiles(
     gender_mode: str,
     min_age: int,
     max_age: int,
-    locations: list[tuple[str, str]],
+    locations: list[tuple[str, str, float | None, float | None]],
     provider_mode: str,
     seed_value: int | None,
 ) -> list[User]:
@@ -310,7 +329,7 @@ def seed_demo_profiles(
             continue
 
         age = _pick_age(min_age, max_age)
-        city, country = random.choice(locations)
+        city, country, lat, lng = random.choice(locations)
         user = User(
             email=email,
             username=username,
@@ -323,6 +342,8 @@ def seed_demo_profiles(
             interests=random.sample(INTERESTS, k=random.randint(3, 6)),
             location_city=city,
             location_country=country,
+            location_lat=lat,
+            location_lng=lng,
             verification_status=VerificationStatus.VERIFIED,
             verified_at=datetime.utcnow(),
             profile_details={
@@ -375,7 +396,7 @@ def seed_demo_groups(
     creators: list[User],
     count: int,
     category_mode: str,
-    locations: list[tuple[str, str]],
+    locations: list[tuple[str, str, float | None, float | None]],
     provider_mode: str,
     seed_value: int | None,
 ) -> int:
@@ -389,7 +410,7 @@ def seed_demo_groups(
     for _ in range(count):
         creator = random.choice(creators)
         activity = random.choice(GROUP_ACTIVITY_TYPES)
-        city, country = random.choice(locations)
+        city, country, lat, lng = random.choice(locations)
         category = _pick_category(category_mode)
         max_participants = 2 if category == GroupCategory.DATING.value else random.randint(4, 12)
         title = f"{activity.title()} in {city}"
@@ -401,6 +422,8 @@ def seed_demo_groups(
             description=description,
             activity_type=activity,
             location=f"{city}, {country}",
+            location_lat=lat,
+            location_lng=lng,
             destination=city,
             start_date=datetime.utcnow() + timedelta(days=random.randint(3, 60)),
             end_date=datetime.utcnow() + timedelta(days=random.randint(61, 90)),
@@ -469,7 +492,7 @@ def main() -> None:
         "--profile-locations",
         type=str,
         default="",
-        help="Semicolon-separated list of City|Country pairs for profile locations.",
+        help="Semicolon-separated list of City|Country or City|Country|lat|lng for profile locations.",
     )
     parser.add_argument(
         "--photos-per-user",

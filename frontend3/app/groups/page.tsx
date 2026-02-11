@@ -57,18 +57,6 @@ export default function BrowseGroups() {
     setFilters((prev) => {
       const discovery = (user.discovery_settings as Record<string, unknown>) || {};
       const next = { ...prev };
-      if (!prev.location && user.location_city) {
-        next.location = user.location_city;
-      }
-      if (!prev.distance && discovery.distance_km != null) {
-        next.distance = String(discovery.distance_km);
-      }
-      if (!prev.minAge && discovery.age_min != null) {
-        next.minAge = String(discovery.age_min);
-      }
-      if (!prev.maxAge && discovery.age_max != null) {
-        next.maxAge = String(discovery.age_max);
-      }
       if (!prev.gender) {
         const genders = discovery.genders as string[] | undefined;
         const hasMale = genders?.includes("male");
