@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { SignedImage } from "@/components/signed-media";
+import { cropImageToAspect } from "@/lib/image-processing";
 import { getProfilePhotoThumb } from "@/lib/media";
 
 const ORIENTATION_OPTIONS = [
