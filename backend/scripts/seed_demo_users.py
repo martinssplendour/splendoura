@@ -234,6 +234,7 @@ def seed_users(
     if seed_value is not None:
         random.seed(seed_value)
     password = os.getenv("SEED_DEMO_PASSWORD", "splendoura_demo_123")
+    demo_domain = os.getenv("DEMO_EMAIL_DOMAIN", "demo.splendoure.com")
     db = SessionLocal()
     created = 0
     try:
@@ -243,7 +244,7 @@ def seed_users(
             last = random.choice(LAST_NAMES)
             full_name = f"{first} {last}"
             username = _unique_username(db, _slugify(f"{first}{last}"))
-            email = f"{_slugify(full_name)}+demo-{uuid.uuid4().hex[:6]}@seeded.splendoura.local"
+            email = f"{_slugify(full_name)}+demo-{uuid.uuid4().hex[:6]}@{demo_domain}"
 
             if db.query(User).filter(User.email == email).first():
                 continue

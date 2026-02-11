@@ -74,6 +74,8 @@ INTERESTS = [
     "wellness",
 ]
 
+DEMO_EMAIL_DOMAIN = os.getenv("DEMO_EMAIL_DOMAIN", "demo.splendoure.com")
+
 GROUP_ACTIVITY_TYPES = [
     "vacation",
     "clubbing",
@@ -302,7 +304,7 @@ def seed_demo_profiles(
         last = random.choice(LAST_NAMES)
         full_name = f"{first} {last}"
         username = _unique_username(db, f"{first.lower()}{last.lower()}")
-        email = f"{username}+demo-{uuid.uuid4().hex[:6]}@seeded.splendoura.local"
+        email = f"{username}+demo-{uuid.uuid4().hex[:6]}@{DEMO_EMAIL_DOMAIN}"
 
         if db.query(User).filter(User.email == email).first():
             continue
