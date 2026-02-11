@@ -154,6 +154,34 @@ def _pick_category(category_mode: str) -> str:
     )
 
 
+def _is_demo_user(user: User) -> bool:
+    details = user.profile_details or {}
+    if isinstance(details, dict) and details.get("demo_profile") is True:
+        return True
+    email = (user.email or "").lower()
+    if "+demo-" in email or email.endswith(f"@{DEMO_EMAIL_DOMAIN}"):
+        return True
+    return False
+
+
+def _is_demo_group(group: Group, demo_user_ids: set[int]) -> bool:
+    tags = group.tags or []
+    if isinstance(tags, list) and "demo" in tags:
+        return True
+    return group.creator_id in demo_user_ids
+
+
+def _split_location(label: str | None) -> tuple[str, str]:
+    if not label:
+        return "", ""
+    parts = [part.strip() for part in label.split(",") if part.strip()]
+    if len(parts) >= 2:
+        return parts[0], parts[1]
+    if parts:
+        return parts[0], ""
+    return "", ""
+
+
 def _parse_locations(raw: str | None) -> list[tuple[str, str, float | None, float | None]]:
     if not raw:
         return DEFAULT_LOCATIONS
@@ -489,6 +517,135 @@ def seed_demo_groups(
     return created
 
 
+def backfill_demo_profiles(
+    *,
+    db,
+    photos_per_user: int,
+    provider_mode: str,
+    seed_value: int | None,
+) -> int:
+    if seed_value is not None:
+        random.seed(seed_value + 2)
+    updated = 0
+    round_index = 0
+    users = db.query(User).filter(User.deleted_at.is_(None)).all()
+    for user in users:
+        if not _is_demo_user(user):
+            continue
+        media = user.profile_media or {}
+        existing_photos = media.get("photos") if isinstance(media, dict) else None
+        if existing_photos:
+            continue
+        gender = user.gender or _pick_gender("random")
+        age = user.age or _pick_age(21, 38)
+        photos: list[str] = []
+        thumbs: dict[str, str] = {}
+        for index in range(photos_per_user):
+            prompt = _portrait_prompt(gender, age)
+            generated = _generate_image(prompt, provider_mode, round_index)
+            round_index += 1
+            if not generated:
+                _log_image(
+                    f"[profile:{user.username}] image generation failed for photo {index + 1}/{photos_per_user}"
+                )
+                continue
+            data, content_type = generated
+            try:
+                url, thumb_url = _store_public_image(
+                    data=data,
+                    content_type=content_type,
+                    prefix=f"users/{user.username or user.id}",
+                    filename=f"{user.username or user.id}-portrait-{index}.png",
+                )
+            except Exception as exc:
+                _log_image(
+                    f"[profile:{user.username}] upload failed for photo {index + 1}/{photos_per_user}: {exc}"
+                )
+                continue
+            photos.append(url)
+            if thumb_url:
+                thumbs[url] = thumb_url
+            _log_image(
+                f"[profile:{user.username}] uploaded photo {index + 1}/{photos_per_user}: {url}"
+            )
+        if photos:
+            user.profile_image_url = photos[0]
+            user.profile_media = {
+                "photos": photos,
+                "photo_thumbs": thumbs,
+                "photo_verified": False,
+                "profile_image_thumb_url": thumbs.get(photos[0]) if thumbs else None,
+            }
+            db.add(user)
+            db.commit()
+            updated += 1
+            print(f"Backfilled demo profile media: {user.full_name} (@{user.username})")
+    return updated
+
+
+def backfill_demo_groups(
+    *,
+    db,
+    provider_mode: str,
+    seed_value: int | None,
+) -> int:
+    if seed_value is not None:
+        random.seed(seed_value + 3)
+    updated = 0
+    round_index = 0
+    demo_user_ids = {
+        user.id for user in db.query(User).filter(User.deleted_at.is_(None)).all() if _is_demo_user(user)
+    }
+    groups = db.query(Group).filter(Group.deleted_at.is_(None)).all()
+    for group in groups:
+        if not _is_demo_group(group, demo_user_ids):
+            continue
+        cover = db.query(GroupMedia).filter(
+            GroupMedia.group_id == group.id,
+            GroupMedia.is_cover.is_(True),
+            GroupMedia.deleted_at.is_(None),
+        ).first()
+        if cover:
+            continue
+        activity = group.activity_type or "outing"
+        city, country = _split_location(group.location)
+        if not city:
+            city = "a city"
+        if not country:
+            country = "a country"
+        prompt = _group_prompt(activity, city, country)
+        generated = _generate_image(prompt, provider_mode, round_index)
+        round_index += 1
+        if not generated:
+            _log_image(f"[group:{group.id}] image generation failed.")
+            continue
+        data, content_type = generated
+        try:
+            url, thumb_url = _store_public_image(
+                data=data,
+                content_type=content_type,
+                prefix=f"groups/{group.id}",
+                filename=f"group-{group.id}-cover.png",
+            )
+        except Exception as exc:
+            _log_image(f"[group:{group.id}] upload failed: {exc}")
+            continue
+        media = GroupMedia(
+            group_id=group.id,
+            uploader_id=group.creator_id,
+            url=url,
+            thumb_url=thumb_url,
+            media_type=GroupMediaType.IMAGE,
+            is_cover=True,
+        )
+        db.add(media)
+        db.commit()
+        updated += 1
+        _log_image(f"[group:{group.id}] uploaded cover: {url}")
+        print(f"Backfilled demo group media: {group.title}")
+    return updated
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed demo profiles and groups with AI images.")
     parser.add_argument("--profiles", type=int, default=20, help="Number of demo profiles.")
@@ -525,33 +682,72 @@ def main() -> None:
         default="auto",
         help="Image provider: openai, gemini, or auto.",
     )
+    parser.add_argument(
+        "--backfill",
+        action="store_true",
+        help="Backfill missing demo media instead of creating new demo content.",
+    )
+    parser.add_argument(
+        "--backfill-profiles",
+        action="store_true",
+        help="Backfill demo profile images only.",
+    )
+    parser.add_argument(
+        "--backfill-groups",
+        action="store_true",
+        help="Backfill demo group cover images only.",
+    )
     parser.add_argument("--seed", type=int, default=None, help="Random seed.")
     args = parser.parse_args()
 
     db = SessionLocal()
     try:
-        location_pool = _parse_locations(args.profile_locations)
-        users = seed_demo_profiles(
-            db=db,
-            count=args.profiles,
-            photos_per_user=args.photos_per_user,
-            gender_mode=args.gender,
-            min_age=args.age_min,
-            max_age=args.age_max,
-            locations=location_pool,
-            provider_mode=args.provider,
-            seed_value=args.seed,
-        )
-        created_groups = seed_demo_groups(
-            db=db,
-            creators=users,
-            count=args.groups,
-            category_mode=args.group_category,
-            locations=location_pool,
-            provider_mode=args.provider,
-            seed_value=args.seed,
-        )
-        print(f"Seeded {len(users)} demo profiles and {created_groups} demo groups.")
+        do_profiles = args.backfill or args.backfill_profiles
+        do_groups = args.backfill or args.backfill_groups
+        if do_profiles or do_groups:
+            updated_profiles = (
+                backfill_demo_profiles(
+                    db=db,
+                    photos_per_user=args.photos_per_user,
+                    provider_mode=args.provider,
+                    seed_value=args.seed,
+                )
+                if do_profiles
+                else 0
+            )
+            updated_groups = (
+                backfill_demo_groups(
+                    db=db,
+                    provider_mode=args.provider,
+                    seed_value=args.seed,
+                )
+                if do_groups
+                else 0
+            )
+            print(f"Backfilled demo media: profiles={updated_profiles}, groups={updated_groups}.")
+        else:
+            location_pool = _parse_locations(args.profile_locations)
+            users = seed_demo_profiles(
+                db=db,
+                count=args.profiles,
+                photos_per_user=args.photos_per_user,
+                gender_mode=args.gender,
+                min_age=args.age_min,
+                max_age=args.age_max,
+                locations=location_pool,
+                provider_mode=args.provider,
+                seed_value=args.seed,
+            )
+            created_groups = seed_demo_groups(
+                db=db,
+                creators=users,
+                count=args.groups,
+                category_mode=args.group_category,
+                locations=location_pool,
+                provider_mode=args.provider,
+                seed_value=args.seed,
+            )
+            print(f"Seeded {len(users)} demo profiles and {created_groups} demo groups.")
     finally:
         db.close()
 
