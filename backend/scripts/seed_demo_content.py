@@ -87,7 +87,7 @@ GROUP_ACTIVITY_TYPES = [
     "picnic",
 ]
 
-LOCATIONS = [
+DEFAULT_LOCATIONS = [
     ("Cape Town", "South Africa"),
     ("Ibiza", "Spain"),
     ("Lagos", "Nigeria"),
@@ -145,6 +145,27 @@ def _pick_category(category_mode: str) -> str:
             GroupCategory.DATING.value,
         ]
     )
+
+
+def _parse_locations(raw: str | None) -> list[tuple[str, str]]:
+    if not raw:
+        return DEFAULT_LOCATIONS
+    parsed: list[tuple[str, str]] = []
+    for entry in raw.split(";"):
+        entry = entry.strip()
+        if not entry:
+            continue
+        if "|" in entry:
+            city, country = entry.split("|", 1)
+        elif "," in entry:
+            city, country = entry.split(",", 1)
+        else:
+            continue
+        city = city.strip()
+        country = country.strip()
+        if city and country:
+            parsed.append((city, country))
+    return parsed or DEFAULT_LOCATIONS
 
 
 def _openai_image(prompt: str) -> tuple[bytes, str] | None:
@@ -264,6 +285,7 @@ def seed_demo_profiles(
     gender_mode: str,
     min_age: int,
     max_age: int,
+    locations: list[tuple[str, str]],
     provider_mode: str,
     seed_value: int | None,
 ) -> list[User]:
@@ -285,6 +307,7 @@ def seed_demo_profiles(
             continue
 
         age = _pick_age(min_age, max_age)
+        city, country = random.choice(locations)
         user = User(
             email=email,
             username=username,
@@ -295,6 +318,8 @@ def seed_demo_profiles(
             sexual_orientation=random.choice(["straight", "bisexual", "gay", "other"]),
             bio="Demo profile.",
             interests=random.sample(INTERESTS, k=random.randint(3, 6)),
+            location_city=city,
+            location_country=country,
             verification_status=VerificationStatus.VERIFIED,
             verified_at=datetime.utcnow(),
             profile_details={
@@ -345,6 +370,7 @@ def seed_demo_groups(
     creators: list[User],
     count: int,
     category_mode: str,
+    locations: list[tuple[str, str]],
     provider_mode: str,
     seed_value: int | None,
 ) -> int:
@@ -358,7 +384,7 @@ def seed_demo_groups(
     for _ in range(count):
         creator = random.choice(creators)
         activity = random.choice(GROUP_ACTIVITY_TYPES)
-        city, country = random.choice(LOCATIONS)
+        city, country = random.choice(locations)
         category = _pick_category(category_mode)
         max_participants = 2 if category == GroupCategory.DATING.value else random.randint(4, 12)
         title = f"{activity.title()} in {city}"
@@ -434,6 +460,12 @@ def main() -> None:
     parser.add_argument("--age-min", type=int, default=21, help="Minimum age (18+).")
     parser.add_argument("--age-max", type=int, default=38, help="Maximum age.")
     parser.add_argument(
+        "--profile-locations",
+        type=str,
+        default="",
+        help="Semicolon-separated list of City|Country pairs for profile locations.",
+    )
+    parser.add_argument(
         "--photos-per-user",
         type=int,
         default=3,
@@ -450,6 +482,7 @@ def main() -> None:
 
     db = SessionLocal()
     try:
+        location_pool = _parse_locations(args.profile_locations)
         users = seed_demo_profiles(
             db=db,
             count=args.profiles,
@@ -457,6 +490,7 @@ def main() -> None:
             gender_mode=args.gender,
             min_age=args.age_min,
             max_age=args.age_max,
+            locations=location_pool,
             provider_mode=args.provider,
             seed_value=args.seed,
         )
@@ -465,6 +499,7 @@ def main() -> None:
             creators=users,
             count=args.groups,
             category_mode=args.group_category,
+            locations=location_pool,
             provider_mode=args.provider,
             seed_value=args.seed,
         )
