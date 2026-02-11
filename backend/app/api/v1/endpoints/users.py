@@ -28,6 +28,10 @@ router = APIRouter()
 class PhotoRemove(BaseModel):
     url: str
 
+
+class PhotoSet(BaseModel):
+    url: str
+
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -351,6 +355,44 @@ def delete_profile_photo(
                 db.add(blob)
         except (ValueError, IndexError):
             pass
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.put("/me/photo", response_model=schemas.User, dependencies=[Depends(deps.rate_limit)])
+def set_primary_photo(
+    *,
+    db: Session = Depends(deps.get_db),
+    payload: PhotoSet = Body(...),
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    """Set one of the user's uploaded photos as the primary profile image."""
+    url = (payload.url or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="Photo URL is required.")
+    media = current_user.profile_media or {}
+    photos = media.get("photos") or []
+    if url not in photos:
+        raise HTTPException(status_code=404, detail="Photo not found.")
+
+    # Move selected photo to the front so ordering matches the primary photo.
+    reordered = [url] + [photo for photo in photos if photo != url]
+    media["photos"] = reordered
+    current_user.profile_image_url = url
+
+    thumbs = media.get("photo_thumbs")
+    if isinstance(thumbs, dict):
+        thumb = thumbs.get(url)
+        if thumb:
+            media["profile_image_thumb_url"] = thumb
+        else:
+            media.pop("profile_image_thumb_url", None)
+    else:
+        media.pop("profile_image_thumb_url", None)
+
+    current_user.profile_media = media
     db.add(current_user)
     db.commit()
     db.refresh(current_user)

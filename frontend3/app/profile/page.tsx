@@ -6,7 +6,6 @@ import { Settings } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { cropImageToAspect } from "@/lib/image-processing";
 import { SignedImage } from "@/components/signed-media";
 import { getProfilePhotoThumb } from "@/lib/media";
 
@@ -95,9 +94,8 @@ const calculateAge = (dob: string) => {
 
 export default function ProfilePage() {
   const { accessToken, user, refreshSession } = useAuth();
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [pendingIndex, setPendingIndex] = useState(0);
-  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedPreviewUrls, setSelectedPreviewUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [pendingVerification, setPendingVerification] = useState<{
     type: "photo" | "id";
@@ -107,7 +105,7 @@ export default function ProfilePage() {
   const [status, setStatus] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
-  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+  const [isSettingPrimary, setIsSettingPrimary] = useState(false);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
 
   const [username, setUsername] = useState("");
@@ -184,6 +182,7 @@ export default function ProfilePage() {
 
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoVerified, setPhotoVerified] = useState(false);
+  const [primaryPhotoUrl, setPrimaryPhotoUrl] = useState<string | null>(null);
   const [createdGroups, setCreatedGroups] = useState<CreatedGroup[]>([]);
   const [createdLoading, setCreatedLoading] = useState(false);
   const [createdError, setCreatedError] = useState<string | null>(null);
@@ -258,6 +257,7 @@ export default function ProfilePage() {
     setPrompts((media.prompts as string[]) || ["", "", ""]);
     setPhotos((media.photos as string[]) || []);
     setPhotoVerified(Boolean(media.photo_verified));
+    setPrimaryPhotoUrl(user?.profile_image_url || null);
     setAvailabilityWindows(((details.availability_windows as string[]) || []).join(", "));
     const safetySettings = (details.safety_settings as Record<string, unknown>) || {};
     setBlockNudity(Boolean(safetySettings.block_nudity));
@@ -396,19 +396,16 @@ export default function ProfilePage() {
   ]);
 
   useEffect(() => {
-    if (pendingFiles.length === 0) {
-      setPendingPreviewUrl(null);
+    if (selectedFiles.length === 0) {
+      setSelectedPreviewUrls([]);
       return;
     }
-    const file = pendingFiles[pendingIndex];
-    if (!file) {
-      setPendingPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPendingPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [pendingFiles, pendingIndex]);
+    const urls = selectedFiles.map((file) => URL.createObjectURL(file));
+    setSelectedPreviewUrls(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [selectedFiles]);
 
   useEffect(() => {
     if (!pendingVerification?.file) {
@@ -424,20 +421,8 @@ export default function ProfilePage() {
     const selected = Array.from(event.target.files || []);
     if (selected.length === 0) return;
     setStatus(null);
-    setPendingFiles(selected);
-    setPendingIndex(0);
+    setSelectedFiles(selected);
     event.target.value = "";
-  };
-
-  const advancePending = () => {
-    setPendingIndex((prev) => {
-      const next = prev + 1;
-      if (next >= pendingFiles.length) {
-        setPendingFiles([]);
-        return 0;
-      }
-      return next;
-    });
   };
 
   const uploadProfileFile = async (file: File) => {
@@ -455,31 +440,36 @@ export default function ProfilePage() {
     return res.json();
   };
 
-  const handleConfirmUpload = async (mode: "original" | "crop") => {
+  const handleUploadSelected = async () => {
     if (!accessToken) {
       setStatus("Please sign in to upload photos.");
       return;
     }
-    const file = pendingFiles[pendingIndex];
-    if (!file) {
+    if (selectedFiles.length === 0) {
       setStatus("Select at least one image.");
       return;
     }
-    if (photos.length + 1 > 9) {
+    if (photos.length + selectedFiles.length > 9) {
       setStatus("You can upload up to 9 photos.");
       return;
     }
     setIsUploading(true);
     setStatus(null);
     try {
-      const uploadFile = mode === "crop" ? await cropImageToAspect(file) : file;
-      const updated = await uploadProfileFile(uploadFile);
-      const media = (updated?.profile_media as Record<string, unknown>) || {};
-      setPhotos((media.photos as string[]) || []);
-      setPhotoVerified(Boolean(media.photo_verified));
+      let updated: Record<string, unknown> | null = null;
+      for (const file of selectedFiles) {
+        updated = (await uploadProfileFile(file)) as Record<string, unknown>;
+      }
+      if (updated) {
+        const media = (updated.profile_media as Record<string, unknown>) || {};
+        const updatedPhotos = (media.photos as string[]) || [];
+        setPhotos(updatedPhotos);
+        setPhotoVerified(Boolean(media.photo_verified));
+        setPrimaryPhotoUrl((updated.profile_image_url as string) || updatedPhotos[0] || null);
+      }
       await refreshSession();
-      setStatus("Photo uploaded successfully.");
-      advancePending();
+      setSelectedFiles([]);
+      setStatus("Photos uploaded.");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed.";
       setStatus(message);
@@ -488,15 +478,8 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSkipPending = () => {
-    if (pendingFiles.length === 0) return;
-    advancePending();
-  };
-
-  const handleCancelPending = () => {
-    setPendingFiles([]);
-    setPendingIndex(0);
-    setPendingPreviewUrl(null);
+  const handleClearSelected = () => {
+    setSelectedFiles([]);
   };
 
   const handleDeletePhoto = async (photoUrl: string) => {
@@ -519,6 +502,7 @@ export default function ProfilePage() {
       const updated = await res.json();
       const media = (updated.profile_media as Record<string, unknown>) || {};
       setPhotos((media.photos as string[]) || []);
+      setPrimaryPhotoUrl(updated.profile_image_url || null);
       await refreshSession();
       setStatus("Photo removed.");
     } catch (err) {
@@ -526,6 +510,41 @@ export default function ProfilePage() {
       setStatus(message);
     } finally {
       setIsDeletingPhoto(false);
+    }
+  };
+
+  const handleSetPrimary = async (photoUrl: string) => {
+    if (!accessToken) {
+      setStatus("Please sign in to update your profile photo.");
+      return;
+    }
+    if (photoUrl === primaryPhotoUrl) {
+      return;
+    }
+    setIsSettingPrimary(true);
+    setStatus(null);
+    try {
+      const res = await apiFetch("/users/me/photo", {
+        method: "PUT",
+        token: accessToken,
+        body: JSON.stringify({ url: photoUrl }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.detail || "Unable to update profile photo.");
+      }
+      const updated = await res.json();
+      const media = (updated.profile_media as Record<string, unknown>) || {};
+      const updatedPhotos = (media.photos as string[]) || [];
+      setPhotos(updatedPhotos);
+      setPrimaryPhotoUrl(updated.profile_image_url || photoUrl);
+      await refreshSession();
+      setStatus("Primary photo updated.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to update profile photo.";
+      setStatus(message);
+    } finally {
+      setIsSettingPrimary(false);
     }
   };
 
@@ -780,23 +799,29 @@ export default function ProfilePage() {
           ) : (
             photos.map((photo) => {
               const thumbUrl = getProfilePhotoThumb(photo, user?.profile_media, true);
+              const isPrimary = photo === primaryPhotoUrl;
               return (
                 <div key={photo} className="relative">
                   <SignedImage
                     src={thumbUrl || photo}
                     alt="Profile"
-                    onClick={() => setPreviewPhoto(photo)}
-                    className="h-24 w-24 cursor-zoom-in rounded-2xl object-cover"
+                    onClick={() => handleSetPrimary(photo)}
+                    className={`h-24 w-24 cursor-pointer rounded-2xl object-cover ring-2 ${isPrimary ? "ring-blue-500" : "ring-transparent hover:ring-slate-300"}`}
                   />
-                <button
-                  type="button"
-                  onClick={() => handleDeletePhoto(photo)}
-                  disabled={isDeletingPhoto}
-                  aria-label="Remove photo"
-                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
-                >
-                  x
-                </button>
+                  {isPrimary ? (
+                    <span className="absolute left-1 top-1 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                      Primary
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePhoto(photo)}
+                    disabled={isDeletingPhoto}
+                    aria-label="Remove photo"
+                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                  >
+                    x
+                  </button>
                 </div>
               );
             })
@@ -818,78 +843,51 @@ export default function ProfilePage() {
           >
             {isUploading ? "Uploading..." : "Choose photos"}
           </Button>
+          <Button
+            variant="outline"
+            onClick={handleUploadSelected}
+            disabled={isUploading || selectedFiles.length === 0}
+          >
+            {isUploading ? "Uploading..." : "Upload selected"}
+          </Button>
+          {selectedFiles.length > 0 ? (
+            <button
+              type="button"
+              onClick={handleClearSelected}
+              className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+            >
+              Clear selection
+            </button>
+          ) : null}
+          {isSettingPrimary ? (
+            <span className="text-xs font-semibold text-slate-500">Updating primary photo...</span>
+          ) : null}
           {photoVerified ? (
             <span className="text-sm font-semibold text-emerald-600">Photo verified</span>
           ) : (
             <span className="text-sm text-slate-500">Verification pending</span>
           )}
         </div>
-        {pendingPreviewUrl ? (
+        {selectedPreviewUrls.length > 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="text-xs font-semibold text-slate-500">
-              Preview {pendingIndex + 1} of {pendingFiles.length}
+              Selected {selectedPreviewUrls.length} photo{selectedPreviewUrls.length === 1 ? "" : "s"}
             </p>
-            <img
-              src={pendingPreviewUrl}
-              alt="Pending upload"
-              className="mt-3 h-56 w-full rounded-2xl object-cover"
-            />
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <Button
-                onClick={() => handleConfirmUpload("original")}
-                disabled={isUploading}
-                className="bg-blue-600 text-white hover:bg-blue-700"
-              >
-                {isUploading ? "Uploading..." : "Upload original"}
-              </Button>
-              <Button variant="outline" onClick={() => handleConfirmUpload("crop")}>
-                Crop & upload
-              </Button>
-              <button
-                type="button"
-                onClick={handleSkipPending}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-700"
-              >
-                Skip
-              </button>
-              <button
-                type="button"
-                onClick={handleCancelPending}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-700"
-              >
-                Cancel all
-              </button>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {selectedPreviewUrls.map((previewUrl, index) => (
+                <img
+                  key={`${previewUrl}-${index}`}
+                  src={previewUrl}
+                  alt="Selected upload"
+                  className="h-24 w-24 rounded-2xl object-cover"
+                />
+              ))}
             </div>
           </div>
         ) : null}
         {status ? <p className="text-sm text-slate-600">{status}</p> : null}
       </div>
 
-      {previewPhoto ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
-          onClick={() => setPreviewPhoto(null)}
-        >
-          <div
-            className="relative max-h-[90vh] max-w-[90vw]"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <SignedImage
-              src={previewPhoto}
-              alt="Full size profile"
-              className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain"
-            />
-            <button
-              type="button"
-              onClick={() => setPreviewPhoto(null)}
-              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-lg font-semibold text-white hover:bg-rose-700"
-              aria-label="Close"
-            >
-              x
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">Identity & basics</h2>
