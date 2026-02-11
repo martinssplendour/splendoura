@@ -452,6 +452,7 @@ export default function ProfilePage() {
       const payload = await res.json().catch(() => null);
       throw new Error(payload?.detail || "Upload failed.");
     }
+    return res.json();
   };
 
   const handleConfirmUpload = async (mode: "original" | "crop") => {
@@ -472,7 +473,10 @@ export default function ProfilePage() {
     setStatus(null);
     try {
       const uploadFile = mode === "crop" ? await cropImageToAspect(file) : file;
-      await uploadProfileFile(uploadFile);
+      const updated = await uploadProfileFile(uploadFile);
+      const media = (updated?.profile_media as Record<string, unknown>) || {};
+      setPhotos((media.photos as string[]) || []);
+      setPhotoVerified(Boolean(media.photo_verified));
       await refreshSession();
       setStatus("Photo uploaded successfully.");
       advancePending();
