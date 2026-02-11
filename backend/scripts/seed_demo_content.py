@@ -286,7 +286,12 @@ def _gemini_image(prompt: str) -> tuple[bytes, str] | None:
         return None
     model = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseModalities": ["IMAGE"],
+        },
+    }
     headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
     try:
         response = httpx.post(url, json=payload, headers=headers, timeout=60.0)
@@ -307,12 +312,12 @@ def _gemini_image(prompt: str) -> tuple[bytes, str] | None:
     for candidate in candidates:
         parts = (candidate.get("content") or {}).get("parts") or []
         for part in parts:
-            inline = part.get("inline_data") or {}
+            inline = part.get("inlineData") or part.get("inline_data") or {}
             b64 = inline.get("data")
-            mime = inline.get("mime_type") or "image/png"
+            mime = inline.get("mimeType") or inline.get("mime_type") or "image/png"
             if b64:
                 return base64.b64decode(b64), mime
-    _log_image("[gemini] missing image data in response")
+    _log_image(f"[gemini] missing image data in response: {_truncate_log(str(data))}")
     return None
 
 
