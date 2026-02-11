@@ -7,10 +7,10 @@ from app.models.group import AppliesTo, CostType, GroupCategory, GroupStatus, Gr
 # Define classes in order of dependency
 class GroupRequirementBase(BaseModel):
     applies_to: AppliesTo
-    min_age: int = Field(ge=18)
-    max_age: int
+    min_age: Optional[int] = Field(default=None, ge=18)
+    max_age: Optional[int] = None
     additional_requirements: Optional[str] = None
-    consent_flags: Dict[str, bool]
+    consent_flags: Optional[Dict[str, bool]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -30,7 +30,7 @@ class GroupCreate(BaseModel):
     cost_type: CostType
     offerings: List[str] = Field(min_length=2)
     rules: Optional[str] = None
-    expectations: Optional[str] = None
+    expectations: Optional[str | List[str]] = None
     tags: Optional[List[str]] = None
     creator_intro: Optional[str] = None
     creator_intro_video_url: Optional[str] = None
@@ -53,7 +53,7 @@ class GroupUpdate(BaseModel):
     cost_type: Optional[CostType] = None
     offerings: Optional[List[str]] = None
     rules: Optional[str] = None
-    expectations: Optional[str] = None
+    expectations: Optional[str | List[str]] = None
     tags: Optional[List[str]] = None
     creator_intro: Optional[str] = None
     creator_intro_video_url: Optional[str] = None
@@ -80,7 +80,7 @@ class Group(BaseModel):
     cost_type: CostType
     offerings: Optional[List[str]] = None
     rules: Optional[str] = None
-    expectations: Optional[str] = None
+    expectations: Optional[str | List[str]] = None
     tags: Optional[List[str]] = None
     creator_intro: Optional[str] = None
     creator_intro_video_url: Optional[str] = None
