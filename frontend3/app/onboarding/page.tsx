@@ -28,6 +28,7 @@ export default function OnboardingPage() {
   const [prompts, setPrompts] = useState<string[]>([...promptDefaults]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [blockNudity, setBlockNudity] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -60,6 +61,10 @@ export default function OnboardingPage() {
     setPhotoPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [photoFile]);
+
+  useEffect(() => {
+    setUploadedPhotoUrl(user?.profile_image_url || null);
+  }, [user?.profile_image_url]);
 
   const completedCount = useMemo(() => {
     let count = 0;
@@ -139,6 +144,10 @@ export default function OnboardingPage() {
           const data = await res.json().catch(() => null);
           throw new Error(data?.detail || "Photo upload failed.");
         }
+        const updated = await res.json();
+        const media = (updated?.profile_media as Record<string, unknown>) || {};
+        const photos = Array.isArray(media.photos) ? (media.photos as string[]) : [];
+        setUploadedPhotoUrl(updated?.profile_image_url || photos[0] || null);
         setPhotoFile(null);
         await refreshSession();
         setStatus("Photo uploaded.");
@@ -267,9 +276,9 @@ export default function OnboardingPage() {
       {step === 3 ? (
         <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Add a photo</h2>
-          {user?.profile_image_url ? (
+          {uploadedPhotoUrl || user?.profile_image_url ? (
             <SignedImage
-              src={user.profile_image_url}
+              src={uploadedPhotoUrl || user?.profile_image_url}
               alt="Profile"
               className="h-48 w-full rounded-2xl object-cover"
             />
