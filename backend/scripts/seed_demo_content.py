@@ -115,6 +115,12 @@ def _log_image(message: str) -> None:
         print(message)
 
 
+def _truncate_log(value: str, limit: int = 500) -> str:
+    if len(value) <= limit:
+        return value
+    return f"{value[:limit]}..."
+
+
 def _unique_username(db, base: str) -> str:
     candidate = base
     counter = 1
@@ -244,14 +250,24 @@ def _openai_image(prompt: str) -> tuple[bytes, str] | None:
             headers=headers,
             timeout=60.0,
         )
-        response.raise_for_status()
-        data = response.json()
-        b64 = (data.get("data") or [{}])[0].get("b64_json")
-        if not b64:
-            return None
-        return base64.b64decode(b64), "image/png"
-    except Exception:
+    except Exception as exc:
+        _log_image(f"[openai] request failed: {exc}")
         return None
+    if response.status_code >= 400:
+        _log_image(
+            f"[openai] {response.status_code} {_truncate_log(response.text)}"
+        )
+        return None
+    try:
+        data = response.json()
+    except Exception as exc:
+        _log_image(f"[openai] invalid JSON response: {exc}")
+        return None
+    b64 = (data.get("data") or [{}])[0].get("b64_json")
+    if not b64:
+        _log_image("[openai] missing image data in response")
+        return None
+    return base64.b64decode(b64), "image/png"
 
 
 def _gemini_image(prompt: str) -> tuple[bytes, str] | None:
@@ -264,19 +280,29 @@ def _gemini_image(prompt: str) -> tuple[bytes, str] | None:
     headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
     try:
         response = httpx.post(url, json=payload, headers=headers, timeout=60.0)
-        response.raise_for_status()
-        data = response.json()
-        candidates = data.get("candidates") or []
-        for candidate in candidates:
-            parts = (candidate.get("content") or {}).get("parts") or []
-            for part in parts:
-                inline = part.get("inline_data") or {}
-                b64 = inline.get("data")
-                mime = inline.get("mime_type") or "image/png"
-                if b64:
-                    return base64.b64decode(b64), mime
-    except Exception:
+    except Exception as exc:
+        _log_image(f"[gemini] request failed: {exc}")
         return None
+    if response.status_code >= 400:
+        _log_image(
+            f"[gemini] {response.status_code} {_truncate_log(response.text)}"
+        )
+        return None
+    try:
+        data = response.json()
+    except Exception as exc:
+        _log_image(f"[gemini] invalid JSON response: {exc}")
+        return None
+    candidates = data.get("candidates") or []
+    for candidate in candidates:
+        parts = (candidate.get("content") or {}).get("parts") or []
+        for part in parts:
+            inline = part.get("inline_data") or {}
+            b64 = inline.get("data")
+            mime = inline.get("mime_type") or "image/png"
+            if b64:
+                return base64.b64decode(b64), mime
+    _log_image("[gemini] missing image data in response")
     return None
 
 
