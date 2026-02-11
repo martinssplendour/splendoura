@@ -32,6 +32,7 @@ export default function BrowseGroups() {
   const findTypeParam = searchParams.get("findType");
   const [groups, setGroups] = useState<SwipeGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [groupsError, setGroupsError] = useState<string | null>(null);
   const [filters, setFilters] = useState<GroupFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState("smart");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -131,10 +132,11 @@ export default function BrowseGroups() {
   useEffect(() => {
     async function loadGroups() {
       setLoading(true);
+      setGroupsError(null);
       const endpoint = accessToken ? "/groups/discover" : "/groups/";
       const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
       let res = await apiFetch(url, accessToken ? { token: accessToken } : undefined);
-      if (res.status === 401 && accessToken) {
+      if ((!res.ok || res.status === 401 || res.status === 403) && accessToken) {
         const fallbackUrl = queryParams.toString()
           ? `/groups/?${queryParams.toString()}`
           : "/groups/";
@@ -143,6 +145,9 @@ export default function BrowseGroups() {
       if (res.ok) {
         const data: SwipeGroup[] = await res.json();
         setGroups(data);
+      } else {
+        const payload = await res.json().catch(() => null);
+        setGroupsError(payload?.detail || "Unable to load groups right now.");
       }
       setLoading(false);
     }
@@ -297,6 +302,9 @@ export default function BrowseGroups() {
         </div>
 
         <div className="space-y-4 sm:space-y-8">
+          {groupsError && (
+            <p className="text-sm text-rose-600">{groupsError}</p>
+          )}
           <div className="hidden flex-wrap items-center justify-between gap-4 sm:flex">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
