@@ -291,8 +291,8 @@ def upload_profile_photo(
         db.flush()
         photo_url = f"/api/v1/media/{blob.id}"
     current_user.profile_image_url = current_user.profile_image_url or photo_url
-    media = current_user.profile_media or {}
-    photos = media.get("photos") or []
+    media = dict(current_user.profile_media or {})
+    photos = list(media.get("photos") or [])
     if len(photos) >= 9:
         raise HTTPException(status_code=400, detail="You can upload up to 9 photos.")
     photos.append(photo_url)
@@ -301,6 +301,8 @@ def upload_profile_photo(
         thumbs = media.get("photo_thumbs")
         if not isinstance(thumbs, dict):
             thumbs = {}
+        else:
+            thumbs = dict(thumbs)
         thumbs[photo_url] = thumb_url
         media["photo_thumbs"] = thumbs
         if current_user.profile_image_url == photo_url:
@@ -326,14 +328,15 @@ def delete_profile_photo(
     url = (payload.url or "").strip()
     if not url:
         raise HTTPException(status_code=400, detail="Photo URL is required.")
-    media = current_user.profile_media or {}
-    photos = media.get("photos") or []
+    media = dict(current_user.profile_media or {})
+    photos = list(media.get("photos") or [])
     if url not in photos:
         raise HTTPException(status_code=404, detail="Photo not found.")
     photos = [photo for photo in photos if photo != url]
     media["photos"] = photos
     thumbs = media.get("photo_thumbs")
     if isinstance(thumbs, dict) and url in thumbs:
+        thumbs = dict(thumbs)
         thumbs.pop(url, None)
         if thumbs:
             media["photo_thumbs"] = thumbs
@@ -372,8 +375,8 @@ def set_primary_photo(
     url = (payload.url or "").strip()
     if not url:
         raise HTTPException(status_code=400, detail="Photo URL is required.")
-    media = current_user.profile_media or {}
-    photos = media.get("photos") or []
+    media = dict(current_user.profile_media or {})
+    photos = list(media.get("photos") or [])
     if url not in photos:
         raise HTTPException(status_code=404, detail="Photo not found.")
 
@@ -384,6 +387,7 @@ def set_primary_photo(
 
     thumbs = media.get("photo_thumbs")
     if isinstance(thumbs, dict):
+        thumbs = dict(thumbs)
         thumb = thumbs.get(url)
         if thumb:
             media["profile_image_thumb_url"] = thumb
@@ -487,7 +491,7 @@ def upload_photo_verification(
         db.add(blob)
         db.flush()
         photo_url = f"/api/v1/media/{blob.id}"
-    media = current_user.profile_media or {}
+    media = dict(current_user.profile_media or {})
     media["photo_verification_url"] = photo_url
     media["photo_verified"] = False
     current_user.profile_media = media
@@ -528,7 +532,7 @@ def upload_id_verification(
         db.add(blob)
         db.flush()
         id_url = f"/api/v1/media/{blob.id}"
-    details = current_user.profile_details or {}
+    details = dict(current_user.profile_details or {})
     details["id_verification_url"] = id_url
     details["id_verification_status"] = "pending"
     details["id_verified"] = False
