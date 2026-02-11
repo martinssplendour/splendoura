@@ -361,7 +361,13 @@ def _portrait_prompt(gender: Gender, age: int) -> str:
     )
 
 
-def _group_prompt(activity: str, city: str, country: str) -> str:
+def _group_prompt(activity: str, city: str, country: str, title: str | None = None) -> str:
+    if title:
+        return (
+            f"High-quality photo that matches the group theme '{title}'. "
+            f"{activity} setting in {city}, {country}. "
+            "Vibrant, inviting, real-life style."
+        )
     return (
         f"High-quality photo of a {activity} location in {city}, {country}. "
         "Vibrant, inviting, real-life style."
@@ -518,7 +524,7 @@ def seed_demo_groups(
         db.add(group)
         db.flush()
 
-        prompt = _group_prompt(activity, city, country)
+        prompt = _group_prompt(activity, city, country, title)
         generated = _generate_image(prompt, provider_mode, round_index)
         round_index += 1
         if generated:
@@ -649,7 +655,7 @@ def backfill_demo_groups(
             city = "a city"
         if not country:
             country = "a country"
-        prompt = _group_prompt(activity, city, country)
+        prompt = _group_prompt(activity, city, country, group.title)
         generated = _generate_image(prompt, provider_mode, round_index)
         round_index += 1
         if not generated:
