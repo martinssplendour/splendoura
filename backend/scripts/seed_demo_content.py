@@ -89,6 +89,172 @@ GROUP_ACTIVITY_TYPES = [
     "picnic",
 ]
 
+GROUP_SCENARIOS = {
+    GroupCategory.MUTUAL_BENEFITS.value: [
+        {
+            "activity": "luxury trip",
+            "title": "Luxury getaway to {city}",
+            "description": (
+                "Mutual benefits: I’m covering flights and a luxury stay in {city}. "
+                "Looking for a companion who enjoys great company and is open to a respectful arrangement."
+            ),
+            "prompt": "luxury hotel, resort lounge, upscale travel",
+            "offerings": ["flights", "hotel", "dinner"],
+            "expectations": ["mutual respect", "discretion", "great company"],
+            "tags": ["luxury", "travel", "arrangement"],
+        },
+        {
+            "activity": "exclusive dinner",
+            "title": "Exclusive dinner + city night in {city}",
+            "description": (
+                "Mutual benefits: I’ll handle an upscale dinner and a night out in {city}. "
+                "Seeking a confident companion for an elegant evening and a mutual arrangement."
+            ),
+            "prompt": "fine dining, skyline, elegant nightlife",
+            "offerings": ["dinner", "drinks", "ride"],
+            "expectations": ["mutual respect", "style", "discretion"],
+            "tags": ["fine dining", "nightlife", "arrangement"],
+        },
+        {
+            "activity": "shopping day",
+            "title": "Shopping + spa day in {city}",
+            "description": (
+                "Mutual benefits: I’ll cover a shopping and spa day in {city}. "
+                "Looking for a companion who values a clear, respectful arrangement."
+            ),
+            "prompt": "luxury shopping, spa day, elegant city",
+            "offerings": ["shopping", "spa", "lunch"],
+            "expectations": ["mutual respect", "clear expectations"],
+            "tags": ["shopping", "spa", "arrangement"],
+        },
+        {
+            "activity": "yacht day",
+            "title": "Yacht day on the coast",
+            "description": (
+                "Mutual benefits: Private yacht day with sunset views. "
+                "Seeking a fun companion for a classy day with a mutual arrangement."
+            ),
+            "prompt": "yacht, ocean, sunset, luxury day",
+            "offerings": ["yacht", "drinks", "photos"],
+            "expectations": ["mutual respect", "good vibes"],
+            "tags": ["yacht", "luxury", "arrangement"],
+        },
+    ],
+    GroupCategory.FRIENDSHIP.value: [
+        {
+            "activity": "hiking",
+            "title": "Hiking crew in {city}",
+            "description": (
+                "Friendship group: weekend hikes and outdoor adventures. "
+                "Costs shared, great company guaranteed."
+            ),
+            "prompt": "friends hiking, scenic trail, outdoors",
+            "offerings": ["shared costs", "snacks"],
+            "expectations": ["be respectful", "show up on time"],
+            "tags": ["hiking", "outdoors", "friends"],
+        },
+        {
+            "activity": "group trip",
+            "title": "Group trip to {city}",
+            "description": (
+                "Friendship group: planning a group trip with shared costs and shared memories."
+            ),
+            "prompt": "friends traveling, city exploration, group trip",
+            "offerings": ["shared costs", "photos"],
+            "expectations": ["be respectful", "share costs"],
+            "tags": ["travel", "friends", "group"],
+        },
+        {
+            "activity": "beach day",
+            "title": "Beach day squad",
+            "description": (
+                "Friendship group: beach day, sun, and good vibes. Bring snacks and share costs."
+            ),
+            "prompt": "friends at beach, sunny day, fun",
+            "offerings": ["shared costs", "snacks"],
+            "expectations": ["be respectful", "good vibes"],
+            "tags": ["beach", "friends"],
+        },
+        {
+            "activity": "food crawl",
+            "title": "Food crawl in {city}",
+            "description": (
+                "Friendship group: try multiple spots in {city}. Everyone pays their share."
+            ),
+            "prompt": "friends eating, city food crawl, casual dining",
+            "offerings": ["shared costs", "photos"],
+            "expectations": ["be respectful", "split costs"],
+            "tags": ["food", "friends", "city"],
+        },
+    ],
+    GroupCategory.DATING.value: [
+        {
+            "activity": "date night",
+            "title": "Rooftop date night in {city}",
+            "description": (
+                "Dating group: classy rooftop dinner with views. Let’s keep it fun and respectful."
+            ),
+            "prompt": "rooftop dinner, city lights, romantic date",
+            "offerings": ["dinner", "drinks"],
+            "expectations": ["be respectful", "good conversation"],
+            "tags": ["dating", "rooftop", "dinner"],
+        },
+        {
+            "activity": "coffee date",
+            "title": "Coffee + bookshop date in {city}",
+            "description": (
+                "Dating group: relaxed coffee date and a bookshop stroll."
+            ),
+            "prompt": "coffee shop, cozy, romantic casual date",
+            "offerings": ["coffee"],
+            "expectations": ["be respectful", "good conversation"],
+            "tags": ["dating", "coffee", "casual"],
+        },
+        {
+            "activity": "museum date",
+            "title": "Museum + gallery date",
+            "description": (
+                "Dating group: art museum date with a calm vibe and good conversation."
+            ),
+            "prompt": "art museum, gallery, date night",
+            "offerings": ["tickets"],
+            "expectations": ["be respectful", "curious vibe"],
+            "tags": ["dating", "museum", "art"],
+        },
+        {
+            "activity": "sunset picnic",
+            "title": "Sunset picnic in {city}",
+            "description": (
+                "Dating group: picnic at sunset with a view. Easygoing and romantic."
+            ),
+            "prompt": "sunset picnic, park, romantic date",
+            "offerings": ["snacks"],
+            "expectations": ["be respectful", "good vibes"],
+            "tags": ["dating", "picnic", "sunset"],
+        },
+    ],
+}
+
+PROFILE_SCENES = [
+    "candid outdoor photo, natural light",
+    "beach day photo, relaxed vibe",
+    "city nightlife photo, stylish outfit",
+    "coffee shop photo, casual look",
+    "festival photo, colorful background",
+    "hiking trail photo, outdoors",
+    "gym or fitness photo, athletic look",
+    "street style photo, urban background",
+    "travel photo with landmarks",
+    "club photo with neon lights",
+]
+
+PROFILE_SHOTS = [
+    "full-body photo",
+    "three-quarter body photo",
+    "lifestyle portrait",
+    "group photo with friends, subject is clearly visible",
+]
+
 DEFAULT_LOCATIONS: list[tuple[str, str, float | None, float | None]] = [
     ("Cape Town", "South Africa", -33.9249, 18.4241),
     ("Ibiza", "Spain", 38.9067, 1.4206),
@@ -360,9 +526,11 @@ def _store_public_image(
 
 def _portrait_prompt(gender: Gender, age: int) -> str:
     gender_text = "male" if gender == Gender.MALE else "female"
+    scene = random.choice(PROFILE_SCENES)
+    shot = random.choice(PROFILE_SHOTS)
     return (
-        f"Photorealistic portrait of an adult {gender_text}, age {age}, "
-        "studio lighting, natural skin texture, high detail, neutral background."
+        f"Photorealistic {shot} of an adult {gender_text}, age {age}, {scene}, "
+        "natural skin texture, high detail, realistic lighting."
     )
 
 
@@ -496,12 +664,17 @@ def seed_demo_groups(
 
     for _ in range(count):
         creator = random.choice(creators)
-        activity = random.choice(GROUP_ACTIVITY_TYPES)
         city, country, lat, lng = random.choice(locations)
         category = _pick_category(category_mode)
+        scenario = random.choice(GROUP_SCENARIOS.get(category, [])) if GROUP_SCENARIOS else None
+        activity = scenario["activity"] if scenario else random.choice(GROUP_ACTIVITY_TYPES)
         max_participants = 2 if category == GroupCategory.DATING.value else random.randint(4, 12)
-        title = f"{activity.title()} in {city}"
-        description = random.choice(GROUP_DESCRIPTION_TEMPLATES).format(activity=activity)
+        if scenario:
+            title = scenario["title"].format(city=city, country=country)
+            description = scenario["description"].format(city=city, country=country)
+        else:
+            title = f"{activity.title()} in {city}"
+            description = random.choice(GROUP_DESCRIPTION_TEMPLATES).format(activity=activity)
 
         group = Group(
             creator_id=creator.id,
@@ -522,9 +695,9 @@ def seed_demo_groups(
             ),
             visibility=GroupVisibility.PUBLIC,
             status=GroupStatus.OPEN,
-            tags=["demo", activity],
-            expectations=["be respectful", "show up on time"],
-            offerings=["drinks", "tickets"] if random.random() < 0.5 else ["photos"],
+            tags=["demo", activity] + (scenario.get("tags", []) if scenario else []),
+            expectations=scenario.get("expectations") if scenario else ["be respectful", "show up on time"],
+            offerings=scenario.get("offerings") if scenario else (["drinks", "tickets"] if random.random() < 0.5 else ["photos"]),
         )
         db.add(group)
         db.flush()
@@ -660,7 +833,8 @@ def backfill_demo_groups(
             city = "a city"
         if not country:
             country = "a country"
-        prompt = _group_prompt(activity, city, country, group.title)
+        prompt_detail = group.description or group.title
+        prompt = _group_prompt(activity, city, country, prompt_detail)
         generated = _generate_image(prompt, provider_mode, round_index)
         round_index += 1
         if not generated:
