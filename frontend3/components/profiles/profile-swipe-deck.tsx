@@ -61,6 +61,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
   const [status, setStatus] = useState<string | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
   const [history, setHistory] = useState<number[]>([]);
+  const [historyIds, setHistoryIds] = useState<number[]>([]);
   const [sentTo, setSentTo] = useState<Record<number, boolean>>({});
   const cardRef = useRef<HTMLDivElement | null>(null);
   const startRef = useRef({ x: 0, y: 0 });
@@ -95,6 +96,21 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
       const seen = readSeenProfileIds();
       if (seen.has(profileId)) return;
       seen.add(profileId);
+      try {
+        sessionStorage.setItem(seenProfilesKey, JSON.stringify(Array.from(seen)));
+      } catch {
+        // ignore
+      }
+    },
+    [readSeenProfileIds, seenProfilesKey]
+  );
+
+  const unmarkProfileSeen = useCallback(
+    (profileId: number) => {
+      if (typeof window === "undefined") return;
+      const seen = readSeenProfileIds();
+      if (!seen.has(profileId)) return;
+      seen.delete(profileId);
       try {
         sessionStorage.setItem(seenProfilesKey, JSON.stringify(Array.from(seen)));
       } catch {
@@ -172,6 +188,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
     setDrag({ x: 0, y: 0 });
     setImageIndex(0);
     setHistory([]);
+    setHistoryIds([]);
     setStatus(null);
     setSentTo({});
   }, [profiles, readSeenProfileIds]);
@@ -185,10 +202,11 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
   }, []);
 
   const animateOut = useCallback(
-    (direction: "left" | "right") => {
+    (direction: "left" | "right", profileId: number) => {
       const distance = cardWidth || 600;
       setIsAnimating(true);
       setHistory((prev) => [...prev, index]);
+      setHistoryIds((prev) => [...prev, profileId]);
       setDrag({ x: direction === "right" ? distance * 1.2 : -distance * 1.2, y: drag.y });
       setTimeout(() => {
         setIsAnimating(false);
@@ -249,13 +267,28 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
     [accessToken, current]
   );
 
+  const undoSwipe = useCallback(
+    async (profileId: number) => {
+      if (!accessToken) return;
+      try {
+        await apiFetch(`/match/swipes/${profileId}`, {
+          method: "DELETE",
+          token: accessToken,
+        });
+      } catch {
+        // Best-effort only.
+      }
+    },
+    [accessToken]
+  );
+
   const handleApprove = useCallback(async () => {
     if (!current) return;
     const ok = await sendRequest();
     if (ok) {
       await recordSwipe("like");
       markProfileSeen(current.user.id);
-      animateOut("right");
+      animateOut("right", current.user.id);
     }
   }, [animateOut, current, markProfileSeen, recordSwipe, sendRequest]);
 
@@ -264,7 +297,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
     setStatus(null);
     void recordSwipe("nope");
     markProfileSeen(current.user.id);
-    animateOut("left");
+    animateOut("left", current.user.id);
   }, [animateOut, current, markProfileSeen, recordSwipe]);
 
   const handleRewind = useCallback(() => {
@@ -274,11 +307,17 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
       return;
     }
     const previous = history[history.length - 1];
+    const lastId = historyIds[historyIds.length - 1];
     setHistory((prev) => prev.slice(0, -1));
+    setHistoryIds((prev) => prev.slice(0, -1));
     setStatus("Rewound.");
     setIndex(previous);
     resetDrag();
-  }, [history, isAnimating, resetDrag]);
+    if (lastId != null) {
+      void undoSwipe(lastId);
+      unmarkProfileSeen(lastId);
+    }
+  }, [history, historyIds, isAnimating, resetDrag, undoSwipe, unmarkProfileSeen]);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (isAnimating) return;
@@ -305,13 +344,13 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
     if (drag.x > 0) {
       const ok = await sendRequest();
       if (ok) {
-        animateOut("right");
+        animateOut("right", current.user.id);
       } else {
         resetDrag();
       }
       return;
     }
-    animateOut("left");
+    animateOut("left", current.user.id);
   };
 
   const overlayOpacity = Math.min(Math.abs(drag.x) / ((cardWidth || 600) * SWIPE_RATIO), 1);
@@ -339,8 +378,10 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
     if (Math.abs(drag.x) > 6 || isDragging) return;
     void recordSwipe("view");
     markProfileSeen(current.user.id);
+    setHistory((prev) => [...prev, index]);
+    setHistoryIds((prev) => [...prev, current.user.id]);
     router.push(`/users/${current.user.id}`);
-  }, [current, drag.x, isDragging, markProfileSeen, recordSwipe, router]);
+  }, [current, drag.x, index, isDragging, markProfileSeen, recordSwipe, router]);
 
   if (!current) {
     return (

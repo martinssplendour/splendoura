@@ -339,3 +339,27 @@ def record_profile_swipe(
         raise HTTPException(status_code=400, detail="Cannot swipe on yourself.")
     _record_swipe(db, user_id=current_user.id, target_id=user_id, action=swipe_in.action)
     return {"msg": "Swipe recorded"}
+
+
+@router.delete("/swipes/{user_id}")
+def undo_profile_swipe(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot swipe on yourself.")
+    swipe = (
+        db.query(SwipeHistory)
+        .filter(
+            SwipeHistory.user_id == current_user.id,
+            SwipeHistory.target_type == SwipeTargetType.PROFILE,
+            SwipeHistory.target_id == user_id,
+        )
+        .first()
+    )
+    if swipe:
+        db.delete(swipe)
+        db.commit()
+    return {"msg": "Swipe removed"}
