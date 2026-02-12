@@ -25,6 +25,8 @@ const DEFAULT_FILTERS: GroupFilters = {
 };
 const PAGE_SIZE = 20;
 const PREFETCH_THRESHOLD = 5;
+const TABS = ["mutual_benefits", "friendship", "dating", "profiles"] as const;
+type TabKey = (typeof TABS)[number];
 
 export default function BrowseGroups() {
   const router = useRouter();
@@ -32,6 +34,7 @@ export default function BrowseGroups() {
   const creatorId = searchParams.get("creator_id");
   const filtersParam = searchParams.get("filters");
   const findTypeParam = searchParams.get("findType");
+  const tabParam = searchParams.get("tab");
   const [groups, setGroups] = useState<SwipeGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [groupsError, setGroupsError] = useState<string | null>(null);
@@ -42,9 +45,10 @@ export default function BrowseGroups() {
   const [sort, setSort] = useState("smart");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [findTypeOpen, setFindTypeOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<
-    "mutual_benefits" | "friendship" | "dating" | "profiles"
-  >("friendship");
+  const [activeCategory, setActiveCategory] = useState<TabKey>(() => {
+    const tab = tabParam && (TABS as readonly string[]).includes(tabParam) ? (tabParam as TabKey) : "friendship";
+    return tab;
+  });
   const [profileMatches, setProfileMatches] = useState<ProfileMatch[]>([]);
   const [profileRequestId, setProfileRequestId] = useState<number | null>(null);
   const [profilesLoading, setProfilesLoading] = useState(false);
@@ -93,6 +97,13 @@ export default function BrowseGroups() {
   }, [findTypeParam]);
 
   useEffect(() => {
+    if (!tabParam) return;
+    if ((TABS as readonly string[]).includes(tabParam) && tabParam !== activeCategory) {
+      setActiveCategory(tabParam as TabKey);
+    }
+  }, [activeCategory, tabParam]);
+
+  useEffect(() => {
     if (filtersParam === "open") return;
     setDrawerOpen(false);
   }, [filtersParam]);
@@ -107,6 +118,17 @@ export default function BrowseGroups() {
       if (typeof window === "undefined") return;
       const params = new URLSearchParams(searchParams?.toString());
       params.delete(key);
+      const query = params.toString();
+      router.replace(query ? `/groups?${query}` : "/groups", { scroll: false });
+    },
+    [router, searchParams]
+  );
+
+  const handleTabChange = useCallback(
+    (tab: TabKey) => {
+      setActiveCategory(tab);
+      const params = new URLSearchParams(searchParams?.toString());
+      params.set("tab", tab);
       const query = params.toString();
       router.replace(query ? `/groups?${query}` : "/groups", { scroll: false });
     },
@@ -392,7 +414,7 @@ export default function BrowseGroups() {
                 <button
                   key={category.id}
                   type="button"
-                  onClick={() => setActiveCategory(category.id)}
+                  onClick={() => handleTabChange(category.id as TabKey)}
                   className={`whitespace-nowrap rounded-md border px-3 py-1 text-[11px] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${
                     activeCategory === category.id
                       ? "border-slate-900 bg-slate-900 text-white"

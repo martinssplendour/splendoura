@@ -229,25 +229,44 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
     [accessToken, current, router, user?.profile_image_url]
   );
 
+  const recordSwipe = useCallback(
+    async (action: "like" | "nope" | "superlike") => {
+      if (!current || !accessToken) return;
+      try {
+        await apiFetch(`/groups/${current.id}/swipe`, {
+          method: "POST",
+          token: accessToken,
+          body: JSON.stringify({ action }),
+        });
+      } catch {
+        // Best-effort only.
+      }
+    },
+    [accessToken, current]
+  );
+
   const handleApprove = useCallback(async () => {
     const ok = await attemptJoin("like");
     if (ok) {
+      await recordSwipe("like");
       animateOut("right");
     }
-  }, [animateOut, attemptJoin]);
+  }, [animateOut, attemptJoin, recordSwipe]);
 
   const handleSuperlike = useCallback(async () => {
     const ok = await attemptJoin("superlike");
     if (ok) {
+      await recordSwipe("superlike");
       animateOut("right");
     }
-  }, [animateOut, attemptJoin]);
+  }, [animateOut, attemptJoin, recordSwipe]);
 
   const handleReject = useCallback(() => {
     toast.info("Not interested.");
     setStatus("Not interested.");
+    void recordSwipe("nope");
     animateOut("left");
-  }, [animateOut]);
+  }, [animateOut, recordSwipe]);
 
   const handleRewind = useCallback(() => {
     if (isAnimating || isJoining) return;

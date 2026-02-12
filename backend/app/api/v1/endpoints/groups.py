@@ -34,6 +34,7 @@ from app.models.group_extras import (
 )
 from app.models.media import MediaBlob
 from app.models.membership import JoinStatus, MembershipRole
+from app.models.swipe_history import SwipeAction, SwipeHistory, SwipeTargetType
 
 # 1. Initialize the router
 router = APIRouter()
@@ -60,6 +61,38 @@ def _coerce_aware(value: datetime | None) -> datetime | None:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value
+
+
+def _record_swipe(
+    db: Session,
+    *,
+    user_id: int,
+    target_type: SwipeTargetType,
+    target_id: int,
+    action: SwipeAction,
+) -> None:
+    existing = (
+        db.query(SwipeHistory)
+        .filter(
+            SwipeHistory.user_id == user_id,
+            SwipeHistory.target_type == target_type,
+            SwipeHistory.target_id == target_id,
+        )
+        .first()
+    )
+    if existing:
+        existing.action = action
+        db.add(existing)
+    else:
+        db.add(
+            SwipeHistory(
+                user_id=user_id,
+                target_type=target_type,
+                target_id=target_id,
+                action=action,
+            )
+        )
+    db.commit()
 
 
 def _split_location_value(value: str | None) -> tuple[str | None, str | None]:
@@ -319,6 +352,14 @@ def discover_groups(
     effective_lng = lng if lng is not None else current_user.location_lng
 
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
+    seen_groups = (
+        db.query(SwipeHistory.target_id)
+        .filter(
+            SwipeHistory.user_id == current_user.id,
+            SwipeHistory.target_type == SwipeTargetType.GROUP,
+        )
+        .subquery()
+    )
     groups = crud.group.get_multi_filtered(
         db,
         location=location,
@@ -327,6 +368,7 @@ def discover_groups(
         cost_type=cost_type,
         tags=tag_list,
         search=search,
+        exclude_group_ids=seen_groups,
         skip=skip,
         limit=limit,
     )
@@ -435,6 +477,27 @@ def read_group(
         ).first()
     group.cover_image_url = (cover.thumb_url or cover.url) if cover else None
     return group
+
+
+@router.post("/{id}/swipe", dependencies=[Depends(deps.rate_limit)])
+def record_group_swipe(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    swipe_in: schemas.SwipeCreate = Body(...),
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    group = crud.group.get(db, id=id)
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    _record_swipe(
+        db,
+        user_id=current_user.id,
+        target_type=SwipeTargetType.GROUP,
+        target_id=id,
+        action=swipe_in.action,
+    )
+    return {"msg": "Swipe recorded"}
 
 @router.get("/{id}/approved-members", response_model=List[schemas.User])
 def list_approved_members(
@@ -578,7 +641,7 @@ async def request_to_join_group(
 
     # Create membership with 'requested' status
     crud.membership.create(
-        db, 
+        db,
         obj_in=schemas.MembershipCreate(
             group_id=id, 
             user_id=current_user.id, 
@@ -586,6 +649,13 @@ async def request_to_join_group(
             request_message=request_message or None,
             request_tier=request_tier,
         )
+    )
+    _record_swipe(
+        db,
+        user_id=current_user.id,
+        target_type=SwipeTargetType.GROUP,
+        target_id=id,
+        action=SwipeAction.SUPERLIKE if request_tier == "superlike" else SwipeAction.LIKE,
     )
 
     creator_tokens = get_push_tokens(db, [group.creator_id])

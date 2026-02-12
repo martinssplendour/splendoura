@@ -29,10 +29,13 @@ class CRUDGroup:
         max_age: int | None = None,
         start_date: datetime | None = None,
         end_date: datetime | None = None,
+        exclude_group_ids=None,
         skip: int = 0,
         limit: int = 100,
     ):
         query = db.query(Group).filter(Group.deleted_at.is_(None))
+        if exclude_group_ids is not None:
+            query = query.filter(~Group.id.in_(exclude_group_ids))
         if creator_id is not None:
             query = query.filter(Group.creator_id == creator_id)
         if search:

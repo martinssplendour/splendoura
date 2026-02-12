@@ -198,19 +198,37 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
     }
   }, [accessToken, current, requestId, router, sentTo]);
 
+  const recordSwipe = useCallback(
+    async (action: "like" | "nope") => {
+      if (!current || !accessToken) return;
+      try {
+        await apiFetch(`/match/swipes/${current.user.id}`, {
+          method: "POST",
+          token: accessToken,
+          body: JSON.stringify({ action }),
+        });
+      } catch {
+        // Best-effort only.
+      }
+    },
+    [accessToken, current]
+  );
+
   const handleApprove = useCallback(async () => {
     if (!current) return;
     const ok = await sendRequest();
     if (ok) {
+      await recordSwipe("like");
       animateOut("right");
     }
-  }, [animateOut, current, sendRequest]);
+  }, [animateOut, current, recordSwipe, sendRequest]);
 
   const handleReject = useCallback(() => {
     if (!current) return;
     setStatus("Not interested.");
+    void recordSwipe("nope");
     animateOut("left");
-  }, [animateOut, current]);
+  }, [animateOut, current, recordSwipe]);
 
   const handleRewind = useCallback(() => {
     if (isAnimating) return;

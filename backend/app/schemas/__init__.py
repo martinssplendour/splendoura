@@ -36,3 +36,4 @@ from .match_request import (
     MatchInvite,
 )
 from .inbox import InboxMessage, InboxThread
+from .swipe import SwipeCreate

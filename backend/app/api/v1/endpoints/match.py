@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app import crud, models, schemas
 from app.api import deps
 from app.core.matching import compute_match_score, is_profile_visible, _haversine_km
+from app.models.swipe_history import SwipeAction, SwipeHistory, SwipeTargetType
 
 router = APIRouter()
 MAX_MATCH_CANDIDATES = 200
@@ -45,6 +46,37 @@ def _extract_discovery_distance_km(settings: Any) -> float | None:
 
 def _strip_distance_criteria(criteria: list[dict]) -> list[dict]:
     return [criterion for criterion in criteria if str(criterion.get("key") or "") != "distance_km"]
+
+
+def _record_swipe(
+    db: Session,
+    *,
+    user_id: int,
+    target_id: int,
+    action: SwipeAction,
+) -> None:
+    existing = (
+        db.query(SwipeHistory)
+        .filter(
+            SwipeHistory.user_id == user_id,
+            SwipeHistory.target_type == SwipeTargetType.PROFILE,
+            SwipeHistory.target_id == target_id,
+        )
+        .first()
+    )
+    if existing:
+        existing.action = action
+        db.add(existing)
+    else:
+        db.add(
+            SwipeHistory(
+                user_id=user_id,
+                target_type=SwipeTargetType.PROFILE,
+                target_id=target_id,
+                action=action,
+            )
+        )
+    db.commit()
 
 
 def _apply_distance_filter(
@@ -113,9 +145,21 @@ def create_match_request(
     request = crud.match_request.create(db, requester_id=current_user.id, obj_in=payload)
 
     criteria_list = [criterion.model_dump() for criterion in payload.criteria] if payload.criteria else []
+    seen_profiles = (
+        db.query(SwipeHistory.target_id)
+        .filter(
+            SwipeHistory.user_id == current_user.id,
+            SwipeHistory.target_type == SwipeTargetType.PROFILE,
+        )
+        .subquery()
+    )
     base_query = (
         db.query(models.User)
-        .filter(models.User.deleted_at.is_(None), models.User.id != current_user.id)
+        .filter(
+            models.User.deleted_at.is_(None),
+            models.User.id != current_user.id,
+            ~models.User.id.in_(seen_profiles),
+        )
     )
     base_query = _apply_match_filters(
         base_query,
@@ -280,4 +324,19 @@ def send_match_request(
         requester_id=current_user.id,
         target_user_id=user_id,
     )
+    _record_swipe(db, user_id=current_user.id, target_id=user_id, action=SwipeAction.LIKE)
     return invite
+
+
+@router.post("/swipes/{user_id}")
+def record_profile_swipe(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+    swipe_in: schemas.SwipeCreate,
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot swipe on yourself.")
+    _record_swipe(db, user_id=current_user.id, target_id=user_id, action=swipe_in.action)
+    return {"msg": "Swipe recorded"}
