@@ -1,19 +1,101 @@
 // components/navbar.tsx
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api";
+
+const chatBadgeKey = (userId: number) => `navBadge:lastChat:${userId}`;
+const notificationBadgeKey = (userId: number) => `navBadge:lastNotif:${userId}`;
 
 export default function Navbar() {
   // Assuming your useAuth hook returns a user object and a logout function
   // If not, you can remove these lines for now
-  const { user, logout } = useAuth() || {};
+  const { user, logout, accessToken } = useAuth() || {};
   const pathname = usePathname();
   const isGroups = pathname?.startsWith("/groups");
   const isChatDetail = pathname?.startsWith("/chat/") && pathname !== "/chat";
+  const [badgeCounts, setBadgeCounts] = useState({ unread_chats: 0, pending_requests: 0 });
+  const [hasChatBadge, setHasChatBadge] = useState(false);
+  const [hasNotificationBadge, setHasNotificationBadge] = useState(false);
+
+  const badgeKeys = useMemo(() => {
+    if (!user?.id) return null;
+    return {
+      chat: chatBadgeKey(user.id),
+      notifications: notificationBadgeKey(user.id),
+    };
+  }, [user?.id]);
+
+  const readBadgeValue = (key: string) => {
+    if (typeof window === "undefined") return 0;
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? Number(raw) : 0;
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const writeBadgeValue = (key: string, value: number) => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(key, `${value}`);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    if (!accessToken || !user?.id) {
+      setBadgeCounts({ unread_chats: 0, pending_requests: 0 });
+      setHasChatBadge(false);
+      setHasNotificationBadge(false);
+      return;
+    }
+    let active = true;
+    const loadBadges = async () => {
+      try {
+        const res = await apiFetch("/users/me/badges", { token: accessToken });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!active) return;
+        setBadgeCounts({
+          unread_chats: Number(data?.unread_chats || 0),
+          pending_requests: Number(data?.pending_requests || 0),
+        });
+      } catch {
+        // ignore badge failures
+      }
+    };
+    loadBadges();
+    const interval = window.setInterval(loadBadges, 60000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [accessToken, user?.id]);
+
+  useEffect(() => {
+    if (!badgeKeys) return;
+    const lastChat = readBadgeValue(badgeKeys.chat);
+    const lastNotif = readBadgeValue(badgeKeys.notifications);
+    setHasChatBadge(badgeCounts.unread_chats > lastChat);
+    setHasNotificationBadge(badgeCounts.pending_requests > lastNotif);
+  }, [badgeCounts, badgeKeys]);
+
+  useEffect(() => {
+    if (!badgeKeys) return;
+    if (pathname?.startsWith("/chat")) {
+      writeBadgeValue(badgeKeys.chat, badgeCounts.unread_chats);
+      setHasChatBadge(false);
+    }
+    if (pathname?.startsWith("/notifications") || pathname?.startsWith("/requests")) {
+      writeBadgeValue(badgeKeys.notifications, badgeCounts.pending_requests);
+      setHasNotificationBadge(false);
+    }
+  }, [badgeCounts.pending_requests, badgeCounts.unread_chats, badgeKeys, pathname]);
 
   const isActive = (href: string, aliases: string[] = []) =>
     pathname === href ||
@@ -86,10 +168,20 @@ export default function Navbar() {
                     <Button variant="ghost">Profile</Button>
                   </Link>
                   <Link href="/chat">
-                    <Button variant="ghost">Chat</Button>
+                    <Button variant="ghost" className="relative">
+                      Chat
+                      {hasChatBadge ? (
+                        <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-full bg-rose-500" />
+                      ) : null}
+                    </Button>
                   </Link>
                   <Link href="/notifications">
-                    <Button variant="ghost">Notifications</Button>
+                    <Button variant="ghost" className="relative">
+                      Notifications
+                      {hasNotificationBadge ? (
+                        <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-full bg-rose-500" />
+                      ) : null}
+                    </Button>
                   </Link>
                   {user.role === "admin" ? (
                     <Link href="/admin/verification">
@@ -128,21 +220,27 @@ export default function Navbar() {
             </Link>
             <Link
               href="/chat"
-              className={`rounded-full px-3 py-2 text-xs font-semibold ${
+              className={`relative rounded-full px-3 py-2 text-xs font-semibold ${
                 isActive("/chat") ? "bg-slate-200 text-slate-900" : "text-slate-500"
               }`}
             >
               Chats
+              {hasChatBadge ? (
+                <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-full bg-rose-500" />
+              ) : null}
             </Link>
             <Link
               href="/notifications"
-              className={`rounded-full px-3 py-2 text-xs font-semibold ${
+              className={`relative rounded-full px-3 py-2 text-xs font-semibold ${
                 isActive("/notifications", ["/requests"])
                   ? "bg-slate-200 text-slate-900"
                   : "text-slate-500"
               }`}
             >
               Notifications
+              {hasNotificationBadge ? (
+                <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-full bg-rose-500" />
+              ) : null}
             </Link>
             <Link
               href="/profile"

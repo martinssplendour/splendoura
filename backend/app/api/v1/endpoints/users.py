@@ -251,6 +251,57 @@ def list_my_inbox(
     )
     return items
 
+
+@router.get("/me/badges")
+def get_my_badges(
+    *,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    group_rows = (
+        db.query(models.Membership.group_id)
+        .filter(
+            models.Membership.user_id == current_user.id,
+            models.Membership.join_status == JoinStatus.APPROVED,
+            models.Membership.deleted_at.is_(None),
+        )
+        .all()
+    )
+    group_ids = [row[0] for row in group_rows]
+    unread_chats = 0
+    if group_ids:
+        unread_chats = (
+            db.query(func.count(models.GroupMessage.id))
+            .outerjoin(
+                GroupMessageRead,
+                (GroupMessageRead.message_id == models.GroupMessage.id)
+                & (GroupMessageRead.user_id == current_user.id),
+            )
+            .filter(
+                models.GroupMessage.group_id.in_(group_ids),
+                models.GroupMessage.deleted_at.is_(None),
+                models.GroupMessage.sender_id != current_user.id,
+                GroupMessageRead.id.is_(None),
+            )
+            .scalar()
+            or 0
+        )
+
+    pending_requests = (
+        db.query(func.count(models.Membership.id))
+        .join(models.Group, models.Group.id == models.Membership.group_id)
+        .filter(
+            models.Group.creator_id == current_user.id,
+            models.Group.deleted_at.is_(None),
+            models.Membership.join_status == JoinStatus.REQUESTED,
+            models.Membership.deleted_at.is_(None),
+        )
+        .scalar()
+        or 0
+    )
+
+    return {"unread_chats": unread_chats, "pending_requests": pending_requests}
+
 @router.post("/me/photo", response_model=schemas.User, dependencies=[Depends(deps.rate_limit)])
 def upload_profile_photo(
     *,
