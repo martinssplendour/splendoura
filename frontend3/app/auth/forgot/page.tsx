@@ -53,6 +53,12 @@ export default function ForgotPasswordPage() {
         <p className="mt-2 text-sm text-slate-600">
           Enter your email and we will send a reset link.
         </p>
+        <p className="mt-2 text-xs text-slate-500">
+          If you don't see the email within a few minutes, check your spam/junk folder and mark it as Not Spam.
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          If you don't see the email within a few minutes, check your spam/junk folder and mark it as Not Spam.
+        </p>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
@@ -102,3 +108,5 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+
+

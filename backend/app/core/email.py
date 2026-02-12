@@ -52,12 +52,16 @@ def send_password_reset_email(to_email: str, reset_link: str, reset_code: str) -
         "We received a request to reset your password.\n\n"
         f"Reset code: {reset_code}\n"
         f"Reset your password using this link:\n{reset_link}\n\n"
+        "If you don't see this email in your inbox within a few minutes, check your spam/junk folder and mark it as Not Spam so the reset link is visible.\n\n"
         "If you did not request this, you can ignore this email."
     )
     html_body = f"""
     <p>We received a request to reset your password.</p>
     <p><strong>Reset code:</strong> {reset_code}</p>
     <p><a href="{reset_link}">Reset your password</a></p>
+    <p>If you don't see this email in your inbox within a few minutes, check your spam/junk folder and mark it as Not Spam so the reset link is visible.</p>
     <p>If you did not request this, you can ignore this email.</p>
     """
     send_email(to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
+
+
