@@ -209,18 +209,22 @@ export default function GroupDetailPage() {
   const creatorIdVerified = Boolean((creator?.profile_details as Record<string, unknown> | null)?.id_verified);
   const safetyContacts = ((user?.profile_details as Record<string, unknown> | null)
     ?.safety_contacts as { name: string; contact: string }[] | undefined) || [];
+  const displayTags = useMemo(
+    () => (group?.tags ?? []).filter((tag) => tag.toLowerCase() !== "demo"),
+    [group?.tags],
+  );
   const icebreakers = useMemo(() => {
     if (!group) return [];
     const prompts = [
       `What excites you about ${group.title}?`,
       group.activity_type ? `What should we plan for ${group.activity_type}?` : null,
       group.location ? `Have you been to ${group.location} before?` : null,
-      group.tags && group.tags.length > 0
-        ? `Which of these tags sounds most like you: ${group.tags.slice(0, 2).join(", ")}?`
+      displayTags.length > 0
+        ? `Which of these tags sounds most like you: ${displayTags.slice(0, 2).join(", ")}?`
         : null,
     ];
     return prompts.filter(Boolean).slice(0, 4) as string[];
-  }, [group]);
+  }, [group, displayTags]);
 
   useEffect(() => {
     if (pendingMediaFiles.length === 0) {
@@ -907,9 +911,9 @@ export default function GroupDetailPage() {
         </Link>
         <h1 className="mt-3 text-3xl font-bold text-slate-900">{group.title}</h1>
         <p className="mt-2 text-slate-600">{group.description}</p>
-        {group.tags?.length ? (
+        {displayTags.length ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            {group.tags.map((tag) => (
+            {displayTags.map((tag) => (
               <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                 {tag}
               </span>

@@ -695,7 +695,7 @@ def seed_demo_groups(
             ),
             visibility=GroupVisibility.PUBLIC,
             status=GroupStatus.OPEN,
-            tags=["demo", activity] + (scenario.get("tags", []) if scenario else []),
+            tags=[activity] + (scenario.get("tags", []) if scenario else []),
             expectations=scenario.get("expectations") if scenario else ["be respectful", "show up on time"],
             offerings=scenario.get("offerings") if scenario else (["drinks", "tickets"] if random.random() < 0.5 else ["photos"]),
         )
