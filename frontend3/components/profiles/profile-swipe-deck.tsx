@@ -53,6 +53,7 @@ const haversineKm = (lat1: number, lng1: number, lat2: number, lng2: number) => 
 };
 
 export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDeckProps) {
+  const [visibleProfiles, setVisibleProfiles] = useState<ProfileMatch[]>([]);
   const [index, setIndex] = useState(0);
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -67,8 +68,41 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
   const router = useRouter();
   const { accessToken, user } = useAuth();
 
-  const current = profiles[index];
-  const upcoming = profiles.slice(index + 1, index + 3);
+  const current = visibleProfiles[index];
+  const upcoming = visibleProfiles.slice(index + 1, index + 3);
+
+  const seenProfilesKey = useMemo(() => {
+    if (user?.id) return `profiles:seen:${user.id}`;
+    return "profiles:seen:guest";
+  }, [user?.id]);
+
+  const readSeenProfileIds = useCallback(() => {
+    if (typeof window === "undefined") return new Set<number>();
+    try {
+      const raw = sessionStorage.getItem(seenProfilesKey);
+      if (!raw) return new Set<number>();
+      const parsed = JSON.parse(raw) as number[];
+      if (!Array.isArray(parsed)) return new Set<number>();
+      return new Set(parsed.filter((value) => Number.isFinite(value)));
+    } catch {
+      return new Set<number>();
+    }
+  }, [seenProfilesKey]);
+
+  const markProfileSeen = useCallback(
+    (profileId: number) => {
+      if (typeof window === "undefined") return;
+      const seen = readSeenProfileIds();
+      if (seen.has(profileId)) return;
+      seen.add(profileId);
+      try {
+        sessionStorage.setItem(seenProfilesKey, JSON.stringify(Array.from(seen)));
+      } catch {
+        // ignore
+      }
+    },
+    [readSeenProfileIds, seenProfilesKey]
+  );
 
   const imageUrls = useMemo(() => {
     if (!current) return [];
@@ -131,13 +165,16 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
   }, []);
 
   useEffect(() => {
+    const seen = readSeenProfileIds();
+    const filtered = profiles.filter((profile) => !seen.has(profile.user.id));
+    setVisibleProfiles(filtered);
     setIndex(0);
     setDrag({ x: 0, y: 0 });
     setImageIndex(0);
     setHistory([]);
     setStatus(null);
     setSentTo({});
-  }, [profiles]);
+  }, [profiles, readSeenProfileIds]);
 
   useEffect(() => {
     setImageIndex(0);
@@ -197,7 +234,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
   }, [accessToken, current, requestId, router, sentTo]);
 
   const recordSwipe = useCallback(
-    async (action: "like" | "nope") => {
+    async (action: "like" | "nope" | "view") => {
       if (!current || !accessToken) return;
       try {
         await apiFetch(`/match/swipes/${current.user.id}`, {
@@ -217,16 +254,18 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
     const ok = await sendRequest();
     if (ok) {
       await recordSwipe("like");
+      markProfileSeen(current.user.id);
       animateOut("right");
     }
-  }, [animateOut, current, recordSwipe, sendRequest]);
+  }, [animateOut, current, markProfileSeen, recordSwipe, sendRequest]);
 
   const handleReject = useCallback(() => {
     if (!current) return;
     setStatus(null);
     void recordSwipe("nope");
+    markProfileSeen(current.user.id);
     animateOut("left");
-  }, [animateOut, current, recordSwipe]);
+  }, [animateOut, current, markProfileSeen, recordSwipe]);
 
   const handleRewind = useCallback(() => {
     if (isAnimating) return;
@@ -298,8 +337,10 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
   const handleOpenProfile = useCallback(() => {
     if (!current) return;
     if (Math.abs(drag.x) > 6 || isDragging) return;
+    void recordSwipe("view");
+    markProfileSeen(current.user.id);
     router.push(`/users/${current.user.id}`);
-  }, [current, drag.x, isDragging, router]);
+  }, [current, drag.x, isDragging, markProfileSeen, recordSwipe, router]);
 
   if (!current) {
     return (
