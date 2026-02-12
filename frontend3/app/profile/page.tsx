@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
-import { Settings } from "lucide-react";
+import { Camera, Pencil, Settings } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -395,6 +395,11 @@ export default function ProfilePage() {
     workoutHabits,
     zodiacSign,
   ]);
+  const displayName = (user?.full_name || username || "Your profile").trim() || "Your profile";
+  const displayAge = calculateAge(dob) ?? user?.age;
+  const heroPhoto = primaryPhotoUrl || user?.profile_image_url || photos[0] || null;
+  const heroThumb = heroPhoto ? getProfilePhotoThumb(heroPhoto, user?.profile_media, true) : null;
+  const completionAngle = Math.max(0, Math.min(100, completionPercent)) * 3.6;
 
   useEffect(() => {
     if (selectedFiles.length === 0) {
@@ -758,38 +763,107 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase text-slate-400">Profile</p>
-          <h1 className="text-2xl font-semibold text-slate-900">Manage your profile</h1>
-          <p className="text-sm text-slate-600">Update your details, visibility, and preferences.</p>
+      <div className="rounded-3xl border border-slate-200 bg-white px-6 pb-8 pt-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase text-slate-400">Profile</p>
+            <p className="text-sm text-slate-500">Manage your account</p>
+          </div>
+          <Link
+            href="/settings"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+            aria-label="Open settings"
+          >
+            <Settings size={16} />
+          </Link>
         </div>
-        <Link
-          href="/settings"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
-          aria-label="Open settings"
-        >
-          <Settings size={18} />
-        </Link>
-      </div>
-      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
-        <p className="text-xs font-semibold uppercase text-slate-400">Profile completion</p>
-        <div className="mt-3 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-slate-900">Your profile is {completionPercent}% complete</h1>
-          <span className="text-sm font-semibold text-emerald-600">{completionPercent}%</span>
+
+        <div className="mt-6 flex flex-col items-center text-center">
+          <div className="relative">
+            <div
+              className="h-36 w-36 rounded-full p-[5px]"
+              style={{
+                background: `conic-gradient(#fb7185 ${completionAngle}deg, #e2e8f0 0deg)`,
+              }}
+            >
+              <div className="h-full w-full rounded-full bg-white p-[4px] shadow-sm">
+                {heroPhoto ? (
+                  <SignedImage
+                    src={heroThumb || heroPhoto}
+                    alt={displayName}
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500">
+                    Add photo
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-rose-500 to-orange-400 px-4 py-1 text-xs font-semibold text-white shadow">
+              {completionPercent}% complete
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center gap-2">
+            <h2 className="text-2xl font-semibold text-slate-900">
+              {displayName}
+              {displayAge ? `, ${displayAge}` : ""}
+            </h2>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm transition hover:bg-blue-700"
+              aria-label="Add profile photo"
+            >
+              <Camera size={16} />
+            </button>
+          </div>
         </div>
-        <div className="mt-4 h-2 w-full rounded-full bg-slate-100">
-          <div
-            className="h-full rounded-full bg-emerald-500"
-            style={{ width: `${completionPercent}%` }}
-          />
+
+        <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+          <Link
+            href="/settings"
+            className="flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-600">
+              <Settings size={18} />
+            </span>
+            Settings
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById("profile-basics")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+          >
+            <span className="relative flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-600">
+              <Pencil size={18} />
+              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />
+            </span>
+            Edit profile
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs font-semibold text-rose-600 shadow-sm transition hover:bg-rose-100"
+          >
+            <span className="relative flex h-11 w-11 items-center justify-center rounded-full bg-rose-500 text-white shadow">
+              <Camera size={18} />
+              <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-rose-500 shadow">
+                +
+              </span>
+            </span>
+            Add media
+          </button>
         </div>
-        <p className="mt-3 text-sm text-slate-600">
-          The more you share, the better your matches and group relevance.
-        </p>
       </div>
 
-      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
+      <div
+        id="profile-photos"
+        className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4"
+      >
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Profile photos</h2>
           <p className="text-sm text-slate-600">Upload up to 9 photos. The first image is your primary photo.</p>
@@ -890,7 +964,10 @@ export default function ProfilePage() {
       </div>
 
 
-      <div className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4">
+      <div
+        id="profile-basics"
+        className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4"
+      >
         <h2 className="text-xl font-semibold text-slate-900">Identity & basics</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold text-slate-700">
