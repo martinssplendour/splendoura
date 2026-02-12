@@ -5,6 +5,7 @@ import os
 import uuid
 from typing import Any, Dict, List
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
@@ -70,6 +71,72 @@ def _apply_group_lifecycle(group: Group, approved_count: int) -> None:
         group.status = GroupStatus.FULL
 
 
+def _attach_group_stats(
+    db: Session,
+    groups: list[Group],
+    *,
+    current_user: models.User | None = None,
+    lat: float | None = None,
+    lng: float | None = None,
+    include_labels: bool = False,
+) -> None:
+    if not groups:
+        return
+    group_ids = [group.id for group in groups]
+    count_rows = (
+        db.query(models.Membership.group_id, func.count(models.Membership.id))
+        .filter(
+            models.Membership.group_id.in_(group_ids),
+            models.Membership.join_status == JoinStatus.APPROVED,
+            models.Membership.deleted_at.is_(None),
+        )
+        .group_by(models.Membership.group_id)
+        .all()
+    )
+    approved_counts = {group_id: count for group_id, count in count_rows}
+
+    media_rows = (
+        db.query(GroupMedia)
+        .filter(
+            GroupMedia.group_id.in_(group_ids),
+            GroupMedia.deleted_at.is_(None),
+        )
+        .order_by(GroupMedia.is_cover.desc(), GroupMedia.created_at.asc())
+        .all()
+    )
+    cover_map: dict[int, GroupMedia] = {}
+    for media in media_rows:
+        if media.group_id not in cover_map:
+            cover_map[media.group_id] = media
+
+    user_interests = set(current_user.interests or []) if current_user else set()
+    for group in groups:
+        approved_count = approved_counts.get(group.id, 0)
+        _apply_group_lifecycle(group, approved_count)
+        group.approved_members = approved_count
+        cover = cover_map.get(group.id)
+        group.cover_image_url = (cover.thumb_url or cover.url) if cover else None
+        if include_labels and current_user:
+            group_tags = set(group.tags or [])
+            group.shared_tags = list(user_interests.intersection(group_tags))
+            distance_km = None
+            if (
+                lat is not None
+                and lng is not None
+                and group.location_lat is not None
+                and group.location_lng is not None
+            ):
+                distance_km = _haversine_km(lat, lng, group.location_lat, group.location_lng)
+            labels = _build_discovery_labels(
+                group=group,
+                distance_km=distance_km,
+                shared_tags=group.shared_tags,
+            )
+            group.discovery_labels = labels
+            if labels:
+                group.discovery_reason = " · ".join(labels)
+
+
 def _require_group_member(db: Session, *, group_id: int, user_id: int) -> None:
     membership = db.query(models.Membership).filter(
         models.Membership.group_id == group_id,
@@ -101,7 +168,7 @@ def read_groups(
     start_date: datetime | None = None,
     end_date: datetime | None = None,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 50,
 ) -> Any:
     """Retrieve groups."""
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
@@ -131,29 +198,7 @@ def read_groups(
             if distance <= radius_km:
                 filtered.append(group)
         groups = filtered
-    for group in groups:
-        approved_count = (
-            db.query(models.Membership)
-            .filter(
-                models.Membership.group_id == group.id,
-                models.Membership.join_status == JoinStatus.APPROVED,
-                models.Membership.deleted_at.is_(None),
-            )
-            .count()
-        )
-        _apply_group_lifecycle(group, approved_count)
-        group.approved_members = approved_count
-        cover = db.query(GroupMedia).filter(
-            GroupMedia.group_id == group.id,
-            GroupMedia.is_cover.is_(True),
-            GroupMedia.deleted_at.is_(None),
-        ).first()
-        if not cover:
-            cover = db.query(GroupMedia).filter(
-                GroupMedia.group_id == group.id,
-                GroupMedia.deleted_at.is_(None),
-            ).first()
-        group.cover_image_url = (cover.thumb_url or cover.url) if cover else None
+    _attach_group_stats(db, groups)
     if sort == "recent":
         min_dt = datetime.min.replace(tzinfo=timezone.utc)
         groups = sorted(
@@ -221,7 +266,7 @@ def discover_groups(
     radius_km: float | None = None,
     sort: str | None = "smart",
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 50,
 ) -> Any:
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
     groups = crud.group.get_multi_filtered(
@@ -235,17 +280,16 @@ def discover_groups(
         skip=skip,
         limit=limit,
     )
-    if creator_verified is not None:
-        creator_cache: dict[int, models.User | None] = {}
+    if creator_verified is not None and groups:
+        creator_ids = {group.creator_id for group in groups}
+        creators = db.query(models.User).filter(
+            models.User.id.in_(creator_ids),
+            models.User.deleted_at.is_(None),
+        ).all()
+        creator_map = {creator.id: creator for creator in creators}
         filtered_groups: list[models.Group] = []
         for group in groups:
-            creator = creator_cache.get(group.creator_id)
-            if creator is None:
-                creator = db.query(models.User).filter(
-                    models.User.id == group.creator_id,
-                    models.User.deleted_at.is_(None),
-                ).first()
-                creator_cache[group.creator_id] = creator
+            creator = creator_map.get(group.creator_id)
             is_verified = bool((creator.profile_details or {}).get("id_verified")) if creator else False
             if creator_verified and not is_verified:
                 continue
@@ -263,42 +307,14 @@ def discover_groups(
             if distance <= radius_km:
                 filtered.append(group)
         groups = filtered
-    for group in groups:
-        approved_count = (
-            db.query(models.Membership)
-            .filter(
-                models.Membership.group_id == group.id,
-                models.Membership.join_status == JoinStatus.APPROVED,
-                models.Membership.deleted_at.is_(None),
-            )
-            .count()
-        )
-        _apply_group_lifecycle(group, approved_count)
-        group.approved_members = approved_count
-        cover = db.query(GroupMedia).filter(
-            GroupMedia.group_id == group.id,
-            GroupMedia.is_cover.is_(True),
-            GroupMedia.deleted_at.is_(None),
-        ).first()
-        if not cover:
-            cover = db.query(GroupMedia).filter(
-                GroupMedia.group_id == group.id,
-                GroupMedia.deleted_at.is_(None),
-            ).first()
-        group.cover_image_url = (cover.thumb_url or cover.url) if cover else None
-        group_tags = set(group.tags or [])
-        group.shared_tags = list(user_interests.intersection(group_tags))
-        distance_km = None
-        if lat is not None and lng is not None and group.location_lat is not None and group.location_lng is not None:
-            distance_km = _haversine_km(lat, lng, group.location_lat, group.location_lng)
-        labels = _build_discovery_labels(
-            group=group,
-            distance_km=distance_km,
-            shared_tags=group.shared_tags,
-        )
-        group.discovery_labels = labels
-        if labels:
-            group.discovery_reason = " · ".join(labels)
+    _attach_group_stats(
+        db,
+        groups,
+        current_user=current_user,
+        lat=lat,
+        lng=lng,
+        include_labels=True,
+    )
     if sort == "recent":
         min_dt = datetime.min.replace(tzinfo=timezone.utc)
         groups = sorted(

@@ -110,6 +110,7 @@ export default function BrowseGroups() {
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
+    params.set("limit", "20");
     if (creatorId) params.set("creator_id", creatorId);
     if (filters.location.trim()) params.set("location", filters.location.trim());
     if (filters.activity.trim()) params.set("activity_type", filters.activity.trim());

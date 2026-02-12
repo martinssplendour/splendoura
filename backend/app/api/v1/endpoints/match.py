@@ -1,5 +1,7 @@
+import math
 from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
@@ -7,6 +9,64 @@ from app.api import deps
 from app.core.matching import compute_match_score, is_profile_visible
 
 router = APIRouter()
+MAX_MATCH_CANDIDATES = 200
+
+
+def _to_list(value: Any) -> list:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [item for item in value if item is not None]
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    return [value]
+
+
+def _apply_match_filters(
+    query,
+    *,
+    criteria: list[dict],
+    requester: models.User,
+):
+    for criterion in criteria:
+        key = str(criterion.get("key") or "")
+        value = criterion.get("value")
+        if key == "age_range" and isinstance(value, dict):
+            min_age = value.get("min")
+            max_age = value.get("max")
+            if min_age is not None:
+                query = query.filter(models.User.age >= min_age)
+            if max_age is not None:
+                query = query.filter(models.User.age <= max_age)
+        elif key == "gender":
+            genders = _to_list(value)
+            if genders:
+                query = query.filter(models.User.gender.in_(genders))
+        elif key == "distance_km":
+            if requester.location_lat is None or requester.location_lng is None:
+                continue
+            try:
+                max_km = float(value) if value is not None else None
+            except (TypeError, ValueError):
+                max_km = None
+            if max_km is None:
+                continue
+            lat = requester.location_lat
+            lng = requester.location_lng
+            delta_lat = max_km / 111.0
+            cos_lat = math.cos(math.radians(lat))
+            delta_lng = max_km / (111.0 * cos_lat) if cos_lat else max_km / 111.0
+            query = query.filter(
+                and_(
+                    models.User.location_lat.isnot(None),
+                    models.User.location_lng.isnot(None),
+                    models.User.location_lat >= lat - delta_lat,
+                    models.User.location_lat <= lat + delta_lat,
+                    models.User.location_lng >= lng - delta_lng,
+                    models.User.location_lng <= lng + delta_lng,
+                )
+            )
+    return query
 
 
 @router.post("/requests", response_model=schemas.MatchRequestWithResults)
@@ -18,13 +78,14 @@ def create_match_request(
 ) -> Any:
     request = crud.match_request.create(db, requester_id=current_user.id, obj_in=payload)
 
-    candidates = (
+    criteria_list = [criterion.model_dump() for criterion in payload.criteria] if payload.criteria else []
+    query = (
         db.query(models.User)
         .filter(models.User.deleted_at.is_(None), models.User.id != current_user.id)
-        .all()
     )
+    query = _apply_match_filters(query, criteria=criteria_list, requester=current_user)
+    candidates = query.limit(MAX_MATCH_CANDIDATES).all()
     results: List[schemas.MatchCandidate] = []
-    criteria_list = [criterion.model_dump() for criterion in payload.criteria] if payload.criteria else []
 
     for candidate in candidates:
         if not is_profile_visible(candidate):
