@@ -26,7 +26,6 @@ const DEFAULT_FILTERS: GroupFilters = {
 const INITIAL_PAGE_SIZE = 50;
 const PREFETCH_PAGE_SIZE = 200;
 const PREFETCH_THRESHOLD = 20;
-const GROUPS_CACHE_TTL_MS = 10 * 60 * 1000;
 const TABS = ["mutual_benefits", "friendship", "dating", "profiles"] as const;
 type TabKey = (typeof TABS)[number];
 
@@ -198,10 +197,9 @@ export default function BrowseGroups() {
     try {
       const raw = sessionStorage.getItem(groupsCacheKey);
       if (!raw) return null;
-      const parsed = JSON.parse(raw) as { ts: number; groups: SwipeGroup[]; hasMore: boolean };
-      if (!parsed?.ts || !Array.isArray(parsed.groups)) return null;
-      if (Date.now() - parsed.ts > GROUPS_CACHE_TTL_MS) return null;
-      return parsed;
+      const parsed = JSON.parse(raw) as { groups: SwipeGroup[]; hasMore?: boolean };
+      if (!Array.isArray(parsed.groups)) return null;
+      return { groups: parsed.groups, hasMore: parsed.hasMore !== false };
     } catch {
       return null;
     }
@@ -213,7 +211,7 @@ export default function BrowseGroups() {
       try {
         sessionStorage.setItem(
           groupsCacheKey,
-          JSON.stringify({ ts: Date.now(), groups: nextGroups, hasMore: nextHasMore })
+          JSON.stringify({ groups: nextGroups, hasMore: nextHasMore })
         );
       } catch {
         // ignore cache write failures
