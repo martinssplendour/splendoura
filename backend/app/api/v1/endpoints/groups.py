@@ -286,6 +286,9 @@ def _attach_group_stats(
 
 
 def _require_group_member(db: Session, *, group_id: int, user_id: int) -> None:
+    group = crud.group.get(db, id=group_id)
+    if group and group.creator_id == user_id:
+        return
     membership = db.query(models.Membership).filter(
         models.Membership.group_id == group_id,
         models.Membership.user_id == user_id,

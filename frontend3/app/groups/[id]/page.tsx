@@ -146,6 +146,48 @@ interface GroupMemberProfile {
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DAY_SLOTS = ["morning", "afternoon", "evening", "night"];
 
+type EditGroupForm = {
+  title: string;
+  description: string;
+  activity_type: string;
+  category: "mutual_benefits" | "friendship" | "dating";
+  location: string;
+  destination: string;
+  start_date: string;
+  end_date: string;
+  min_participants: string;
+  max_participants: string;
+  cost_type: "free" | "shared" | "fully_paid" | "custom";
+  offerings: string;
+  expectations: string;
+  rules: string;
+  tags: string;
+  visibility: "public" | "invite_only";
+};
+
+const parseCommaList = (value: string) =>
+  value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const toDateTimeLocalValue = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (num: number) => `${num}`.padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}`;
+};
+
+const toIsoStringOrNull = (value: string) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+};
+
 export default function GroupDetailPage() {
   const params = useParams();
   const [group, setGroup] = useState<GroupDetail | null>(null);
@@ -196,6 +238,26 @@ export default function GroupDetailPage() {
   const [rsvpLoading, setRsvpLoading] = useState<Record<number, boolean>>({});
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementBody, setAnnouncementBody] = useState("");
+  const [editForm, setEditForm] = useState<EditGroupForm>({
+    title: "",
+    description: "",
+    activity_type: "",
+    category: "friendship",
+    location: "",
+    destination: "",
+    start_date: "",
+    end_date: "",
+    min_participants: "1",
+    max_participants: "2",
+    cost_type: "free",
+    offerings: "",
+    expectations: "",
+    rules: "",
+    tags: "",
+    visibility: "public",
+  });
+  const [editStatus, setEditStatus] = useState<string | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const { accessToken, user } = useAuth();
 
   const pinnedPlan = useMemo(() => plans.find((plan) => plan.pinned), [plans]);
@@ -344,6 +406,30 @@ export default function GroupDetailPage() {
     }
     loadGroup();
   }, [params.id]);
+
+  useEffect(() => {
+    if (!group) return;
+    setEditForm({
+      title: group.title || "",
+      description: group.description || "",
+      activity_type: group.activity_type || "",
+      category: group.category || "friendship",
+      location: group.location || "",
+      destination: group.destination || "",
+      start_date: toDateTimeLocalValue(group.start_date),
+      end_date: toDateTimeLocalValue(group.end_date),
+      min_participants: `${group.min_participants ?? 1}`,
+      max_participants: `${group.max_participants ?? 2}`,
+      cost_type: group.cost_type || "free",
+      offerings: (group.offerings || []).join(", "),
+      expectations: Array.isArray(group.expectations)
+        ? group.expectations.join(", ")
+        : group.expectations || "",
+      rules: Array.isArray(group.rules) ? group.rules.join(", ") : group.rules || "",
+      tags: (group.tags || []).join(", "),
+      visibility: (group.visibility as EditGroupForm["visibility"]) || "public",
+    });
+  }, [group]);
 
   useEffect(() => {
     if (accessToken && user?.id === group?.creator_id) {
@@ -869,6 +955,83 @@ export default function GroupDetailPage() {
     }
   };
 
+  const handleEditChange =
+    (field: keyof EditGroupForm) =>
+    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      const { value } = event.target;
+      setEditForm((prev) => ({ ...prev, [field]: value }));
+    };
+
+  const handleSaveGroup = async () => {
+    if (!accessToken || !group) return;
+    const title = editForm.title.trim();
+    const description = editForm.description.trim();
+    const activityType = editForm.activity_type.trim();
+    if (!title || !description || !activityType) {
+      setEditStatus("Title, description, and activity type are required.");
+      return;
+    }
+    const minParticipants = Number(editForm.min_participants);
+    const maxParticipants = Number(editForm.max_participants);
+    if (!Number.isFinite(minParticipants) || minParticipants < 1) {
+      setEditStatus("Minimum participants must be at least 1.");
+      return;
+    }
+    if (!Number.isFinite(maxParticipants) || maxParticipants < minParticipants) {
+      setEditStatus("Max participants must be greater than or equal to minimum participants.");
+      return;
+    }
+    if (editForm.category === "dating" && maxParticipants !== 2) {
+      setEditStatus("Dating groups must have max participants set to 2.");
+      return;
+    }
+
+    setIsSavingEdit(true);
+    setEditStatus(null);
+    try {
+      const offerings = parseCommaList(editForm.offerings);
+      const tags = parseCommaList(editForm.tags);
+      const expectationItems = parseCommaList(editForm.expectations);
+      const expectations =
+        expectationItems.length <= 1 ? expectationItems[0] || null : expectationItems;
+      const payload = {
+        title,
+        description,
+        activity_type: activityType,
+        category: editForm.category,
+        location: editForm.location.trim() || null,
+        destination: editForm.destination.trim() || null,
+        start_date: toIsoStringOrNull(editForm.start_date),
+        end_date: toIsoStringOrNull(editForm.end_date),
+        min_participants: minParticipants,
+        max_participants: maxParticipants,
+        cost_type: editForm.cost_type,
+        offerings,
+        expectations,
+        rules: editForm.rules.trim() || null,
+        tags,
+        visibility: editForm.visibility,
+      };
+      const res = await apiFetch(`/groups/${group.id}`, {
+        method: "PUT",
+        token: accessToken,
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const payloadError = await res.json().catch(() => null);
+        throw new Error(payloadError?.detail || "Unable to update group.");
+      }
+      const updated = await res.json();
+      setGroup(updated);
+      setEditStatus("Group updated.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to update group.";
+      setEditStatus(message);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleToggleLock = async (field: "lock_male" | "lock_female") => {
     if (!accessToken || !group) return;
     setLockUpdating(true);
@@ -938,6 +1101,201 @@ export default function GroupDetailPage() {
           </p>
         </div>
       </div>
+
+      {isCreator ? (
+        <div id="edit-group" className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Manage your group</h2>
+              <p className="text-sm text-slate-600">Edit details or jump into the chat even if nobody joined yet.</p>
+            </div>
+            <Link href={`/chat/${group.id}`}>
+              <Button className="bg-blue-600 text-white hover:bg-blue-700">Open chat</Button>
+            </Link>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label className="text-xs font-semibold uppercase text-slate-500">Title</label>
+              <input
+                value={editForm.title}
+                onChange={handleEditChange("title")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+                placeholder="Group title"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs font-semibold uppercase text-slate-500">Description</label>
+              <textarea
+                value={editForm.description}
+                onChange={handleEditChange("description")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+                rows={3}
+                placeholder="What is this group about?"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Activity type</label>
+              <input
+                value={editForm.activity_type}
+                onChange={handleEditChange("activity_type")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+                placeholder="e.g. beach day"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Category</label>
+              <select
+                value={editForm.category}
+                onChange={handleEditChange("category")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+              >
+                <option value="mutual_benefits">Mutual benefits</option>
+                <option value="friendship">Friendship</option>
+                <option value="dating">Dating</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Location</label>
+              <input
+                value={editForm.location}
+                onChange={handleEditChange("location")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+                placeholder="City, Country"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Destination</label>
+              <input
+                value={editForm.destination}
+                onChange={handleEditChange("destination")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+                placeholder="Destination (optional)"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Cost type</label>
+              <select
+                value={editForm.cost_type}
+                onChange={handleEditChange("cost_type")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+              >
+                <option value="free">Free</option>
+                <option value="shared">Shared</option>
+                <option value="fully_paid">Fully paid</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Start date</label>
+              <input
+                type="datetime-local"
+                value={editForm.start_date}
+                onChange={handleEditChange("start_date")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">End date</label>
+              <input
+                type="datetime-local"
+                value={editForm.end_date}
+                onChange={handleEditChange("end_date")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Min participants</label>
+              <input
+                type="number"
+                min={1}
+                value={editForm.min_participants}
+                onChange={handleEditChange("min_participants")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Max participants</label>
+              <input
+                type="number"
+                min={1}
+                value={editForm.max_participants}
+                onChange={handleEditChange("max_participants")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs font-semibold uppercase text-slate-500">Offerings</label>
+              <input
+                value={editForm.offerings}
+                onChange={handleEditChange("offerings")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+                placeholder="Flights, hotel, dinner"
+              />
+              <p className="mt-1 text-xs text-slate-400">Separate offers with commas.</p>
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs font-semibold uppercase text-slate-500">Expectations</label>
+              <input
+                value={editForm.expectations}
+                onChange={handleEditChange("expectations")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+                placeholder="Be respectful, good vibes"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs font-semibold uppercase text-slate-500">Rules</label>
+              <input
+                value={editForm.rules}
+                onChange={handleEditChange("rules")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+                placeholder="Optional rules"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs font-semibold uppercase text-slate-500">Tags</label>
+              <input
+                value={editForm.tags}
+                onChange={handleEditChange("tags")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+                placeholder="beach, travel, friends"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-slate-500">Visibility</label>
+              <select
+                value={editForm.visibility}
+                onChange={handleEditChange("visibility")}
+                className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm"
+              >
+                <option value="public">Public</option>
+                <option value="invite_only">Invite only</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button
+              onClick={handleSaveGroup}
+              disabled={isSavingEdit}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              {isSavingEdit ? "Saving..." : "Save changes"}
+            </Button>
+            {editStatus ? (
+              <p
+                className={`text-sm ${
+                  editStatus.toLowerCase().includes("unable") ||
+                  editStatus.toLowerCase().includes("required") ||
+                  editStatus.toLowerCase().includes("must")
+                    ? "text-rose-600"
+                    : "text-slate-600"
+                }`}
+              >
+                {editStatus}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {creator ? (
         <div id="creator" className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6">

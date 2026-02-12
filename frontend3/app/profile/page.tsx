@@ -1906,12 +1906,20 @@ export default function ProfilePage() {
                       : ""}
                   </p>
                 </div>
-                <Button
-                  onClick={() => handleDeleteGroup(group.id)}
-                  className="bg-red-600 text-white hover:bg-red-700"
-                >
-                  Delete
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button asChild variant="outline">
+                    <Link href={`/groups/${group.id}#edit-group`}>Edit</Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href={`/chat/${group.id}`}>Open chat</Link>
+                  </Button>
+                  <Button
+                    onClick={() => handleDeleteGroup(group.id)}
+                    className="bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Delete
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
