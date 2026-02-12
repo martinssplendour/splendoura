@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import and_, exists, or_
 from sqlalchemy.orm import Session
 from app.models.group import AppliesTo, Group, GroupRequirement
-from app.models.swipe_history import SwipeHistory, SwipeTargetType
+from app.models.swipe_history import SwipeAction, SwipeHistory, SwipeTargetType
 from app.schemas.group import GroupCreate
 
 class CRUDGroup:
@@ -45,6 +45,9 @@ class CRUDGroup:
                         SwipeHistory.user_id == exclude_swipe_user_id,
                         SwipeHistory.target_type == SwipeTargetType.GROUP,
                         SwipeHistory.target_id == Group.id,
+                        SwipeHistory.action.in_(
+                            [SwipeAction.LIKE, SwipeAction.NOPE, SwipeAction.SUPERLIKE]
+                        ),
                     )
                 )
             )

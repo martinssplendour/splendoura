@@ -405,12 +405,8 @@ export default function SwipeDeck({
   const handleOpenDetails = useCallback(() => {
     if (!current) return;
     if (Math.abs(drag.x) > 6 || isDragging) return;
-    void recordSwipe("view");
-    onMarkSeen?.(current.id);
-    setHistory((prev) => [...prev, index]);
-    setHistoryIds((prev) => [...prev, current.id]);
     router.push(`/groups/${current.id}`);
-  }, [current, drag.x, index, isDragging, onMarkSeen, recordSwipe, router]);
+  }, [current, drag.x, isDragging, router]);
 
   if (!current) {
     return <EmptyState />;
@@ -483,7 +479,7 @@ export default function SwipeDeck({
                       handleReject();
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
-                    className="col-span-2 flex flex-col items-center justify-center gap-1 rounded-2xl border border-rose-200 bg-rose-50 px-2 py-2 text-[10px] font-semibold uppercase text-rose-600"
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-rose-200 bg-rose-50 px-2 py-2 text-[10px] font-semibold uppercase text-rose-600"
                   >
                     <span className="text-sm">X</span>
                     Nope

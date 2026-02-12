@@ -376,12 +376,8 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
   const handleOpenProfile = useCallback(() => {
     if (!current) return;
     if (Math.abs(drag.x) > 6 || isDragging) return;
-    void recordSwipe("view");
-    markProfileSeen(current.user.id);
-    setHistory((prev) => [...prev, index]);
-    setHistoryIds((prev) => [...prev, current.user.id]);
     router.push(`/users/${current.user.id}`);
-  }, [current, drag.x, index, isDragging, markProfileSeen, recordSwipe, router]);
+  }, [current, drag.x, isDragging, router]);
 
   if (!current) {
     return (

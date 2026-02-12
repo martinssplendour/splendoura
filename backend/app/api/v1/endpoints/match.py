@@ -150,6 +150,7 @@ def create_match_request(
             SwipeHistory.user_id == current_user.id,
             SwipeHistory.target_type == SwipeTargetType.PROFILE,
             SwipeHistory.target_id == models.User.id,
+            SwipeHistory.action.in_([SwipeAction.LIKE, SwipeAction.NOPE, SwipeAction.SUPERLIKE]),
         )
     )
     base_query = (
