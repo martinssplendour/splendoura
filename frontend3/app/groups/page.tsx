@@ -23,6 +23,8 @@ const DEFAULT_FILTERS: GroupFilters = {
   gender: "",
   creatorVerified: false,
 };
+const PAGE_SIZE = 20;
+const PREFETCH_THRESHOLD = 5;
 
 export default function BrowseGroups() {
   const router = useRouter();
@@ -33,6 +35,9 @@ export default function BrowseGroups() {
   const [groups, setGroups] = useState<SwipeGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [groupsError, setGroupsError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filters, setFilters] = useState<GroupFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState("smart");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -108,9 +113,8 @@ export default function BrowseGroups() {
     [router, searchParams]
   );
 
-  const queryParams = useMemo(() => {
+  const baseQueryParams = useMemo(() => {
     const params = new URLSearchParams();
-    params.set("limit", "20");
     if (creatorId) params.set("creator_id", creatorId);
     if (filters.location.trim()) params.set("location", filters.location.trim());
     if (filters.activity.trim()) params.set("activity_type", filters.activity.trim());
@@ -130,30 +134,82 @@ export default function BrowseGroups() {
     return params;
   }, [creatorId, filters, sort, user?.location_lat, user?.location_lng]);
 
-  useEffect(() => {
-    async function loadGroups() {
-      setLoading(true);
-      setGroupsError(null);
+  const deckResetKey = useMemo(
+    () => `${accessToken ? "auth" : "guest"}|${baseQueryParams.toString()}|${activeCategory}`,
+    [accessToken, activeCategory, baseQueryParams]
+  );
+
+  const fetchGroupsPage = useCallback(
+    async (offset: number) => {
+      const params = new URLSearchParams(baseQueryParams.toString());
+      params.set("limit", String(PAGE_SIZE));
+      if (offset > 0) {
+        params.set("skip", String(offset));
+      }
       const endpoint = accessToken ? "/groups/discover" : "/groups/";
-      const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+      const url = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
       let res = await apiFetch(url, accessToken ? { token: accessToken } : undefined);
       if ((!res.ok || res.status === 401 || res.status === 403) && accessToken) {
-        const fallbackUrl = queryParams.toString()
-          ? `/groups/?${queryParams.toString()}`
+        const fallbackUrl = params.toString()
+          ? `/groups/?${params.toString()}`
           : "/groups/";
         res = await apiFetch(fallbackUrl);
       }
       if (res.ok) {
         const data: SwipeGroup[] = await res.json();
-        setGroups(data);
+        return { ok: true as const, data };
+      }
+      const payload = await res.json().catch(() => null);
+      return { ok: false as const, error: payload?.detail || "Unable to load groups right now." };
+    },
+    [accessToken, baseQueryParams]
+  );
+
+  useEffect(() => {
+    let active = true;
+    async function loadGroups() {
+      setLoading(true);
+      setGroupsError(null);
+      setHasMore(true);
+      setPage(0);
+      const result = await fetchGroupsPage(0);
+      if (!active) return;
+      if (result.ok) {
+        setGroups(result.data);
+        setHasMore(result.data.length === PAGE_SIZE);
       } else {
-        const payload = await res.json().catch(() => null);
-        setGroupsError(payload?.detail || "Unable to load groups right now.");
+        setGroupsError(result.error);
+        setGroups([]);
+        setHasMore(false);
       }
       setLoading(false);
     }
     loadGroups();
-  }, [accessToken, queryParams]);
+    return () => {
+      active = false;
+    };
+  }, [fetchGroupsPage]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (loadingMore || loading || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    const offset = nextPage * PAGE_SIZE;
+    const result = await fetchGroupsPage(offset);
+    if (result.ok) {
+      setGroups((prev) => {
+        const seen = new Set(prev.map((group) => group.id));
+        const next = result.data.filter((group) => !seen.has(group.id));
+        return [...prev, ...next];
+      });
+      setPage(nextPage);
+      setHasMore(result.data.length === PAGE_SIZE);
+    } else if (!groupsError) {
+      setGroupsError(result.error);
+      setHasMore(false);
+    }
+    setLoadingMore(false);
+  }, [fetchGroupsPage, groupsError, hasMore, loading, loadingMore, page]);
 
   const profileCriteria = useMemo(() => {
     const discovery = (user?.discovery_settings as Record<string, unknown>) || {};
@@ -374,7 +430,17 @@ export default function BrowseGroups() {
               ) : loading ? (
                 <SwipeDeckSkeleton />
               ) : (
-                <SwipeDeck groups={grouped[activeCategory]} />
+                <>
+                  <SwipeDeck
+                    groups={grouped[activeCategory]}
+                    onNearEnd={handleLoadMore}
+                    nearEndThreshold={PREFETCH_THRESHOLD}
+                    resetKey={deckResetKey}
+                  />
+                  {loadingMore ? (
+                    <p className="mt-3 text-center text-xs text-slate-500">Loading more groups…</p>
+                  ) : null}
+                </>
               )}
             </div>
           </div>

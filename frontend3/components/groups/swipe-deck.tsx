@@ -12,6 +12,9 @@ import { apiFetch } from "@/lib/api";
 
 interface SwipeDeckProps {
   groups: SwipeGroup[];
+  onNearEnd?: () => void;
+  nearEndThreshold?: number;
+  resetKey?: string;
 }
 
 const SWIPE_RATIO = 0.3;
@@ -24,7 +27,7 @@ type GroupMedia = {
   is_cover?: boolean | null;
 };
 
-export default function SwipeDeck({ groups }: SwipeDeckProps) {
+export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, resetKey }: SwipeDeckProps) {
   const [index, setIndex] = useState(0);
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -142,12 +145,30 @@ export default function SwipeDeck({ groups }: SwipeDeckProps) {
   }, []);
 
   useEffect(() => {
+    if (!resetKey) return;
     setIndex(0);
     resetDrag();
     setImageIndex(0);
     setHistory([]);
     setStatus(null);
-  }, [groups, resetDrag]);
+  }, [resetKey, resetDrag]);
+
+  useEffect(() => {
+    if (!groups.length) return;
+    if (index >= groups.length) {
+      setIndex(0);
+      resetDrag();
+      setHistory([]);
+    }
+  }, [groups.length, index, resetDrag]);
+
+  useEffect(() => {
+    if (!onNearEnd) return;
+    if (!groups.length) return;
+    if (groups.length - index <= nearEndThreshold) {
+      onNearEnd();
+    }
+  }, [groups.length, index, nearEndThreshold, onNearEnd]);
 
   const animateOut = useCallback(
     (direction: "left" | "right") => {
