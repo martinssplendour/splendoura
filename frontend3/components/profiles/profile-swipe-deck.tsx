@@ -52,6 +52,17 @@ const haversineKm = (lat1: number, lng1: number, lat2: number, lng2: number) => 
   return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
+const getPrimaryPhoto = (profile: ProfileUser) => {
+  const photos = Array.isArray(profile.profile_media?.photos) ? profile.profile_media?.photos || [] : [];
+  if (photos.length > 0) {
+    return getProfilePhotoThumb(photos[0], profile.profile_media, true);
+  }
+  if (profile.profile_image_url) {
+    return getProfilePhotoThumb(profile.profile_image_url, profile.profile_media, true);
+  }
+  return null;
+};
+
 export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDeckProps) {
   const [visibleProfiles, setVisibleProfiles] = useState<ProfileMatch[]>([]);
   const [index, setIndex] = useState(0);
@@ -63,6 +74,11 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
   const [history, setHistory] = useState<number[]>([]);
   const [historyIds, setHistoryIds] = useState<number[]>([]);
   const [sentTo, setSentTo] = useState<Record<number, boolean>>({});
+  const [matchModal, setMatchModal] = useState<{
+    userId: number;
+    name: string;
+    photoUrl: string | null;
+  } | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const startRef = useRef({ x: 0, y: 0 });
   const [cardWidth, setCardWidth] = useState(0);
@@ -244,7 +260,11 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
       const payload = await res.json().catch(() => null);
       setSentTo((prev) => ({ ...prev, [current.user.id]: true }));
       if (payload?.matched) {
-        toast.success("It's a match!");
+        setMatchModal({
+          userId: current.user.id,
+          name,
+          photoUrl: getPrimaryPhoto(current.user),
+        });
       }
       return true;
     } catch (err) {
@@ -253,7 +273,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
       setStatus(message);
       return false;
     }
-  }, [accessToken, current, requestId, router, sentTo]);
+  }, [accessToken, current, name, requestId, router, sentTo]);
 
   const recordSwipe = useCallback(
     async (action: "like" | "nope" | "view") => {
@@ -543,6 +563,55 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
           ♥
         </button>
       </div>
+
+      {matchModal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-6 py-8"
+          onClick={() => setMatchModal(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-[32px] bg-white px-6 pb-6 pt-8 text-center shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mx-auto h-24 w-24 rounded-full bg-gradient-to-tr from-rose-500 via-pink-500 to-amber-400 p-1">
+              {matchModal.photoUrl ? (
+                <SignedImage
+                  src={matchModal.photoUrl}
+                  alt={matchModal.name}
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-white text-xs text-slate-400">
+                  No photo
+                </div>
+              )}
+            </div>
+            <p className="mt-4 text-2xl font-semibold text-slate-900">It's a match!</p>
+            <p className="mt-2 text-sm text-slate-600">
+              You and {matchModal.name} liked each other.
+            </p>
+            <div className="mt-6 grid gap-2">
+              <button
+                type="button"
+                className="w-full rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white"
+                onClick={() => setMatchModal(null)}
+              >
+                Keep swiping
+              </button>
+              <button
+                type="button"
+                className="w-full rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
+                onClick={() => {
+                  router.push(`/users/${matchModal.userId}`);
+                  setMatchModal(null);
+                }}
+              >
+                View profile
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {status ? <p className="text-center text-xs text-slate-500">{status}</p> : null}
     </div>
