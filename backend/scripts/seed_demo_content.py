@@ -49,14 +49,13 @@ LAST_NAMES = [
     "Carter",
     "Davis",
     "Evans",
-    "Garcia",
     "Hughes",
     "Johnson",
-    "Khan",
     "Miller",
-    "Nguyen",
-    "Patel",
     "Smith",
+    "Taylor",
+    "Walker",
+    "Wilson",
 ]
 
 INTERESTS = [
