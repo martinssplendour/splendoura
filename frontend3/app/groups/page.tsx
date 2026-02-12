@@ -41,6 +41,7 @@ export default function BrowseGroups() {
   const [groupsError, setGroupsError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [filters, setFilters] = useState<GroupFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState("smart");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -160,18 +161,56 @@ export default function BrowseGroups() {
     () => `groups:${accessToken ? "auth" : "guest"}:${baseQueryParams.toString()}`,
     [accessToken, baseQueryParams]
   );
+  const seenGroupsKey = useMemo(() => `${groupsCacheKey}:seen`, [groupsCacheKey]);
 
   const deckResetKey = useMemo(
     () => `${accessToken ? "auth" : "guest"}|${baseQueryParams.toString()}|${activeCategory}`,
     [accessToken, activeCategory, baseQueryParams]
   );
 
+  const readSeenGroupIds = useCallback(() => {
+    if (typeof window === "undefined") return new Set<number>();
+    try {
+      const raw = sessionStorage.getItem(seenGroupsKey);
+      if (!raw) return new Set<number>();
+      const parsed = JSON.parse(raw) as number[];
+      if (!Array.isArray(parsed)) return new Set<number>();
+      return new Set(parsed.filter((value) => Number.isFinite(value)));
+    } catch {
+      return new Set<number>();
+    }
+  }, [seenGroupsKey]);
+
+  const markGroupSeen = useCallback(
+    (groupId: number) => {
+      if (typeof window === "undefined") return;
+      const seen = readSeenGroupIds();
+      if (seen.has(groupId)) return;
+      seen.add(groupId);
+      try {
+        sessionStorage.setItem(seenGroupsKey, JSON.stringify(Array.from(seen)));
+      } catch {
+        // ignore
+      }
+    },
+    [readSeenGroupIds, seenGroupsKey]
+  );
+
+  const filterSeenGroups = useCallback(
+    (items: SwipeGroup[]) => {
+      const seen = readSeenGroupIds();
+      if (seen.size === 0) return items;
+      return items.filter((group) => !seen.has(group.id));
+    },
+    [readSeenGroupIds]
+  );
+
   const fetchGroupsPage = useCallback(
-    async (offset: number, limit: number) => {
+    async (cursor: string | null, limit: number) => {
       const params = new URLSearchParams(baseQueryParams.toString());
       params.set("limit", String(limit));
-      if (offset > 0) {
-        params.set("skip", String(offset));
+      if (cursor) {
+        params.set("cursor", cursor);
       }
       const endpoint = accessToken ? "/groups/discover" : "/groups/";
       const url = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
@@ -184,7 +223,8 @@ export default function BrowseGroups() {
       }
       if (res.ok) {
         const data: SwipeGroup[] = await res.json();
-        return { ok: true as const, data };
+        const next = res.headers.get("x-next-cursor");
+        return { ok: true as const, data, nextCursor: next || null };
       }
       const payload = await res.json().catch(() => null);
       return { ok: false as const, error: payload?.detail || "Unable to load groups right now." };
@@ -197,21 +237,29 @@ export default function BrowseGroups() {
     try {
       const raw = sessionStorage.getItem(groupsCacheKey);
       if (!raw) return null;
-      const parsed = JSON.parse(raw) as { groups: SwipeGroup[]; hasMore?: boolean };
+      const parsed = JSON.parse(raw) as {
+        groups: SwipeGroup[];
+        hasMore?: boolean;
+        nextCursor?: string | null;
+      };
       if (!Array.isArray(parsed.groups)) return null;
-      return { groups: parsed.groups, hasMore: parsed.hasMore !== false };
+      return {
+        groups: parsed.groups,
+        hasMore: parsed.hasMore !== false,
+        nextCursor: parsed.nextCursor ?? null,
+      };
     } catch {
       return null;
     }
   }, [groupsCacheKey]);
 
   const writeGroupsCache = useCallback(
-    (nextGroups: SwipeGroup[], nextHasMore: boolean) => {
+    (nextGroups: SwipeGroup[], nextHasMore: boolean, cursor: string | null) => {
       if (typeof window === "undefined") return;
       try {
         sessionStorage.setItem(
           groupsCacheKey,
-          JSON.stringify({ groups: nextGroups, hasMore: nextHasMore })
+          JSON.stringify({ groups: nextGroups, hasMore: nextHasMore, nextCursor: cursor })
         );
       } catch {
         // ignore cache write failures
@@ -227,22 +275,27 @@ export default function BrowseGroups() {
       setGroupsError(null);
       const cached = readGroupsCache();
       if (cached) {
-        setGroups(cached.groups);
+        const filtered = filterSeenGroups(cached.groups);
+        setGroups(filtered);
         setHasMore(cached.hasMore);
+        setNextCursor(cached.nextCursor);
         setLoading(false);
         return;
       }
       setHasMore(true);
-      const result = await fetchGroupsPage(0, INITIAL_PAGE_SIZE);
+      const result = await fetchGroupsPage(null, INITIAL_PAGE_SIZE);
       if (!active) return;
       if (result.ok) {
-        setGroups(result.data);
-        setHasMore(result.data.length === INITIAL_PAGE_SIZE);
-        writeGroupsCache(result.data, result.data.length === INITIAL_PAGE_SIZE);
+        const filtered = filterSeenGroups(result.data);
+        setGroups(filtered);
+        setHasMore(Boolean(result.nextCursor));
+        setNextCursor(result.nextCursor);
+        writeGroupsCache(filtered, Boolean(result.nextCursor), result.nextCursor);
       } else {
         setGroupsError(result.error);
         setGroups([]);
         setHasMore(false);
+        setNextCursor(null);
       }
       setLoading(false);
     }
@@ -250,28 +303,40 @@ export default function BrowseGroups() {
     return () => {
       active = false;
     };
-  }, [fetchGroupsPage, readGroupsCache, writeGroupsCache]);
+  }, [fetchGroupsPage, filterSeenGroups, readGroupsCache, writeGroupsCache]);
 
   const handleLoadMore = useCallback(async () => {
-    if (loadingMore || loading || !hasMore) return;
+    if (loadingMore || loading || !hasMore || !nextCursor) return;
     setLoadingMore(true);
-    const offset = groups.length;
-    const result = await fetchGroupsPage(offset, PREFETCH_PAGE_SIZE);
+    const result = await fetchGroupsPage(nextCursor, PREFETCH_PAGE_SIZE);
     if (result.ok) {
+      const seen = readSeenGroupIds();
       setGroups((prev) => {
-        const seen = new Set(prev.map((group) => group.id));
-        const next = result.data.filter((group) => !seen.has(group.id));
+        const seenIds = new Set(prev.map((group) => group.id));
+        const next = result.data.filter(
+          (group) => !seenIds.has(group.id) && !seen.has(group.id)
+        );
         const merged = [...prev, ...next];
-        writeGroupsCache(merged, result.data.length === PREFETCH_PAGE_SIZE);
+        writeGroupsCache(merged, Boolean(result.nextCursor), result.nextCursor);
         return merged;
       });
-      setHasMore(result.data.length === PREFETCH_PAGE_SIZE);
+      setHasMore(Boolean(result.nextCursor));
+      setNextCursor(result.nextCursor);
     } else if (!groupsError) {
       setGroupsError(result.error);
       setHasMore(false);
     }
     setLoadingMore(false);
-  }, [fetchGroupsPage, groups.length, groupsError, hasMore, loading, loadingMore, writeGroupsCache]);
+  }, [
+    fetchGroupsPage,
+    groupsError,
+    hasMore,
+    loading,
+    loadingMore,
+    nextCursor,
+    readSeenGroupIds,
+    writeGroupsCache,
+  ]);
 
   const profileCriteria = useMemo(() => {
     const discovery = (user?.discovery_settings as Record<string, unknown>) || {};
@@ -498,6 +563,7 @@ export default function BrowseGroups() {
                     onNearEnd={handleLoadMore}
                     nearEndThreshold={PREFETCH_THRESHOLD}
                     resetKey={deckResetKey}
+                    onMarkSeen={markGroupSeen}
                   />
                   {loadingMore ? (
                     <p className="mt-3 text-center text-xs text-slate-500">Loading more groups…</p>

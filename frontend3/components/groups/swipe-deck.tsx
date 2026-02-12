@@ -15,6 +15,7 @@ interface SwipeDeckProps {
   onNearEnd?: () => void;
   nearEndThreshold?: number;
   resetKey?: string;
+  onMarkSeen?: (groupId: number) => void;
 }
 
 const SWIPE_RATIO = 0.3;
@@ -27,7 +28,13 @@ type GroupMedia = {
   is_cover?: boolean | null;
 };
 
-export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, resetKey }: SwipeDeckProps) {
+export default function SwipeDeck({
+  groups,
+  onNearEnd,
+  nearEndThreshold = 5,
+  resetKey,
+  onMarkSeen,
+}: SwipeDeckProps) {
   const [index, setIndex] = useState(0);
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -36,7 +43,6 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
   const [status, setStatus] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [imageIndex, setImageIndex] = useState(0);
-  const [history, setHistory] = useState<number[]>([]);
   const [creatorName, setCreatorName] = useState<string>("");
   const [creatorAvatar, setCreatorAvatar] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -149,7 +155,6 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
     setIndex(0);
     resetDrag();
     setImageIndex(0);
-    setHistory([]);
     setStatus(null);
   }, [resetKey, resetDrag]);
 
@@ -158,7 +163,6 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
     if (index >= groups.length) {
       setIndex(0);
       resetDrag();
-      setHistory([]);
     }
   }, [groups.length, index, resetDrag]);
 
@@ -174,7 +178,6 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
     (direction: "left" | "right") => {
       const distance = cardWidth || 600;
       setIsAnimating(true);
-      setHistory((prev) => [...prev, index]);
       setDrag({ x: direction === "right" ? distance * 1.2 : -distance * 1.2, y: drag.y });
       setTimeout(() => {
         setIsAnimating(false);
@@ -227,7 +230,7 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
   );
 
   const recordSwipe = useCallback(
-    async (action: "like" | "nope" | "superlike") => {
+    async (action: "like" | "nope" | "superlike" | "view") => {
       if (!current || !accessToken) return;
       try {
         await apiFetch(`/groups/${current.id}/swipe`, {
@@ -246,36 +249,28 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
     const ok = await attemptJoin("like");
     if (ok) {
       await recordSwipe("like");
+      onMarkSeen?.(current.id);
       animateOut("right");
     }
-  }, [animateOut, attemptJoin, recordSwipe]);
+  }, [animateOut, attemptJoin, current?.id, onMarkSeen, recordSwipe]);
 
   const handleSuperlike = useCallback(async () => {
     const ok = await attemptJoin("superlike");
     if (ok) {
       await recordSwipe("superlike");
+      onMarkSeen?.(current.id);
       animateOut("right");
     }
-  }, [animateOut, attemptJoin, recordSwipe]);
+  }, [animateOut, attemptJoin, current?.id, onMarkSeen, recordSwipe]);
 
   const handleReject = useCallback(() => {
     setStatus(null);
     void recordSwipe("nope");
-    animateOut("left");
-  }, [animateOut, recordSwipe]);
-
-  const handleRewind = useCallback(() => {
-    if (isAnimating || isJoining) return;
-    if (history.length === 0) {
-      setStatus("Nothing to rewind.");
-      return;
+    if (current?.id) {
+      onMarkSeen?.(current.id);
     }
-    const previous = history[history.length - 1];
-    setHistory((prev) => prev.slice(0, -1));
-    setStatus("Rewound.");
-    setIndex(previous);
-    resetDrag();
-  }, [history, isAnimating, isJoining, resetDrag]);
+    animateOut("left");
+  }, [animateOut, current?.id, onMarkSeen, recordSwipe]);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (isAnimating) return;
@@ -323,13 +318,10 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
       if (event.key === "ArrowUp") {
         void handleSuperlike();
       }
-      if (event.key === "Backspace") {
-        handleRewind();
-      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [current, handleApprove, handleReject, handleRewind, handleSuperlike, isAnimating]);
+  }, [current, handleApprove, handleReject, handleSuperlike, isAnimating]);
 
   const overlayOpacity = Math.min(Math.abs(drag.x) / ((cardWidth || 600) * SWIPE_RATIO), 1);
   const overlayLabel =
@@ -354,8 +346,10 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
   const handleOpenDetails = useCallback(() => {
     if (!current) return;
     if (Math.abs(drag.x) > 6 || isDragging) return;
+    void recordSwipe("view");
+    onMarkSeen?.(current.id);
     router.push(`/groups/${current.id}`);
-  }, [current, drag.x, isDragging, router]);
+  }, [current, drag.x, isDragging, onMarkSeen, recordSwipe, router]);
 
   if (!current) {
     return <EmptyState />;
@@ -413,22 +407,10 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleRewind();
-                    }}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-indigo-200 bg-indigo-50 px-2 py-2 text-[10px] font-semibold uppercase text-indigo-700"
-                  >
-                    <span className="text-sm">&lt;</span>
-                    Undo
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
                       handleReject();
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
-                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-rose-200 bg-rose-50 px-2 py-2 text-[10px] font-semibold uppercase text-rose-600"
+                    className="col-span-2 flex flex-col items-center justify-center gap-1 rounded-2xl border border-rose-200 bg-rose-50 px-2 py-2 text-[10px] font-semibold uppercase text-rose-600"
                   >
                     <span className="text-sm">X</span>
                     Nope
