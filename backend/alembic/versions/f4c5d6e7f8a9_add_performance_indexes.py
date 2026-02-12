@@ -25,8 +25,8 @@ def upgrade() -> None:
         ["group_id", "is_cover", "deleted_at"],
     )
     op.create_index(
-        "ix_membership_group_status_deleted",
-        "membership",
+        "ix_memberships_group_status_deleted",
+        "memberships",
         ["group_id", "join_status", "deleted_at"],
     )
     op.create_index(
@@ -40,7 +40,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.execute("DROP INDEX IF EXISTS ix_groups_tags_gin")
     op.drop_index("ix_users_location_city_country", table_name="users")
-    op.drop_index("ix_membership_group_status_deleted", table_name="membership")
+    op.drop_index("ix_memberships_group_status_deleted", table_name="memberships")
     op.drop_index("ix_group_media_group_cover_deleted", table_name="group_media")
     op.drop_index("ix_groups_created_at", table_name="groups")
     op.drop_index("ix_groups_cost_type", table_name="groups")
