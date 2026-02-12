@@ -23,8 +23,10 @@ const DEFAULT_FILTERS: GroupFilters = {
   gender: "",
   creatorVerified: false,
 };
-const PAGE_SIZE = 20;
-const PREFETCH_THRESHOLD = 5;
+const INITIAL_PAGE_SIZE = 50;
+const PREFETCH_PAGE_SIZE = 200;
+const PREFETCH_THRESHOLD = 20;
+const GROUPS_CACHE_TTL_MS = 10 * 60 * 1000;
 const TABS = ["mutual_benefits", "friendship", "dating", "profiles"] as const;
 type TabKey = (typeof TABS)[number];
 
@@ -38,7 +40,6 @@ export default function BrowseGroups() {
   const [groups, setGroups] = useState<SwipeGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [groupsError, setGroupsError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [filters, setFilters] = useState<GroupFilters>(DEFAULT_FILTERS);
@@ -156,15 +157,20 @@ export default function BrowseGroups() {
     return params;
   }, [creatorId, filters, sort, user?.location_lat, user?.location_lng]);
 
+  const groupsCacheKey = useMemo(
+    () => `groups:${accessToken ? "auth" : "guest"}:${baseQueryParams.toString()}`,
+    [accessToken, baseQueryParams]
+  );
+
   const deckResetKey = useMemo(
     () => `${accessToken ? "auth" : "guest"}|${baseQueryParams.toString()}|${activeCategory}`,
     [accessToken, activeCategory, baseQueryParams]
   );
 
   const fetchGroupsPage = useCallback(
-    async (offset: number) => {
+    async (offset: number, limit: number) => {
       const params = new URLSearchParams(baseQueryParams.toString());
-      params.set("limit", String(PAGE_SIZE));
+      params.set("limit", String(limit));
       if (offset > 0) {
         params.set("skip", String(offset));
       }
@@ -187,18 +193,54 @@ export default function BrowseGroups() {
     [accessToken, baseQueryParams]
   );
 
+  const readGroupsCache = useCallback(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = sessionStorage.getItem(groupsCacheKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { ts: number; groups: SwipeGroup[]; hasMore: boolean };
+      if (!parsed?.ts || !Array.isArray(parsed.groups)) return null;
+      if (Date.now() - parsed.ts > GROUPS_CACHE_TTL_MS) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }, [groupsCacheKey]);
+
+  const writeGroupsCache = useCallback(
+    (nextGroups: SwipeGroup[], nextHasMore: boolean) => {
+      if (typeof window === "undefined") return;
+      try {
+        sessionStorage.setItem(
+          groupsCacheKey,
+          JSON.stringify({ ts: Date.now(), groups: nextGroups, hasMore: nextHasMore })
+        );
+      } catch {
+        // ignore cache write failures
+      }
+    },
+    [groupsCacheKey]
+  );
+
   useEffect(() => {
     let active = true;
     async function loadGroups() {
       setLoading(true);
       setGroupsError(null);
+      const cached = readGroupsCache();
+      if (cached) {
+        setGroups(cached.groups);
+        setHasMore(cached.hasMore);
+        setLoading(false);
+        return;
+      }
       setHasMore(true);
-      setPage(0);
-      const result = await fetchGroupsPage(0);
+      const result = await fetchGroupsPage(0, INITIAL_PAGE_SIZE);
       if (!active) return;
       if (result.ok) {
         setGroups(result.data);
-        setHasMore(result.data.length === PAGE_SIZE);
+        setHasMore(result.data.length === INITIAL_PAGE_SIZE);
+        writeGroupsCache(result.data, result.data.length === INITIAL_PAGE_SIZE);
       } else {
         setGroupsError(result.error);
         setGroups([]);
@@ -210,28 +252,28 @@ export default function BrowseGroups() {
     return () => {
       active = false;
     };
-  }, [fetchGroupsPage]);
+  }, [fetchGroupsPage, readGroupsCache, writeGroupsCache]);
 
   const handleLoadMore = useCallback(async () => {
     if (loadingMore || loading || !hasMore) return;
     setLoadingMore(true);
-    const nextPage = page + 1;
-    const offset = nextPage * PAGE_SIZE;
-    const result = await fetchGroupsPage(offset);
+    const offset = groups.length;
+    const result = await fetchGroupsPage(offset, PREFETCH_PAGE_SIZE);
     if (result.ok) {
       setGroups((prev) => {
         const seen = new Set(prev.map((group) => group.id));
         const next = result.data.filter((group) => !seen.has(group.id));
-        return [...prev, ...next];
+        const merged = [...prev, ...next];
+        writeGroupsCache(merged, result.data.length === PREFETCH_PAGE_SIZE);
+        return merged;
       });
-      setPage(nextPage);
-      setHasMore(result.data.length === PAGE_SIZE);
+      setHasMore(result.data.length === PREFETCH_PAGE_SIZE);
     } else if (!groupsError) {
       setGroupsError(result.error);
       setHasMore(false);
     }
     setLoadingMore(false);
-  }, [fetchGroupsPage, groupsError, hasMore, loading, loadingMore, page]);
+  }, [fetchGroupsPage, groups.length, groupsError, hasMore, loading, loadingMore, writeGroupsCache]);
 
   const profileCriteria = useMemo(() => {
     const discovery = (user?.discovery_settings as Record<string, unknown>) || {};
