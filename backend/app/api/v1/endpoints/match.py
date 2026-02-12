@@ -33,6 +33,16 @@ def _extract_distance_km(criteria: list[dict]) -> float | None:
     return None
 
 
+def _extract_discovery_distance_km(settings: Any) -> float | None:
+    if not isinstance(settings, dict):
+        return None
+    value = settings.get("distance_km")
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 def _strip_distance_criteria(criteria: list[dict]) -> list[dict]:
     return [criterion for criterion in criteria if str(criterion.get("key") or "") != "distance_km"]
 
@@ -116,12 +126,14 @@ def create_match_request(
 
     discovery = current_user.discovery_settings or {}
     global_mode = bool(discovery.get("global_mode")) if isinstance(discovery, dict) else False
-    distance_km = _extract_distance_km(criteria_list)
+    distance_km_filter = _extract_distance_km(criteria_list)
+    distance_km_pref = _extract_discovery_distance_km(discovery)
+    distance_km_for_tier = distance_km_filter or distance_km_pref
 
     candidates: list[models.User] = []
     tier = "global"
-    if not global_mode and distance_km and current_user.location_lat is not None and current_user.location_lng is not None:
-        query = _apply_distance_filter(base_query, requester=current_user, max_km=distance_km)
+    if not global_mode and distance_km_filter and current_user.location_lat is not None and current_user.location_lng is not None:
+        query = _apply_distance_filter(base_query, requester=current_user, max_km=distance_km_filter)
         distance_candidates = query.limit(MAX_MATCH_CANDIDATES).all()
         if distance_candidates:
             within_distance = []
@@ -134,7 +146,7 @@ def create_match_request(
                     candidate.location_lat,
                     candidate.location_lng,
                 )
-                if distance <= distance_km:
+                if distance <= distance_km_filter:
                     within_distance.append(candidate)
             if within_distance:
                 candidates = within_distance
@@ -157,11 +169,11 @@ def create_match_request(
             tier = "country"
     if not candidates:
         candidates = base_query.limit(MAX_MATCH_CANDIDATES).all()
-        tier = "global"
+        tier = "global" if distance_km_filter else "mixed"
     results: List[schemas.MatchCandidate] = []
 
     scoring_criteria = criteria_list
-    if tier in {"city", "country", "global"} and distance_km is not None:
+    if tier in {"city", "country", "global"} and distance_km_filter is not None:
         scoring_criteria = _strip_distance_criteria(criteria_list)
 
     for candidate in candidates:
@@ -196,6 +208,43 @@ def create_match_request(
                 item.user.last_active_at or item.user.created_at,
             )
         )
+    elif not global_mode:
+        user_city = (current_user.location_city or "").strip().lower()
+        user_country = (current_user.location_country or "").strip().lower()
+
+        def tier_key(item: schemas.MatchCandidate) -> tuple[int, float]:
+            if (
+                distance_km_for_tier is not None
+                and current_user.location_lat is not None
+                and current_user.location_lng is not None
+                and item.user.location_lat is not None
+                and item.user.location_lng is not None
+            ):
+                distance = _haversine_km(
+                    current_user.location_lat,
+                    current_user.location_lng,
+                    item.user.location_lat,
+                    item.user.location_lng,
+                )
+                if distance <= distance_km_for_tier:
+                    return (0, distance)
+            if user_city and (item.user.location_city or "").strip().lower() == user_city:
+                return (1, float("inf"))
+            if user_country and (item.user.location_country or "").strip().lower() == user_country:
+                return (2, float("inf"))
+            return (3, float("inf"))
+
+        def tier_sort_key(item: schemas.MatchCandidate) -> tuple:
+            tier, distance = tier_key(item)
+            return (
+                tier,
+                distance,
+                -item.match_count,
+                -item.score,
+                item.user.last_active_at or item.user.created_at,
+            )
+
+        results.sort(key=tier_sort_key)
     else:
         results.sort(
             key=lambda item: (

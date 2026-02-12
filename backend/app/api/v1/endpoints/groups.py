@@ -62,6 +62,44 @@ def _coerce_aware(value: datetime | None) -> datetime | None:
     return value
 
 
+def _split_location_value(value: str | None) -> tuple[str | None, str | None]:
+    if not value:
+        return None, None
+    parts = [part.strip() for part in value.split(",") if part.strip()]
+    if not parts:
+        return None, None
+    city = parts[0]
+    country = parts[-1] if len(parts) > 1 else None
+    return city, country
+
+
+def _sort_groups(groups: list[Group], sort: str | None) -> list[Group]:
+    if sort == "recent":
+        min_dt = datetime.min.replace(tzinfo=timezone.utc)
+        return sorted(
+            groups,
+            key=lambda item: _coerce_aware(item.created_at) or min_dt,
+            reverse=True,
+        )
+    if sort == "smart":
+        def score(item: Group) -> float:
+            remaining = 0
+            if item.max_participants and item.approved_members is not None:
+                remaining = max(item.max_participants - item.approved_members, 0)
+            recency = 0.0
+            if item.created_at:
+                created_at = _coerce_aware(item.created_at)
+                if created_at:
+                    delta = _utcnow() - created_at
+                    recency = max(0.0, 30.0 - delta.days)
+            status_bonus = 10.0 if item.status == GroupStatus.OPEN else 0.0
+            shared_bonus = len(item.shared_tags or []) * 2.0
+            return status_bonus + remaining + recency + shared_bonus
+
+        return sorted(groups, key=score, reverse=True)
+    return groups
+
+
 def _apply_group_lifecycle(group: Group, approved_count: int) -> None:
     end_date = _coerce_aware(group.end_date)
     if end_date and end_date < _utcnow():
@@ -268,6 +306,18 @@ def discover_groups(
     skip: int = 0,
     limit: int = 50,
 ) -> Any:
+    discovery = current_user.discovery_settings or {}
+    global_mode = bool(discovery.get("global_mode")) if isinstance(discovery, dict) else False
+    distance_pref_km = None
+    if isinstance(discovery, dict):
+        value = discovery.get("distance_km")
+        try:
+            distance_pref_km = float(value) if value is not None else None
+        except (TypeError, ValueError):
+            distance_pref_km = None
+    effective_lat = lat if lat is not None else current_user.location_lat
+    effective_lng = lng if lng is not None else current_user.location_lng
+
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
     groups = crud.group.get_multi_filtered(
         db,
@@ -298,12 +348,12 @@ def discover_groups(
             filtered_groups.append(group)
         groups = filtered_groups
     user_interests = set(current_user.interests or [])
-    if lat is not None and lng is not None and radius_km is not None:
+    if effective_lat is not None and effective_lng is not None and radius_km is not None:
         filtered = []
         for group in groups:
             if group.location_lat is None or group.location_lng is None:
                 continue
-            distance = _haversine_km(lat, lng, group.location_lat, group.location_lng)
+            distance = _haversine_km(effective_lat, effective_lng, group.location_lat, group.location_lng)
             if distance <= radius_km:
                 filtered.append(group)
         groups = filtered
@@ -311,32 +361,45 @@ def discover_groups(
         db,
         groups,
         current_user=current_user,
-        lat=lat,
-        lng=lng,
+        lat=effective_lat,
+        lng=effective_lng,
         include_labels=True,
     )
-    if sort == "recent":
-        min_dt = datetime.min.replace(tzinfo=timezone.utc)
-        groups = sorted(
-            groups,
-            key=lambda item: _coerce_aware(item.created_at) or min_dt,
-            reverse=True,
+    if not global_mode and radius_km is None:
+        user_city = (current_user.location_city or "").strip().lower()
+        user_country = (current_user.location_country or "").strip().lower()
+        distance_groups: list[Group] = []
+        city_groups: list[Group] = []
+        country_groups: list[Group] = []
+        rest_groups: list[Group] = []
+        for group in groups:
+            if (
+                distance_pref_km is not None
+                and effective_lat is not None
+                and effective_lng is not None
+                and group.location_lat is not None
+                and group.location_lng is not None
+            ):
+                distance = _haversine_km(effective_lat, effective_lng, group.location_lat, group.location_lng)
+                if distance <= distance_pref_km:
+                    distance_groups.append(group)
+                    continue
+            group_city, group_country = _split_location_value(group.location)
+            if user_city and group_city and group_city.strip().lower() == user_city:
+                city_groups.append(group)
+                continue
+            if user_country and group_country and group_country.strip().lower() == user_country:
+                country_groups.append(group)
+                continue
+            rest_groups.append(group)
+        groups = (
+            _sort_groups(distance_groups, sort)
+            + _sort_groups(city_groups, sort)
+            + _sort_groups(country_groups, sort)
+            + _sort_groups(rest_groups, sort)
         )
-    elif sort == "smart":
-        def score(item: Group) -> float:
-            remaining = 0
-            if item.max_participants and item.approved_members is not None:
-                remaining = max(item.max_participants - item.approved_members, 0)
-            recency = 0.0
-            if item.created_at:
-                created_at = _coerce_aware(item.created_at)
-                if created_at:
-                    delta = _utcnow() - created_at
-                    recency = max(0.0, 30.0 - delta.days)
-            status_bonus = 10.0 if item.status == GroupStatus.OPEN else 0.0
-            shared_bonus = len(item.shared_tags or []) * 2.0
-            return status_bonus + remaining + recency + shared_bonus
-        groups = sorted(groups, key=score, reverse=True)
+    else:
+        groups = _sort_groups(groups, sort)
     return groups
 
 @router.get("/{id}", response_model=schemas.Group)
