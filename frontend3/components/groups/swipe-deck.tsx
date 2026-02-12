@@ -213,10 +213,7 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
           const payload = await res.json().catch(() => null);
           throw new Error(payload?.detail || "Unable to join this group.");
         }
-        const message = requestTier === "superlike" ? "Superlike sent." : "Join request sent.";
-        toast.success(message);
-        setStatus(message);
-        return true;
+      return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unable to join this group.";
         toast.error(message);
@@ -262,8 +259,7 @@ export default function SwipeDeck({ groups, onNearEnd, nearEndThreshold = 5, res
   }, [animateOut, attemptJoin, recordSwipe]);
 
   const handleReject = useCallback(() => {
-    toast.info("Not interested.");
-    setStatus("Not interested.");
+    setStatus(null);
     void recordSwipe("nope");
     animateOut("left");
   }, [animateOut, recordSwipe]);

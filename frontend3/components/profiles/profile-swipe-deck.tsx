@@ -187,8 +187,6 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
         throw new Error(payload?.detail || "Unable to send request.");
       }
       setSentTo((prev) => ({ ...prev, [current.user.id]: true }));
-      toast.success("Request sent.");
-      setStatus("Request sent.");
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to send request.";
@@ -225,7 +223,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
 
   const handleReject = useCallback(() => {
     if (!current) return;
-    setStatus("Not interested.");
+    setStatus(null);
     void recordSwipe("nope");
     animateOut("left");
   }, [animateOut, current, recordSwipe]);
