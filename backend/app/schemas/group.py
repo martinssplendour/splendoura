@@ -88,7 +88,7 @@ class Group(BaseModel):
     lock_female: bool
     visibility: GroupVisibility = GroupVisibility.PUBLIC
     status: GroupStatus
-    requirements: List[GroupRequirementBase]
+    requirements: List[GroupRequirementBase] = Field(default_factory=list)
     approved_members: Optional[int] = None
     cover_image_url: Optional[str] = None
     shared_tags: Optional[List[str]] = None
