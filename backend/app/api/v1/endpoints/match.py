@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
 from app.api import deps
-from app.core.matching import compute_match_score, is_profile_visible
+from app.core.matching import compute_match_score, is_profile_visible, _haversine_km
 
 router = APIRouter()
 MAX_MATCH_CANDIDATES = 200
@@ -22,11 +22,52 @@ def _to_list(value: Any) -> list:
     return [value]
 
 
+def _extract_distance_km(criteria: list[dict]) -> float | None:
+    for criterion in criteria:
+        if str(criterion.get("key") or "") == "distance_km":
+            value = criterion.get("value")
+            try:
+                return float(value) if value is not None else None
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def _strip_distance_criteria(criteria: list[dict]) -> list[dict]:
+    return [criterion for criterion in criteria if str(criterion.get("key") or "") != "distance_km"]
+
+
+def _apply_distance_filter(
+    query,
+    *,
+    requester: models.User,
+    max_km: float,
+):
+    if requester.location_lat is None or requester.location_lng is None:
+        return query
+    lat = requester.location_lat
+    lng = requester.location_lng
+    delta_lat = max_km / 111.0
+    cos_lat = math.cos(math.radians(lat))
+    delta_lng = max_km / (111.0 * cos_lat) if cos_lat else max_km / 111.0
+    return query.filter(
+        and_(
+            models.User.location_lat.isnot(None),
+            models.User.location_lng.isnot(None),
+            models.User.location_lat >= lat - delta_lat,
+            models.User.location_lat <= lat + delta_lat,
+            models.User.location_lng >= lng - delta_lng,
+            models.User.location_lng <= lng + delta_lng,
+        )
+    )
+
+
 def _apply_match_filters(
     query,
     *,
     criteria: list[dict],
     requester: models.User,
+    include_distance: bool = False,
 ):
     for criterion in criteria:
         key = str(criterion.get("key") or "")
@@ -42,30 +83,13 @@ def _apply_match_filters(
             genders = _to_list(value)
             if genders:
                 query = query.filter(models.User.gender.in_(genders))
-        elif key == "distance_km":
-            if requester.location_lat is None or requester.location_lng is None:
-                continue
+        elif key == "distance_km" and include_distance:
             try:
                 max_km = float(value) if value is not None else None
             except (TypeError, ValueError):
                 max_km = None
-            if max_km is None:
-                continue
-            lat = requester.location_lat
-            lng = requester.location_lng
-            delta_lat = max_km / 111.0
-            cos_lat = math.cos(math.radians(lat))
-            delta_lng = max_km / (111.0 * cos_lat) if cos_lat else max_km / 111.0
-            query = query.filter(
-                and_(
-                    models.User.location_lat.isnot(None),
-                    models.User.location_lng.isnot(None),
-                    models.User.location_lat >= lat - delta_lat,
-                    models.User.location_lat <= lat + delta_lat,
-                    models.User.location_lng >= lng - delta_lng,
-                    models.User.location_lng <= lng + delta_lng,
-                )
-            )
+            if max_km is not None:
+                query = _apply_distance_filter(query, requester=requester, max_km=max_km)
     return query
 
 
@@ -79,18 +103,71 @@ def create_match_request(
     request = crud.match_request.create(db, requester_id=current_user.id, obj_in=payload)
 
     criteria_list = [criterion.model_dump() for criterion in payload.criteria] if payload.criteria else []
-    query = (
+    base_query = (
         db.query(models.User)
         .filter(models.User.deleted_at.is_(None), models.User.id != current_user.id)
     )
-    query = _apply_match_filters(query, criteria=criteria_list, requester=current_user)
-    candidates = query.limit(MAX_MATCH_CANDIDATES).all()
+    base_query = _apply_match_filters(
+        base_query,
+        criteria=criteria_list,
+        requester=current_user,
+        include_distance=False,
+    )
+
+    discovery = current_user.discovery_settings or {}
+    global_mode = bool(discovery.get("global_mode")) if isinstance(discovery, dict) else False
+    distance_km = _extract_distance_km(criteria_list)
+
+    candidates: list[models.User] = []
+    tier = "global"
+    if not global_mode and distance_km and current_user.location_lat is not None and current_user.location_lng is not None:
+        query = _apply_distance_filter(base_query, requester=current_user, max_km=distance_km)
+        distance_candidates = query.limit(MAX_MATCH_CANDIDATES).all()
+        if distance_candidates:
+            within_distance = []
+            for candidate in distance_candidates:
+                if candidate.location_lat is None or candidate.location_lng is None:
+                    continue
+                distance = _haversine_km(
+                    current_user.location_lat,
+                    current_user.location_lng,
+                    candidate.location_lat,
+                    candidate.location_lng,
+                )
+                if distance <= distance_km:
+                    within_distance.append(candidate)
+            if within_distance:
+                candidates = within_distance
+                tier = "distance"
+    if not candidates and not global_mode and current_user.location_city:
+        candidates = (
+            base_query.filter(models.User.location_city == current_user.location_city)
+            .limit(MAX_MATCH_CANDIDATES)
+            .all()
+        )
+        if candidates:
+            tier = "city"
+    if not candidates and not global_mode and current_user.location_country:
+        candidates = (
+            base_query.filter(models.User.location_country == current_user.location_country)
+            .limit(MAX_MATCH_CANDIDATES)
+            .all()
+        )
+        if candidates:
+            tier = "country"
+    if not candidates:
+        candidates = base_query.limit(MAX_MATCH_CANDIDATES).all()
+        tier = "global"
     results: List[schemas.MatchCandidate] = []
+
+    scoring_criteria = criteria_list
+    if tier in {"city", "country", "global"} and distance_km is not None:
+        scoring_criteria = _strip_distance_criteria(criteria_list)
 
     for candidate in candidates:
         if not is_profile_visible(candidate):
             continue
-        match_count, total, score = compute_match_score(current_user, candidate, criteria_list)
+        match_count, total, score = compute_match_score(current_user, candidate, scoring_criteria)
         results.append(
             schemas.MatchCandidate(
                 user=candidate,
@@ -100,14 +177,34 @@ def create_match_request(
             )
         )
 
-    results.sort(
-        key=lambda item: (
-            item.match_count,
-            item.score,
-            item.user.last_active_at or item.user.created_at,
-        ),
-        reverse=True,
-    )
+    if tier == "distance" and current_user.location_lat is not None and current_user.location_lng is not None:
+        def distance_key(item: schemas.MatchCandidate) -> float:
+            if item.user.location_lat is None or item.user.location_lng is None:
+                return float("inf")
+            return _haversine_km(
+                current_user.location_lat,
+                current_user.location_lng,
+                item.user.location_lat,
+                item.user.location_lng,
+            )
+
+        results.sort(
+            key=lambda item: (
+                distance_key(item),
+                -item.match_count,
+                -item.score,
+                item.user.last_active_at or item.user.created_at,
+            )
+        )
+    else:
+        results.sort(
+            key=lambda item: (
+                item.match_count,
+                item.score,
+                item.user.last_active_at or item.user.created_at,
+            ),
+            reverse=True,
+        )
 
     return schemas.MatchRequestWithResults(request=request, results=results)
 
