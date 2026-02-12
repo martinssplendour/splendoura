@@ -1,7 +1,9 @@
 # backend/app/crud/crud_group.py
-from datetime import datetime
+from datetime import datetime, timezone
+from sqlalchemy import and_, exists, or_
 from sqlalchemy.orm import Session
 from app.models.group import AppliesTo, Group, GroupRequirement
+from app.models.swipe_history import SwipeHistory, SwipeTargetType
 from app.schemas.group import GroupCreate
 
 class CRUDGroup:
@@ -29,11 +31,23 @@ class CRUDGroup:
         max_age: int | None = None,
         start_date: datetime | None = None,
         end_date: datetime | None = None,
+        exclude_swipe_user_id: int | None = None,
         exclude_group_ids=None,
+        cursor: tuple[datetime, int] | None = None,
         skip: int = 0,
         limit: int = 100,
     ):
         query = db.query(Group).filter(Group.deleted_at.is_(None))
+        if exclude_swipe_user_id is not None:
+            query = query.filter(
+                ~exists().where(
+                    and_(
+                        SwipeHistory.user_id == exclude_swipe_user_id,
+                        SwipeHistory.target_type == SwipeTargetType.GROUP,
+                        SwipeHistory.target_id == Group.id,
+                    )
+                )
+            )
         if exclude_group_ids is not None:
             query = query.filter(~Group.id.in_(exclude_group_ids))
         if creator_id is not None:
@@ -65,6 +79,18 @@ class CRUDGroup:
                 query = query.filter(GroupRequirement.min_age <= min_age)
             if max_age is not None:
                 query = query.filter(GroupRequirement.max_age >= max_age)
+        query = query.order_by(Group.created_at.desc(), Group.id.desc())
+        if cursor:
+            cursor_created_at, cursor_id = cursor
+            if cursor_created_at.tzinfo is None:
+                cursor_created_at = cursor_created_at.replace(tzinfo=timezone.utc)
+            query = query.filter(
+                or_(
+                    Group.created_at < cursor_created_at,
+                    and_(Group.created_at == cursor_created_at, Group.id < cursor_id),
+                )
+            )
+            return query.limit(limit).all()
         return query.offset(skip).limit(limit).all()
 
     def create_with_owner(self, db: Session, *, obj_in: GroupCreate, owner_id: int) -> Group:

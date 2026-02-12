@@ -1,7 +1,7 @@
 import math
 from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import and_
+from sqlalchemy import and_, exists
 from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
@@ -145,20 +145,19 @@ def create_match_request(
     request = crud.match_request.create(db, requester_id=current_user.id, obj_in=payload)
 
     criteria_list = [criterion.model_dump() for criterion in payload.criteria] if payload.criteria else []
-    seen_profiles = (
-        db.query(SwipeHistory.target_id)
-        .filter(
+    seen_profiles = exists().where(
+        and_(
             SwipeHistory.user_id == current_user.id,
             SwipeHistory.target_type == SwipeTargetType.PROFILE,
+            SwipeHistory.target_id == models.User.id,
         )
-        .subquery()
     )
     base_query = (
         db.query(models.User)
         .filter(
             models.User.deleted_at.is_(None),
             models.User.id != current_user.id,
-            ~models.User.id.in_(seen_profiles),
+            ~seen_profiles,
         )
     )
     base_query = _apply_match_filters(

@@ -1,10 +1,15 @@
 ﻿# backend/app/api/v1/endpoints/groups.py
+from collections import OrderedDict
 from datetime import datetime, timezone
+import base64
+import json
 import math
 import os
+import time
 import uuid
 from typing import Any, Dict, List
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Response, UploadFile, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -39,6 +44,44 @@ from app.models.swipe_history import SwipeAction, SwipeHistory, SwipeTargetType
 # 1. Initialize the router
 router = APIRouter()
 
+GROUP_FEED_CACHE_TTL = int(os.getenv("GROUP_FEED_CACHE_TTL", "600"))
+GROUP_FEED_CACHE_MAX = int(os.getenv("GROUP_FEED_CACHE_MAX", "2000"))
+_GROUP_FEED_CACHE: OrderedDict[str, tuple[float, list[dict], str | None]] = OrderedDict()
+
+
+def _cache_key(prefix: str, user_id: int | None, params: dict[str, Any]) -> str:
+    parts = [prefix, str(user_id or "anon")]
+    for key in sorted(params):
+        value = params[key]
+        if isinstance(value, list):
+            value = ",".join(str(item) for item in value)
+        parts.append(f"{key}={value}")
+    return "|".join(parts)
+
+
+def _cache_get(key: str) -> tuple[list[dict], str | None] | None:
+    if GROUP_FEED_CACHE_TTL <= 0:
+        return None
+    entry = _GROUP_FEED_CACHE.get(key)
+    if not entry:
+        return None
+    ts, payload, next_cursor = entry
+    if time.time() - ts > GROUP_FEED_CACHE_TTL:
+        _GROUP_FEED_CACHE.pop(key, None)
+        return None
+    _GROUP_FEED_CACHE.move_to_end(key)
+    return payload, next_cursor
+
+
+def _cache_set(key: str, payload: list[dict], next_cursor: str | None) -> None:
+    if GROUP_FEED_CACHE_TTL <= 0:
+        return
+    _GROUP_FEED_CACHE[key] = (time.time(), payload, next_cursor)
+    _GROUP_FEED_CACHE.move_to_end(key)
+    while len(_GROUP_FEED_CACHE) > GROUP_FEED_CACHE_MAX:
+        _GROUP_FEED_CACHE.popitem(last=False)
+
+
 def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     radius_km = 6371.0
     dlat = math.radians(lat2 - lat1)
@@ -61,6 +104,40 @@ def _coerce_aware(value: datetime | None) -> datetime | None:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value
+
+
+def _encode_cursor(group: Group) -> str:
+    created_at = _coerce_aware(group.created_at)
+    payload = {
+        "created_at": created_at.isoformat() if created_at else None,
+        "id": group.id,
+    }
+    raw = json.dumps(payload).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("utf-8").rstrip("=")
+
+
+def _decode_cursor(value: str | None) -> tuple[datetime, int] | None:
+    if not value:
+        return None
+    try:
+        padded = value + "=" * (-len(value) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded.encode("utf-8")))
+        created_at = payload.get("created_at")
+        cursor_id = payload.get("id")
+        if not created_at or cursor_id is None:
+            return None
+        if isinstance(created_at, str):
+            created_at = created_at.replace("Z", "+00:00")
+            created_at = datetime.fromisoformat(created_at)
+        if isinstance(cursor_id, str):
+            cursor_id = int(cursor_id)
+        if not isinstance(created_at, datetime) or not isinstance(cursor_id, int):
+            return None
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        return created_at, cursor_id
+    except Exception:
+        return None
 
 
 def _record_swipe(
@@ -222,6 +299,7 @@ def _require_group_member(db: Session, *, group_id: int, user_id: int) -> None:
 @router.get("/", response_model=List[schemas.Group])
 def read_groups(
     db: Session = Depends(deps.get_db),
+    response: Response,
     creator_id: int | None = None,
     location: str | None = None,
     activity_type: str | None = None,
@@ -238,11 +316,43 @@ def read_groups(
     max_age: int | None = None,
     start_date: datetime | None = None,
     end_date: datetime | None = None,
+    cursor: str | None = None,
     skip: int = 0,
     limit: int = 50,
 ) -> Any:
     """Retrieve groups."""
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
+    cursor_payload = _decode_cursor(cursor)
+    page_limit = max(1, limit)
+    fetch_limit = page_limit + 1
+    cache_params = {
+        "creator_id": creator_id,
+        "location": location,
+        "activity_type": activity_type,
+        "category": category,
+        "cost_type": cost_type,
+        "tags": tag_list or [],
+        "search": search,
+        "lat": lat,
+        "lng": lng,
+        "radius_km": radius_km,
+        "sort": sort,
+        "gender": gender,
+        "min_age": min_age,
+        "max_age": max_age,
+        "start_date": start_date.isoformat() if start_date else None,
+        "end_date": end_date.isoformat() if end_date else None,
+        "cursor": cursor or "",
+        "limit": page_limit,
+        "skip": skip if cursor_payload is None else 0,
+    }
+    cache_key = _cache_key("groups", None, cache_params)
+    cached = _cache_get(cache_key)
+    if cached:
+        payload, cached_cursor = cached
+        if cached_cursor:
+            response.headers["X-Next-Cursor"] = cached_cursor
+        return payload
     groups = crud.group.get_multi_filtered(
         db,
         creator_id=creator_id,
@@ -257,9 +367,14 @@ def read_groups(
         max_age=max_age,
         start_date=start_date,
         end_date=end_date,
-        skip=skip,
-        limit=limit,
+        cursor=cursor_payload,
+        skip=skip if cursor_payload is None else 0,
+        limit=fetch_limit,
     )
+    has_more = len(groups) > page_limit
+    page_groups = groups[:page_limit]
+    next_cursor = _encode_cursor(page_groups[-1]) if has_more and page_groups else None
+    groups = page_groups
     if lat is not None and lng is not None and radius_km is not None:
         filtered = []
         for group in groups:
@@ -291,6 +406,9 @@ def read_groups(
             status_bonus = 10.0 if item.status == GroupStatus.OPEN else 0.0
             return status_bonus + remaining + recency
         groups = sorted(groups, key=score, reverse=True)
+    if next_cursor:
+        response.headers["X-Next-Cursor"] = next_cursor
+    _cache_set(cache_key, jsonable_encoder(groups), next_cursor)
     return groups
 
 @router.post("/", response_model=schemas.Group, dependencies=[Depends(deps.rate_limit)])
@@ -324,6 +442,7 @@ def create_group(
 @router.get("/discover", response_model=List[schemas.Group])
 def discover_groups(
     db: Session = Depends(deps.get_db),
+    response: Response,
     current_user: models.User = Depends(deps.get_current_verified_user),
     location: str | None = None,
     activity_type: str | None = None,
@@ -336,6 +455,7 @@ def discover_groups(
     lng: float | None = None,
     radius_km: float | None = None,
     sort: str | None = "smart",
+    cursor: str | None = None,
     skip: int = 0,
     limit: int = 50,
 ) -> Any:
@@ -352,14 +472,34 @@ def discover_groups(
     effective_lng = lng if lng is not None else current_user.location_lng
 
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
-    seen_groups = (
-        db.query(SwipeHistory.target_id)
-        .filter(
-            SwipeHistory.user_id == current_user.id,
-            SwipeHistory.target_type == SwipeTargetType.GROUP,
-        )
-        .subquery()
-    )
+    cursor_payload = _decode_cursor(cursor)
+    page_limit = max(1, limit)
+    fetch_limit = page_limit + 1
+    cache_params = {
+        "location": location,
+        "activity_type": activity_type,
+        "category": category,
+        "cost_type": cost_type,
+        "creator_verified": creator_verified,
+        "tags": tag_list or [],
+        "search": search,
+        "lat": effective_lat,
+        "lng": effective_lng,
+        "radius_km": radius_km,
+        "sort": sort,
+        "cursor": cursor or "",
+        "limit": page_limit,
+        "skip": skip if cursor_payload is None else 0,
+        "global_mode": global_mode,
+        "distance_pref_km": distance_pref_km,
+    }
+    cache_key = _cache_key("discover", current_user.id, cache_params)
+    cached = _cache_get(cache_key)
+    if cached:
+        payload, cached_cursor = cached
+        if cached_cursor:
+            response.headers["X-Next-Cursor"] = cached_cursor
+        return payload
     groups = crud.group.get_multi_filtered(
         db,
         location=location,
@@ -368,10 +508,15 @@ def discover_groups(
         cost_type=cost_type,
         tags=tag_list,
         search=search,
-        exclude_group_ids=seen_groups,
-        skip=skip,
-        limit=limit,
+        exclude_swipe_user_id=current_user.id,
+        cursor=cursor_payload,
+        skip=skip if cursor_payload is None else 0,
+        limit=fetch_limit,
     )
+    has_more = len(groups) > page_limit
+    page_groups = groups[:page_limit]
+    next_cursor = _encode_cursor(page_groups[-1]) if has_more and page_groups else None
+    groups = page_groups
     if creator_verified is not None and groups:
         creator_ids = {group.creator_id for group in groups}
         creators = db.query(models.User).filter(
@@ -442,6 +587,9 @@ def discover_groups(
         )
     else:
         groups = _sort_groups(groups, sort)
+    if next_cursor:
+        response.headers["X-Next-Cursor"] = next_cursor
+    _cache_set(cache_key, jsonable_encoder(groups), next_cursor)
     return groups
 
 @router.get("/{id}", response_model=schemas.Group)
