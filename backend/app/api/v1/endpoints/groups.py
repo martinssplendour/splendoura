@@ -298,8 +298,8 @@ def _require_group_member(db: Session, *, group_id: int, user_id: int) -> None:
 
 @router.get("/", response_model=List[schemas.Group])
 def read_groups(
-    db: Session = Depends(deps.get_db),
     response: Response,
+    db: Session = Depends(deps.get_db),
     creator_id: int | None = None,
     location: str | None = None,
     activity_type: str | None = None,
@@ -441,8 +441,8 @@ def create_group(
 
 @router.get("/discover", response_model=List[schemas.Group])
 def discover_groups(
-    db: Session = Depends(deps.get_db),
     response: Response,
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_verified_user),
     location: str | None = None,
     activity_type: str | None = None,
