@@ -512,6 +512,7 @@ def discover_groups(
         tags=tag_list,
         search=search,
         exclude_swipe_user_id=current_user.id,
+        exclude_creator_id=current_user.id,
         cursor=cursor_payload,
         skip=skip if cursor_payload is None else 0,
         limit=fetch_limit,

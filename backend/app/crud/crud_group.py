@@ -20,6 +20,7 @@ class CRUDGroup:
         db: Session,
         *,
         creator_id: int | None = None,
+        exclude_creator_id: int | None = None,
         location: str | None = None,
         activity_type: str | None = None,
         category: str | None = None,
@@ -55,6 +56,8 @@ class CRUDGroup:
             query = query.filter(~Group.id.in_(exclude_group_ids))
         if creator_id is not None:
             query = query.filter(Group.creator_id == creator_id)
+        if exclude_creator_id is not None:
+            query = query.filter(Group.creator_id != exclude_creator_id)
         if search:
             query = query.filter(
                 Group.title.ilike(f"%{search}%") | Group.description.ilike(f"%{search}%")
