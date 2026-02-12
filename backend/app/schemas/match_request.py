@@ -53,6 +53,8 @@ class MatchInvite(BaseModel):
     requester_id: int
     target_user_id: int
     status: MatchInviteStatus
+    matched: Optional[bool] = None
+    match_user_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

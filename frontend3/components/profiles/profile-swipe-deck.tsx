@@ -241,7 +241,11 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
         const payload = await res.json().catch(() => null);
         throw new Error(payload?.detail || "Unable to send request.");
       }
+      const payload = await res.json().catch(() => null);
       setSentTo((prev) => ({ ...prev, [current.user.id]: true }));
+      if (payload?.matched) {
+        toast.success("It's a match!");
+      }
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to send request.";

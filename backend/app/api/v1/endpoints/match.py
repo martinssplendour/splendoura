@@ -8,6 +8,8 @@ from app import crud, models, schemas
 from app.api import deps
 from app.core.matching import compute_match_score, is_profile_visible, _haversine_km
 from app.models.swipe_history import SwipeAction, SwipeHistory, SwipeTargetType
+from app.models.match_request import MatchInviteStatus
+from app.core.push import get_push_tokens, send_expo_push
 
 router = APIRouter()
 MAX_MATCH_CANDIDATES = 200
@@ -316,16 +318,53 @@ def send_match_request(
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot send a request to yourself.")
     existing = crud.match_invite.get_existing(db, request_id=request_id, target_user_id=user_id)
-    if existing:
-        return existing
-    invite = crud.match_invite.create(
-        db,
-        request_id=request_id,
-        requester_id=current_user.id,
-        target_user_id=user_id,
+    reciprocal = (
+        db.query(models.MatchRequestInvite)
+        .filter(
+            models.MatchRequestInvite.requester_id == user_id,
+            models.MatchRequestInvite.target_user_id == current_user.id,
+            models.MatchRequestInvite.deleted_at.is_(None),
+        )
+        .first()
     )
+    invite = existing
+    if not invite:
+        invite = crud.match_invite.create(
+            db,
+            request_id=request_id,
+            requester_id=current_user.id,
+            target_user_id=user_id,
+        )
+
+    matched = False
+    if reciprocal and reciprocal.status not in {
+        MatchInviteStatus.REJECTED.value,
+        MatchInviteStatus.CANCELLED.value,
+    }:
+        matched = True
+        if invite.status != MatchInviteStatus.ACCEPTED.value:
+            invite.status = MatchInviteStatus.ACCEPTED.value
+            db.add(invite)
+        if reciprocal.status != MatchInviteStatus.ACCEPTED.value:
+            reciprocal.status = MatchInviteStatus.ACCEPTED.value
+            db.add(reciprocal)
+        db.commit()
+        db.refresh(invite)
+        target_user = crud.user.get(db, id=user_id)
+        target_name = target_user.full_name if target_user else None
+        target_label = target_name or (target_user.username if target_user else None)
+        target_label = target_label or "Someone"
+        tokens = get_push_tokens(db, [current_user.id, user_id])
+        send_expo_push(
+            tokens,
+            title="It's a match!",
+            body=f"You and {target_label} liked each other.",
+            data={"type": "profile_match", "user_id": user_id},
+        )
     _record_swipe(db, user_id=current_user.id, target_id=user_id, action=SwipeAction.LIKE)
-    return invite
+    return schemas.MatchInvite.model_validate(invite).model_copy(
+        update={"matched": matched, "match_user_id": user_id if matched else None}
+    )
 
 
 @router.post("/swipes/{user_id}")
