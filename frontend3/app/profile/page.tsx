@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Camera, Pencil, Settings } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -94,6 +95,8 @@ const calculateAge = (dob: string) => {
 };
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { accessToken, user, refreshSession } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedPreviewUrls, setSelectedPreviewUrls] = useState<string[]>([]);
@@ -395,11 +398,27 @@ export default function ProfilePage() {
     workoutHabits,
     zodiacSign,
   ]);
+  const tabParam = searchParams?.get("tab");
+  const activeTab = tabParam === "preview" ? "preview" : "edit";
+  const setActiveTab = (next: "edit" | "preview") => {
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    if (next === "preview") {
+      params.set("tab", "preview");
+    } else {
+      params.delete("tab");
+    }
+    const query = params.toString();
+    router.push(query ? `/profile?${query}` : "/profile", { scroll: false });
+  };
   const displayName = (user?.full_name || username || "Your profile").trim() || "Your profile";
   const displayAge = calculateAge(dob) ?? user?.age;
   const heroPhoto = primaryPhotoUrl || user?.profile_image_url || photos[0] || null;
   const heroThumb = heroPhoto ? getProfilePhotoThumb(heroPhoto, user?.profile_media, true) : null;
   const completionAngle = Math.max(0, Math.min(100, completionPercent)) * 3.6;
+  const previewCity = locationCity || user?.location_city || "";
+  const previewCountry = locationCountry || user?.location_country || "";
+  const previewLocation = [previewCity, previewCountry].filter(Boolean).join(", ");
+  const previewImages = photos.length > 0 ? photos : heroPhoto ? [heroPhoto] : [];
 
   useEffect(() => {
     if (selectedFiles.length === 0) {
@@ -779,9 +798,17 @@ export default function ProfilePage() {
         </div>
 
         <div className="mt-6 flex flex-col items-center text-center">
-          <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("edit");
+              document.getElementById("profile-photos")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="relative"
+            aria-label="Edit profile media"
+          >
             <div
-              className="h-36 w-36 rounded-full p-[5px]"
+              className="h-36 w-36 rounded-full p-[5px] transition hover:scale-[1.01]"
               style={{
                 background: `conic-gradient(#fb7185 ${completionAngle}deg, #e2e8f0 0deg)`,
               }}
@@ -803,7 +830,7 @@ export default function ProfilePage() {
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-rose-500 to-orange-400 px-4 py-1 text-xs font-semibold text-white shadow">
               {completionPercent}% complete
             </div>
-          </div>
+          </button>
 
           <div className="mt-5 flex items-center gap-2">
             <h2 className="text-2xl font-semibold text-slate-900">
@@ -859,11 +886,92 @@ export default function ProfilePage() {
           </button>
         </div>
       </div>
+      <div className="rounded-3xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-slate-900">Edit info</p>
+          <button
+            type="button"
+            onClick={() => setActiveTab(activeTab === "preview" ? "edit" : "preview")}
+            className="text-sm font-semibold text-rose-500 hover:text-rose-600"
+          >
+            {activeTab === "preview" ? "Edit" : "Done"}
+          </button>
+        </div>
+        <div className="mt-4 grid grid-cols-2 rounded-2xl border border-slate-200 bg-slate-50 p-1 text-center text-sm font-semibold">
+          <button
+            type="button"
+            onClick={() => setActiveTab("edit")}
+            className={`rounded-xl px-3 py-2 transition ${
+              activeTab === "edit"
+                ? "bg-white text-rose-500 shadow"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("preview")}
+            className={`rounded-xl px-3 py-2 transition ${
+              activeTab === "preview"
+                ? "bg-white text-rose-500 shadow"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Preview
+          </button>
+        </div>
+      </div>
 
-      <div
-        id="profile-photos"
-        className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4"
-      >
+      {activeTab === "preview" ? (
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mx-auto max-w-sm text-center">
+            <p className="text-xs font-semibold uppercase text-slate-400">Preview</p>
+            <p className="mt-1 text-sm text-slate-500">This is how your profile appears on the swipe deck.</p>
+          </div>
+          <div className="mx-auto mt-6 w-full max-w-sm">
+            <div className="relative h-[520px] w-full overflow-hidden rounded-[32px] bg-slate-900 shadow-lg">
+              {heroPhoto ? (
+                <SignedImage
+                  src={heroThumb || heroPhoto}
+                  alt={displayName}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-800 text-sm text-white/70">
+                  Add a profile photo to preview
+                </div>
+              )}
+              {previewImages.length > 1 ? (
+                <div className="absolute inset-x-4 top-4 flex gap-1">
+                  {previewImages.map((_, idx) => (
+                    <span key={`preview-bar-${idx}`} className="h-1 flex-1 rounded-full bg-white/60" />
+                  ))}
+                </div>
+              ) : null}
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent px-6 pb-6 pt-16">
+                <div className="flex items-end justify-between gap-4">
+                  <div className="text-left">
+                    <p className="text-2xl font-semibold text-white">
+                      {displayName}
+                      {displayAge ? `, ${displayAge}` : ""}
+                    </p>
+                    <p className="text-sm text-white/75">
+                      {previewLocation || "Location hidden"}
+                    </p>
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-white/20" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div
+            id="profile-photos"
+            className="rounded-none border-0 bg-white sm:rounded-2xl sm:border sm:border-slate-200 p-6 space-y-4"
+          >
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Profile photos</h2>
           <p className="text-sm text-slate-600">Upload up to 9 photos. The first image is your primary photo.</p>
@@ -1810,6 +1918,8 @@ export default function ProfilePage() {
         )}
         {createdError ? <p className="text-sm text-red-600">{createdError}</p> : null}
       </div>
+        </>
+      )}
     </div>
   );
 }
