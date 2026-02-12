@@ -647,6 +647,31 @@ def record_group_swipe(
     )
     return {"msg": "Swipe recorded"}
 
+
+@router.delete("/{id}/swipe", dependencies=[Depends(deps.rate_limit)])
+def undo_group_swipe(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    group = crud.group.get(db, id=id)
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    swipe = (
+        db.query(SwipeHistory)
+        .filter(
+            SwipeHistory.user_id == current_user.id,
+            SwipeHistory.target_type == SwipeTargetType.GROUP,
+            SwipeHistory.target_id == id,
+        )
+        .first()
+    )
+    if swipe:
+        db.delete(swipe)
+        db.commit()
+    return {"msg": "Swipe removed"}
+
 @router.get("/{id}/approved-members", response_model=List[schemas.User])
 def list_approved_members(
     *,

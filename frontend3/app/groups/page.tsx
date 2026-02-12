@@ -196,6 +196,21 @@ export default function BrowseGroups() {
     [readSeenGroupIds, seenGroupsKey]
   );
 
+  const unmarkGroupSeen = useCallback(
+    (groupId: number) => {
+      if (typeof window === "undefined") return;
+      const seen = readSeenGroupIds();
+      if (!seen.has(groupId)) return;
+      seen.delete(groupId);
+      try {
+        sessionStorage.setItem(seenGroupsKey, JSON.stringify(Array.from(seen)));
+      } catch {
+        // ignore
+      }
+    },
+    [readSeenGroupIds, seenGroupsKey]
+  );
+
   const filterSeenGroups = useCallback(
     (items: SwipeGroup[]) => {
       const seen = readSeenGroupIds();
@@ -564,6 +579,7 @@ export default function BrowseGroups() {
                     nearEndThreshold={PREFETCH_THRESHOLD}
                     resetKey={deckResetKey}
                     onMarkSeen={markGroupSeen}
+                    onUnmarkSeen={unmarkGroupSeen}
                   />
                   {loadingMore ? (
                     <p className="mt-3 text-center text-xs text-slate-500">Loading more groups…</p>

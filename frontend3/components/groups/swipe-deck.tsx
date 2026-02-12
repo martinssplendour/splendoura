@@ -16,6 +16,7 @@ interface SwipeDeckProps {
   nearEndThreshold?: number;
   resetKey?: string;
   onMarkSeen?: (groupId: number) => void;
+  onUnmarkSeen?: (groupId: number) => void;
 }
 
 const SWIPE_RATIO = 0.3;
@@ -34,6 +35,7 @@ export default function SwipeDeck({
   nearEndThreshold = 5,
   resetKey,
   onMarkSeen,
+  onUnmarkSeen,
 }: SwipeDeckProps) {
   const [index, setIndex] = useState(0);
   const [drag, setDrag] = useState({ x: 0, y: 0 });
@@ -43,6 +45,8 @@ export default function SwipeDeck({
   const [status, setStatus] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [imageIndex, setImageIndex] = useState(0);
+  const [history, setHistory] = useState<number[]>([]);
+  const [historyIds, setHistoryIds] = useState<number[]>([]);
   const [creatorName, setCreatorName] = useState<string>("");
   const [creatorAvatar, setCreatorAvatar] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -155,6 +159,8 @@ export default function SwipeDeck({
     setIndex(0);
     resetDrag();
     setImageIndex(0);
+    setHistory([]);
+    setHistoryIds([]);
     setStatus(null);
   }, [resetKey, resetDrag]);
 
@@ -163,6 +169,8 @@ export default function SwipeDeck({
     if (index >= groups.length) {
       setIndex(0);
       resetDrag();
+      setHistory([]);
+      setHistoryIds([]);
     }
   }, [groups.length, index, resetDrag]);
 
@@ -175,9 +183,11 @@ export default function SwipeDeck({
   }, [groups.length, index, nearEndThreshold, onNearEnd]);
 
   const animateOut = useCallback(
-    (direction: "left" | "right") => {
+    (direction: "left" | "right", groupId: number) => {
       const distance = cardWidth || 600;
       setIsAnimating(true);
+      setHistory((prev) => [...prev, index]);
+      setHistoryIds((prev) => [...prev, groupId]);
       setDrag({ x: direction === "right" ? distance * 1.2 : -distance * 1.2, y: drag.y });
       setTimeout(() => {
         setIsAnimating(false);
@@ -245,12 +255,27 @@ export default function SwipeDeck({
     [accessToken, current]
   );
 
+  const undoSwipe = useCallback(
+    async (groupId: number) => {
+      if (!accessToken) return;
+      try {
+        await apiFetch(`/groups/${groupId}/swipe`, {
+          method: "DELETE",
+          token: accessToken,
+        });
+      } catch {
+        // Best-effort only.
+      }
+    },
+    [accessToken]
+  );
+
   const handleApprove = useCallback(async () => {
     const ok = await attemptJoin("like");
     if (ok) {
       await recordSwipe("like");
       onMarkSeen?.(current.id);
-      animateOut("right");
+      animateOut("right", current.id);
     }
   }, [animateOut, attemptJoin, current?.id, onMarkSeen, recordSwipe]);
 
@@ -259,7 +284,7 @@ export default function SwipeDeck({
     if (ok) {
       await recordSwipe("superlike");
       onMarkSeen?.(current.id);
-      animateOut("right");
+      animateOut("right", current.id);
     }
   }, [animateOut, attemptJoin, current?.id, onMarkSeen, recordSwipe]);
 
@@ -268,9 +293,36 @@ export default function SwipeDeck({
     void recordSwipe("nope");
     if (current?.id) {
       onMarkSeen?.(current.id);
+      animateOut("left", current.id);
     }
-    animateOut("left");
   }, [animateOut, current?.id, onMarkSeen, recordSwipe]);
+
+  const handleRewind = useCallback(() => {
+    if (isAnimating || isJoining) return;
+    if (history.length === 0) {
+      setStatus("Nothing to rewind.");
+      return;
+    }
+    const previous = history[history.length - 1];
+    const lastId = historyIds[historyIds.length - 1];
+    setHistory((prev) => prev.slice(0, -1));
+    setHistoryIds((prev) => prev.slice(0, -1));
+    setStatus("Rewound.");
+    setIndex(previous);
+    resetDrag();
+    if (lastId != null) {
+      void undoSwipe(lastId);
+      onUnmarkSeen?.(lastId);
+    }
+  }, [
+    history,
+    historyIds,
+    isAnimating,
+    isJoining,
+    onUnmarkSeen,
+    resetDrag,
+    undoSwipe,
+  ]);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (isAnimating) return;
@@ -297,13 +349,17 @@ export default function SwipeDeck({
     if (drag.x > 0) {
       const ok = await attemptJoin("like");
       if (ok) {
-        animateOut("right");
+        if (current?.id) {
+          animateOut("right", current.id);
+        }
       } else {
         resetDrag();
       }
       return;
     }
-    animateOut("left");
+    if (current?.id) {
+      animateOut("left", current.id);
+    }
   };
 
   useEffect(() => {
@@ -318,10 +374,13 @@ export default function SwipeDeck({
       if (event.key === "ArrowUp") {
         void handleSuperlike();
       }
+      if (event.key === "Backspace") {
+        handleRewind();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [current, handleApprove, handleReject, handleSuperlike, isAnimating]);
+  }, [current, handleApprove, handleReject, handleRewind, handleSuperlike, isAnimating]);
 
   const overlayOpacity = Math.min(Math.abs(drag.x) / ((cardWidth || 600) * SWIPE_RATIO), 1);
   const overlayLabel =
@@ -348,8 +407,10 @@ export default function SwipeDeck({
     if (Math.abs(drag.x) > 6 || isDragging) return;
     void recordSwipe("view");
     onMarkSeen?.(current.id);
+    setHistory((prev) => [...prev, index]);
+    setHistoryIds((prev) => [...prev, current.id]);
     router.push(`/groups/${current.id}`);
-  }, [current, drag.x, isDragging, onMarkSeen, recordSwipe, router]);
+  }, [current, drag.x, index, isDragging, onMarkSeen, recordSwipe, router]);
 
   if (!current) {
     return <EmptyState />;
@@ -403,6 +464,18 @@ export default function SwipeDeck({
             footer={
               <div className="flex flex-col gap-3">
                 <div className="grid grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleRewind();
+                    }}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-indigo-200 bg-indigo-50 px-2 py-2 text-[10px] font-semibold uppercase text-indigo-700"
+                  >
+                    <span className="text-sm">&lt;</span>
+                    Undo
+                  </button>
                   <button
                     type="button"
                     onClick={(event) => {
