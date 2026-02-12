@@ -2,6 +2,7 @@ import argparse
 import base64
 import os
 import random
+import re
 import uuid
 from datetime import datetime, timedelta
 from typing import Any
@@ -16,46 +17,209 @@ from app.models.group_extras import GroupMedia, GroupMediaType
 from app.models.user import Gender, User, VerificationStatus
 
 
-FIRST_NAMES_MALE = [
-    "Alex",
-    "Daniel",
-    "Ethan",
-    "Gabriel",
-    "James",
-    "Leo",
-    "Liam",
-    "Marcus",
-    "Nathan",
-    "Oliver",
-    "Theo",
-    "Victor",
+MALE_FULL_NAMES = [
+    "James Miller",
+    "Michael Johnson",
+    "Robert Williams",
+    "John Smith",
+    "David Brown",
+    "Christopher Davis",
+    "Daniel Wilson",
+    "Matthew Anderson",
+    "Andrew Taylor",
+    "Joseph Moore",
+    "William Thomas",
+    "Joshua Jackson",
+    "Ryan White",
+    "Nicholas Harris",
+    "Anthony Martin",
+    "Jonathan Thompson",
+    "Brandon Garcia",
+    "Kevin Martinez",
+    "Justin Robinson",
+    "Brian Clark",
+    "Eric Rodriguez",
+    "Adam Lewis",
+    "Kyle Lee",
+    "Aaron Walker",
+    "Zachary Hall",
+    "Nathan Allen",
+    "Samuel Young",
+    "Jason Hernandez",
+    "Mark King",
+    "Patrick Wright",
+    "Stephen Lopez",
+    "Scott Hill",
+    "Benjamin Scott",
+    "Jeremy Green",
+    "Alexander Adams",
+    "Timothy Baker",
+    "Jacob Gonzalez",
+    "Tyler Nelson",
+    "Dylan Carter",
+    "Christian Mitchell",
+    "Sean Perez",
+    "Austin Roberts",
+    "Jordan Turner",
+    "Cameron Phillips",
+    "Evan Campbell",
+    "Trevor Parker",
+    "Cole Evans",
+    "Ian Edwards",
+    "Luke Collins",
+    "Noah Stewart",
+    "James Smith",
+    "Oliver Brown",
+    "Jack Taylor",
+    "Harry Wilson",
+    "Thomas Johnson",
+    "George Davies",
+    "William Evans",
+    "Henry Thomas",
+    "Charlie Roberts",
+    "Joshua Walker",
+    "Alfie Wright",
+    "Leo Thompson",
+    "Samuel Green",
+    "Daniel Hall",
+    "Benjamin White",
+    "Matthew Lewis",
+    "Alexander Harris",
+    "Joseph Clark",
+    "Edward Martin",
+    "Noah Baker",
+    "Ethan Turner",
+    "Louis Carter",
+    "Toby Collins",
+    "Ryan Cooper",
+    "Nathan King",
+    "Callum Ward",
+    "Liam Hughes",
+    "Reece Mitchell",
+    "Adam Parker",
+    "Jake Phillips",
+    "Mohammed Ali",
+    "Ahmed Khan",
+    "Yusuf Rahman",
+    "Bilal Hussain",
+    "Hamza Malik",
+    "Zain Ahmed",
+    "Daniel O'Connor",
+    "Sean Murphy",
+    "Patrick Byrne",
+    "Liam O'Sullivan",
+    "Connor Walsh",
+    "Michael Flynn",
+    "Brendan Doyle",
+    "Niall McCarthy",
+    "Eoin Fitzgerald",
+    "Declan Murray",
+    "Ben Foster",
+    "Tom Reed",
+    "Alex Newman",
+    "Josh Bennett",
+    "Sam Brooks",
+    "Luke Palmer",
+    "Max Howard",
+    "Chris Grant",
+    "Nick Powell",
+    "Dan Russell",
 ]
-FIRST_NAMES_FEMALE = [
-    "Ava",
-    "Bella",
-    "Chloe",
-    "Elena",
-    "Grace",
-    "Hannah",
-    "Isla",
-    "Luna",
-    "Maya",
-    "Nora",
-    "Sofia",
-    "Zoe",
-]
-LAST_NAMES = [
-    "Brown",
-    "Carter",
-    "Davis",
-    "Evans",
-    "Hughes",
-    "Johnson",
-    "Miller",
-    "Smith",
-    "Taylor",
-    "Walker",
-    "Wilson",
+FEMALE_FULL_NAMES = [
+    "Emily Johnson",
+    "Sarah Miller",
+    "Jessica Brown",
+    "Ashley Wilson",
+    "Amanda Moore",
+    "Jennifer Taylor",
+    "Lauren Anderson",
+    "Megan Thomas",
+    "Hannah Jackson",
+    "Rachel White",
+    "Olivia Harris",
+    "Brittany Martin",
+    "Samantha Thompson",
+    "Nicole Garcia",
+    "Kayla Martinez",
+    "Stephanie Robinson",
+    "Victoria Clark",
+    "Natalie Rodriguez",
+    "Allison Lewis",
+    "Kimberly Lee",
+    "Brooke Walker",
+    "Madison Hall",
+    "Alexis Allen",
+    "Courtney Young",
+    "Vanessa Hernandez",
+    "Michelle King",
+    "Tiffany Wright",
+    "Amber Lopez",
+    "Danielle Hill",
+    "Erin Scott",
+    "Rebecca Green",
+    "Julia Adams",
+    "Claire Baker",
+    "Paige Gonzalez",
+    "Morgan Nelson",
+    "Faith Carter",
+    "Leah Mitchell",
+    "Jenna Perez",
+    "Hailey Roberts",
+    "Sofia Turner",
+    "Chloe Phillips",
+    "Lily Campbell",
+    "Ava Parker",
+    "Mia Evans",
+    "Zoe Edwards",
+    "Ella Collins",
+    "Grace Stewart",
+    "Isabella Reed",
+    "Brooke Foster",
+    "Taylor Morgan",
+    "Sophie Taylor",
+    "Emily Brown",
+    "Olivia Smith",
+    "Amelia Wilson",
+    "Isla Johnson",
+    "Lily Evans",
+    "Grace Thomas",
+    "Jessica Roberts",
+    "Poppy Walker",
+    "Ella Wright",
+    "Lucy Green",
+    "Mia Hall",
+    "Charlotte White",
+    "Hannah Lewis",
+    "Freya Harris",
+    "Millie Clark",
+    "Daisy Martin",
+    "Holly Baker",
+    "Imogen Turner",
+    "Evie Collins",
+    "Chloe Cooper",
+    "Ruby King",
+    "Niamh Ward",
+    "Megan Hughes",
+    "Aisha Patel",
+    "Priya Shah",
+    "Farah Begum",
+    "Amina Noor",
+    "Sara Mahmood",
+    "Fatima Iqbal",
+    "Aoife Kelly",
+    "Siobhan Ryan",
+    "Orla Brennan",
+    "Ciara Nolan",
+    "Katie Morgan",
+    "Laura Price",
+    "Anna Wood",
+    "Beth Carter",
+    "Molly James",
+    "Sarah Knight",
+    "Emma Stone",
+    "Hannah Ford",
+    "Rebecca Lane",
+    "Claire Watson",
 ]
 
 INTERESTS = [
@@ -284,6 +448,37 @@ def _truncate_log(value: str, limit: int = 500) -> str:
     if len(value) <= limit:
         return value
     return f"{value[:limit]}..."
+
+
+def _slugify(value: str) -> str:
+    value = value.lower()
+    value = re.sub(r"[^a-z0-9]+", "", value)
+    return value or "user"
+
+
+def _split_full_name(full_name: str) -> tuple[str, str]:
+    parts = full_name.strip().split()
+    if not parts:
+        return "User", "Demo"
+    first = parts[0]
+    last = " ".join(parts[1:]) if len(parts) > 1 else "Demo"
+    return first, last
+
+
+def _username_bases(first: str, last: str) -> list[str]:
+    first_slug = _slugify(first)
+    last_slug = _slugify(last)
+    first_initial = first_slug[:1]
+    last_initial = last_slug[:1]
+    bases = [
+        f"{first_slug}{last_slug}",
+        f"{last_slug}{first_slug}",
+        f"{first_slug}.{last_slug}",
+        f"{first_slug}_{last_slug}",
+        f"{first_initial}{last_slug}",
+        f"{first_slug}{last_initial}",
+    ]
+    return [base for base in bases if base]
 
 
 def _unique_username(db, base: str) -> str:
@@ -567,10 +762,10 @@ def seed_demo_profiles(
 
     for _ in range(count):
         gender = _pick_gender(gender_mode)
-        first = random.choice(FIRST_NAMES_MALE if gender == Gender.MALE else FIRST_NAMES_FEMALE)
-        last = random.choice(LAST_NAMES)
-        full_name = f"{first} {last}"
-        username = _unique_username(db, f"{first.lower()}{last.lower()}")
+        full_name = random.choice(MALE_FULL_NAMES if gender == Gender.MALE else FEMALE_FULL_NAMES)
+        first, last = _split_full_name(full_name)
+        username_base = random.choice(_username_bases(first, last))
+        username = _unique_username(db, username_base)
         email = f"{username}+demo-{uuid.uuid4().hex[:6]}@{DEMO_EMAIL_DOMAIN}"
 
         if db.query(User).filter(User.email == email).first():
