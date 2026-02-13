@@ -417,7 +417,7 @@ export default function SwipeDeck({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col items-center gap-3 sm:gap-6">
-      <div className="relative h-full min-h-0 w-[95%] sm:w-[94%] md:w-[92%] lg:w-[90%]">
+      <div className="relative h-full min-h-0 w-full">
         <div className="absolute inset-0 hidden lg:block">
           {upcoming.map((group, stackIndex) => (
             <div
@@ -459,7 +459,7 @@ export default function SwipeDeck({
             onInfoClick={handleOpenDetails}
             footer={
               <div className="flex flex-col gap-3">
-                <div className="grid grid-cols-4 gap-[clamp(4px,1.4vw,8px)]">
+                <div className="grid grid-cols-4 gap-[clamp(0.25rem,1.4vw,0.5rem)]">
                   <button
                     type="button"
                     onClick={(event) => {
@@ -467,9 +467,9 @@ export default function SwipeDeck({
                       handleRewind();
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
-                    className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-indigo-200 bg-indigo-50 px-[clamp(0.375rem,1.9vw,0.5rem)] py-[clamp(0.375rem,1.9vw,0.5rem)] text-[clamp(0.5rem,2.35vw,0.625rem)] font-semibold uppercase text-indigo-700"
+                    className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-indigo-200 bg-indigo-50 px-[clamp(0.45rem,1.9vw,0.65rem)] py-[clamp(0.45rem,1.9vw,0.65rem)] text-[clamp(0.72rem,2.1vw,0.86rem)] font-semibold uppercase text-indigo-700"
                   >
-                    <span className="text-[clamp(0.75rem,3.25vw,0.875rem)]">&lt;</span>
+                    <span className="text-[clamp(0.92rem,3.1vw,1.05rem)]">&lt;</span>
                     Undo
                   </button>
                   <button
@@ -479,9 +479,9 @@ export default function SwipeDeck({
                       handleReject();
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
-                    className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-rose-200 bg-rose-50 px-[clamp(0.375rem,1.9vw,0.5rem)] py-[clamp(0.375rem,1.9vw,0.5rem)] text-[clamp(0.5rem,2.35vw,0.625rem)] font-semibold uppercase text-rose-600"
+                    className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-rose-200 bg-rose-50 px-[clamp(0.45rem,1.9vw,0.65rem)] py-[clamp(0.45rem,1.9vw,0.65rem)] text-[clamp(0.72rem,2.1vw,0.86rem)] font-semibold uppercase text-rose-600"
                   >
-                    <span className="text-[clamp(0.75rem,3.25vw,0.875rem)]">X</span>
+                    <span className="text-[clamp(0.92rem,3.1vw,1.05rem)]">X</span>
                     Nope
                   </button>
                   <button
@@ -492,9 +492,9 @@ export default function SwipeDeck({
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
                     disabled={isJoining}
-                    className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-amber-200 bg-amber-50 px-[clamp(0.375rem,1.9vw,0.5rem)] py-[clamp(0.375rem,1.9vw,0.5rem)] text-[clamp(0.5rem,2.35vw,0.625rem)] font-semibold uppercase text-amber-700 disabled:opacity-70"
+                    className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-amber-200 bg-amber-50 px-[clamp(0.45rem,1.9vw,0.65rem)] py-[clamp(0.45rem,1.9vw,0.65rem)] text-[clamp(0.72rem,2.1vw,0.86rem)] font-semibold uppercase text-amber-700 disabled:opacity-70"
                   >
-                    <span className="text-[clamp(0.75rem,3.25vw,0.875rem)]">*</span>
+                    <span className="text-[clamp(0.92rem,3.1vw,1.05rem)]">*</span>
                     Super
                   </button>
                   <button
@@ -505,9 +505,9 @@ export default function SwipeDeck({
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
                     disabled={isJoining}
-                    className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-emerald-200 bg-emerald-50 px-[clamp(0.375rem,1.9vw,0.5rem)] py-[clamp(0.375rem,1.9vw,0.5rem)] text-[clamp(0.5rem,2.35vw,0.625rem)] font-semibold uppercase text-emerald-700 disabled:opacity-70"
+                    className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-emerald-200 bg-emerald-50 px-[clamp(0.45rem,1.9vw,0.65rem)] py-[clamp(0.45rem,1.9vw,0.65rem)] text-[clamp(0.72rem,2.1vw,0.86rem)] font-semibold uppercase text-emerald-700 disabled:opacity-70"
                   >
-                    <span className="text-[clamp(0.75rem,3.25vw,0.875rem)]">+</span>
+                    <span className="text-[clamp(0.92rem,3.1vw,1.05rem)]">+</span>
                     Like
                   </button>
                 </div>

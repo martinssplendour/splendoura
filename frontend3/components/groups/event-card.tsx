@@ -92,7 +92,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
     return (
       <div
         ref={ref}
-        className={`relative grid h-full min-h-0 grid-rows-[minmax(0,65%)_minmax(0,1fr)_auto] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-none sm:border-white/70 sm:shadow-2xl sm:shadow-slate-900/15 ${
+        className={`relative grid h-full min-h-0 grid-rows-[minmax(0,66%)_minmax(0,22%)_minmax(0,12%)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-none sm:border-white/70 sm:shadow-2xl sm:shadow-slate-900/15 ${
           className || ""
         }`}
         style={style}
@@ -128,7 +128,7 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
                 </p>
               ) : null}
               {locationLabel ? (
-                <p className="text-[clamp(0.6875rem,3.04vw,0.8125rem)] leading-none text-white/85">
+                <p className="text-[clamp(0.82rem,2.9vw,1rem)] leading-none text-white/85">
                   {locationLabel}
                 </p>
               ) : null}
@@ -177,13 +177,15 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
             </div>
           ) : null}
           <div className="pointer-events-none absolute bottom-3 left-3 right-3 text-white">
-            <p className="text-[0.5625rem] uppercase tracking-wide text-white/70">Featured</p>
+            <p className="text-[clamp(0.72rem,2.3vw,0.8rem)] uppercase tracking-wide text-white/70">
+              Featured
+            </p>
             <h2 className="mt-1 text-base font-semibold">{group.title}</h2>
-            <p className="text-[0.5625rem] text-white/80">{costLine}</p>
+            <p className="text-[clamp(0.75rem,2.3vw,0.85rem)] text-white/80">{costLine}</p>
           </div>
           {overlayLabel ? (
             <div
-              className={`absolute left-3 ${hasTopLeftMeta ? "top-24" : "top-3"} rounded-xl border px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-widest ${
+              className={`absolute left-3 ${hasTopLeftMeta ? "top-24" : "top-3"} rounded-xl border px-2 py-1 text-[clamp(0.75rem,2.3vw,0.85rem)] font-semibold uppercase tracking-widest ${
                 overlayLabel.variant === "like"
                   ? "border-emerald-400 text-emerald-200"
                   : "border-red-300 text-red-200"
@@ -200,21 +202,27 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           onClick={onInfoClick}
         >
           <div>
-            <p className="mt-0.5 text-[0.625rem] text-slate-600 line-clamp-1">
+            <p className="mt-0.5 text-[clamp(0.9rem,2.8vw,1rem)] text-slate-600 line-clamp-1">
               {group.description}
             </p>
           </div>
-          <p className="text-[0.5625rem] text-slate-500 line-clamp-1">{costLabel}</p>
+          <p className="text-[clamp(0.8rem,2.5vw,0.9rem)] text-slate-500 line-clamp-1">
+            {costLabel}
+          </p>
           {spotsLeft != null ? (
-            <p className="text-[0.5625rem] text-slate-500 line-clamp-1">
+            <p className="text-[clamp(0.8rem,2.5vw,0.9rem)] text-slate-500 line-clamp-1">
               {spotsLeft} spots left
             </p>
           ) : null}
           {offersLine ? (
-            <p className="text-[0.5625rem] text-slate-500 line-clamp-1">{offersLine}</p>
+            <p className="text-[clamp(0.8rem,2.5vw,0.9rem)] text-slate-500 line-clamp-1">
+              {offersLine}
+            </p>
           ) : null}
           {expectationsLine ? (
-            <p className="text-[0.5625rem] text-slate-500 line-clamp-1">{expectationsLine}</p>
+            <p className="text-[clamp(0.8rem,2.5vw,0.9rem)] text-slate-500 line-clamp-1">
+              {expectationsLine}
+            </p>
           ) : null}
         </div>
 

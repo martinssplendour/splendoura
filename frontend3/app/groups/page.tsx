@@ -535,7 +535,7 @@ export default function BrowseGroups() {
                   key={category.id}
                   type="button"
                   onClick={() => handleTabChange(category.id as TabKey)}
-                  className={`whitespace-nowrap rounded-md border px-[clamp(0.5rem,2.6vw,0.75rem)] py-[clamp(0.25rem,1.4vw,0.375rem)] text-[clamp(0.5625rem,2.6vw,0.6875rem)] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${
+                  className={`whitespace-nowrap rounded-md border px-[clamp(0.65rem,2.4vw,0.9rem)] py-[clamp(0.35rem,1.5vw,0.55rem)] text-[clamp(0.75rem,2.45vw,0.95rem)] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${
                     activeCategory === category.id
                       ? "border-slate-900 bg-slate-900 text-white"
                       : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
