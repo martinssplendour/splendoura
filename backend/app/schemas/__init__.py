@@ -37,3 +37,4 @@ from .match_request import (
 )
 from .inbox import InboxMessage, InboxThread
 from .swipe import SwipeCreate
+from .notifications import NotificationUser, NotificationGroup, GroupNotification, MatchNotification

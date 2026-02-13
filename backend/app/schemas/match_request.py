@@ -55,6 +55,7 @@ class MatchInvite(BaseModel):
     status: MatchInviteStatus
     matched: Optional[bool] = None
     match_user_id: Optional[int] = None
+    chat_group_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

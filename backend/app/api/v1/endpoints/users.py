@@ -4,7 +4,7 @@ from uuid import uuid4
 from typing import Any, List
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from pydantic import BaseModel
 
 from app import crud, models, schemas
@@ -12,7 +12,7 @@ from app.api import deps
 from app.models.group import GroupStatus
 from app.models.group_extras import GroupMedia
 from app.models.media import MediaBlob
-from app.models.membership import JoinStatus
+from app.models.membership import JoinStatus, MembershipRole
 from app.models.user import VerificationStatus
 from app.models.message import GroupMessageRead
 from app.core.storage import (
@@ -188,6 +188,28 @@ def list_my_inbox(
         if cover.group_id not in cover_map:
             cover_map[cover.group_id] = cover.thumb_url or cover.url
 
+    direct_threads = (
+        db.query(models.DirectThread)
+        .filter(
+            models.DirectThread.group_id.in_(group_ids),
+            models.DirectThread.deleted_at.is_(None),
+        )
+        .all()
+    )
+    direct_by_group = {thread.group_id: thread for thread in direct_threads}
+    direct_other_ids = []
+    for thread in direct_threads:
+        other_id = thread.user_b_id if thread.user_a_id == current_user.id else thread.user_a_id
+        direct_other_ids.append(other_id)
+    direct_users = (
+        db.query(models.User)
+        .filter(models.User.id.in_(direct_other_ids), models.User.deleted_at.is_(None))
+        .all()
+        if direct_other_ids
+        else []
+    )
+    direct_user_map = {user.id: user for user in direct_users}
+
     messages = (
         db.query(models.GroupMessage)
         .filter(
@@ -232,11 +254,22 @@ def list_my_inbox(
             if last_message
             else group.updated_at or group.created_at
         )
+        title = group.title
+        cover_url = cover_map.get(group.id)
+        if group.id in direct_by_group:
+            thread = direct_by_group[group.id]
+            other_id = thread.user_b_id if thread.user_a_id == current_user.id else thread.user_a_id
+            other_user = direct_user_map.get(other_id)
+            if other_user:
+                title = other_user.full_name or other_user.username or f"User {other_id}"
+                cover_url = other_user.profile_image_url or cover_url
+            else:
+                title = f"User {other_id}"
         items.append(
             schemas.InboxThread(
                 group_id=group.id,
-                title=group.title,
-                cover_image_url=cover_map.get(group.id),
+                title=title,
+                cover_image_url=cover_url,
                 last_message=last_message,
                 last_message_at=last_message_at,
                 unread_count=unread_map.get(group.id, 0),
@@ -300,7 +333,264 @@ def get_my_badges(
         or 0
     )
 
-    return {"unread_chats": unread_chats, "pending_requests": pending_requests}
+    match_count = (
+        db.query(func.count(models.DirectThread.id))
+        .filter(
+            models.DirectThread.deleted_at.is_(None),
+            or_(
+                models.DirectThread.user_a_id == current_user.id,
+                models.DirectThread.user_b_id == current_user.id,
+            ),
+        )
+        .scalar()
+        or 0
+    )
+
+    return {
+        "unread_chats": unread_chats,
+        "pending_requests": pending_requests,
+        "match_count": match_count,
+    }
+
+
+@router.get("/me/notifications/groups", response_model=List[schemas.GroupNotification])
+def list_group_notifications(
+    *,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    direct_threads = (
+        db.query(models.DirectThread)
+        .filter(
+            models.DirectThread.deleted_at.is_(None),
+            or_(
+                models.DirectThread.user_a_id == current_user.id,
+                models.DirectThread.user_b_id == current_user.id,
+            ),
+        )
+        .all()
+    )
+    direct_group_ids = {thread.group_id for thread in direct_threads}
+
+    join_query = (
+        db.query(models.Membership, models.Group, models.User)
+        .join(models.Group, models.Group.id == models.Membership.group_id)
+        .join(models.User, models.User.id == models.Membership.user_id)
+        .filter(
+            models.Group.creator_id == current_user.id,
+            models.Group.deleted_at.is_(None),
+            models.Membership.join_status == JoinStatus.REQUESTED,
+            models.Membership.deleted_at.is_(None),
+        )
+        .order_by(models.Membership.created_at.desc())
+    )
+    if direct_group_ids:
+        join_query = join_query.filter(~models.Group.id.in_(direct_group_ids))
+    join_requests = join_query.all()
+
+    approval_query = (
+        db.query(models.Membership, models.Group, models.User)
+        .join(models.Group, models.Group.id == models.Membership.group_id)
+        .join(models.User, models.User.id == models.Group.creator_id)
+        .filter(
+            models.Membership.user_id == current_user.id,
+            models.Membership.role != MembershipRole.CREATOR,
+            models.Membership.join_status == JoinStatus.APPROVED,
+            models.Membership.deleted_at.is_(None),
+            models.Group.deleted_at.is_(None),
+        )
+        .order_by(models.Membership.updated_at.desc(), models.Membership.created_at.desc())
+    )
+    if direct_group_ids:
+        approval_query = approval_query.filter(~models.Group.id.in_(direct_group_ids))
+    approvals = approval_query.all()
+
+    invite_query = (
+        db.query(models.Membership, models.Group, models.User)
+        .join(models.Group, models.Group.id == models.Membership.group_id)
+        .join(models.User, models.User.id == models.Group.creator_id)
+        .filter(
+            models.Membership.user_id == current_user.id,
+            models.Membership.role != MembershipRole.CREATOR,
+            models.Membership.join_status == JoinStatus.APPROVED,
+            models.Membership.request_tier == "invite",
+            models.Membership.deleted_at.is_(None),
+            models.Group.deleted_at.is_(None),
+        )
+        .order_by(models.Membership.updated_at.desc(), models.Membership.created_at.desc())
+    )
+    if direct_group_ids:
+        invite_query = invite_query.filter(~models.Group.id.in_(direct_group_ids))
+    invites = invite_query.all()
+
+    member_group_rows = (
+        db.query(models.Membership.group_id)
+        .filter(
+            models.Membership.user_id == current_user.id,
+            models.Membership.join_status == JoinStatus.APPROVED,
+            models.Membership.deleted_at.is_(None),
+        )
+        .all()
+    )
+    member_group_ids = [row[0] for row in member_group_rows if row[0] not in direct_group_ids]
+
+    message_map: dict[int, models.GroupMessage] = {}
+    unread_map: dict[int, int] = {}
+    if member_group_ids:
+        messages = (
+            db.query(models.GroupMessage)
+            .filter(
+                models.GroupMessage.group_id.in_(member_group_ids),
+                models.GroupMessage.deleted_at.is_(None),
+            )
+            .order_by(
+                models.GroupMessage.group_id.asc(),
+                models.GroupMessage.created_at.desc(),
+                models.GroupMessage.id.desc(),
+            )
+            .all()
+        )
+        for message in messages:
+            if message.group_id not in message_map:
+                message_map[message.group_id] = message
+        unread_rows = (
+            db.query(models.GroupMessage.group_id, func.count(models.GroupMessage.id))
+            .outerjoin(
+                GroupMessageRead,
+                (GroupMessageRead.message_id == models.GroupMessage.id)
+                & (GroupMessageRead.user_id == current_user.id),
+            )
+            .filter(
+                models.GroupMessage.group_id.in_(member_group_ids),
+                models.GroupMessage.deleted_at.is_(None),
+                models.GroupMessage.sender_id != current_user.id,
+                GroupMessageRead.id.is_(None),
+            )
+            .group_by(models.GroupMessage.group_id)
+            .all()
+        )
+        unread_map = {group_id: count for group_id, count in unread_rows}
+
+    group_ids_for_media = set()
+    for membership, group, _user in join_requests + approvals + invites:
+        group_ids_for_media.add(group.id)
+    for group_id in unread_map.keys():
+        group_ids_for_media.add(group_id)
+
+    cover_map: dict[int, str] = {}
+    if group_ids_for_media:
+        covers = (
+            db.query(GroupMedia)
+            .filter(
+                GroupMedia.group_id.in_(group_ids_for_media),
+                GroupMedia.deleted_at.is_(None),
+            )
+            .order_by(
+                GroupMedia.group_id.asc(),
+                GroupMedia.is_cover.desc(),
+                GroupMedia.created_at.desc(),
+            )
+            .all()
+        )
+        for cover in covers:
+            if cover.group_id not in cover_map:
+                cover_map[cover.group_id] = cover.thumb_url or cover.url
+
+    notifications: list[schemas.GroupNotification] = []
+    for membership, group, user in join_requests:
+        notifications.append(
+            schemas.GroupNotification(
+                id=f"join_request:{membership.id}",
+                type="join_request",
+                created_at=membership.created_at,
+                group=schemas.NotificationGroup(
+                    id=group.id,
+                    title=group.title,
+                    cover_image_url=cover_map.get(group.id),
+                ),
+                actor=schemas.NotificationUser.model_validate(user),
+                message=membership.request_message,
+                request_tier=membership.request_tier,
+            )
+        )
+
+    for membership, group, creator in approvals:
+        if membership.request_tier == "invite":
+            continue
+        notifications.append(
+            schemas.GroupNotification(
+                id=f"join_approved:{membership.id}",
+                type="join_approved",
+                created_at=membership.updated_at or membership.created_at,
+                group=schemas.NotificationGroup(
+                    id=group.id,
+                    title=group.title,
+                    cover_image_url=cover_map.get(group.id),
+                ),
+                actor=schemas.NotificationUser.model_validate(creator),
+                message="Your request was approved.",
+            )
+        )
+
+    for membership, group, creator in invites:
+        notifications.append(
+            schemas.GroupNotification(
+                id=f"group_invite:{membership.id}",
+                type="group_invite",
+                created_at=membership.updated_at or membership.created_at,
+                group=schemas.NotificationGroup(
+                    id=group.id,
+                    title=group.title,
+                    cover_image_url=cover_map.get(group.id),
+                ),
+                actor=schemas.NotificationUser.model_validate(creator),
+                message="You were invited to join this group.",
+            )
+        )
+
+    if member_group_ids:
+        groups = (
+            db.query(models.Group)
+            .filter(models.Group.id.in_(member_group_ids), models.Group.deleted_at.is_(None))
+            .all()
+        )
+        group_map = {group.id: group for group in groups}
+        for group_id, unread_count in unread_map.items():
+            if unread_count <= 0:
+                continue
+            group = group_map.get(group_id)
+            if not group:
+                continue
+            last_message = message_map.get(group_id)
+            message_text = None
+            if last_message:
+                message_text = last_message.content or None
+                if not message_text and last_message.message_type == "system":
+                    message_text = "System update"
+                if not message_text and last_message.attachment_type:
+                    if last_message.attachment_type.startswith("image/"):
+                        message_text = "Photo"
+                    elif last_message.attachment_type.startswith("audio/"):
+                        message_text = "Voice message"
+                    else:
+                        message_text = "Attachment"
+            notifications.append(
+                schemas.GroupNotification(
+                    id=f"new_message:{group_id}",
+                    type="new_message",
+                    created_at=last_message.created_at if last_message else group.updated_at or group.created_at,
+                    group=schemas.NotificationGroup(
+                        id=group.id,
+                        title=group.title,
+                        cover_image_url=cover_map.get(group.id),
+                    ),
+                    message=message_text,
+                    unread_count=unread_count,
+                )
+            )
+
+    notifications.sort(key=lambda item: item.created_at or _utcnow(), reverse=True)
+    return notifications
 
 @router.post("/me/photo", response_model=schemas.User, dependencies=[Depends(deps.rate_limit)])
 def upload_profile_photo(

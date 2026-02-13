@@ -19,3 +19,4 @@ from .message import GroupMessage, GroupMessageRead
 from .media import MediaBlob
 from .match_request import MatchRequest, MatchRequestInvite
 from .swipe_history import SwipeHistory
+from .direct_thread import DirectThread

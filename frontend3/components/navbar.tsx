@@ -19,7 +19,11 @@ export default function Navbar() {
   const pathname = usePathname();
   const isGroups = pathname?.startsWith("/groups");
   const isChatDetail = pathname?.startsWith("/chat/") && pathname !== "/chat";
-  const [badgeCounts, setBadgeCounts] = useState({ unread_chats: 0, pending_requests: 0 });
+  const [badgeCounts, setBadgeCounts] = useState({
+    unread_chats: 0,
+    pending_requests: 0,
+    match_count: 0,
+  });
   const [hasChatBadge, setHasChatBadge] = useState(false);
   const [hasNotificationBadge, setHasNotificationBadge] = useState(false);
 
@@ -49,7 +53,7 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!accessToken || !user?.id) {
-      setBadgeCounts({ unread_chats: 0, pending_requests: 0 });
+      setBadgeCounts({ unread_chats: 0, pending_requests: 0, match_count: 0 });
       setHasChatBadge(false);
       setHasNotificationBadge(false);
       return;
@@ -64,6 +68,7 @@ export default function Navbar() {
         setBadgeCounts({
           unread_chats: Number(data?.unread_chats || 0),
           pending_requests: Number(data?.pending_requests || 0),
+          match_count: Number(data?.match_count || 0),
         });
       } catch {
         // ignore badge failures
@@ -81,8 +86,9 @@ export default function Navbar() {
     if (!badgeKeys) return;
     const lastChat = readBadgeValue(badgeKeys.chat);
     const lastNotif = readBadgeValue(badgeKeys.notifications);
+    const notificationCount = badgeCounts.pending_requests + badgeCounts.match_count;
     setHasChatBadge(badgeCounts.unread_chats > lastChat);
-    setHasNotificationBadge(badgeCounts.pending_requests > lastNotif);
+    setHasNotificationBadge(notificationCount > lastNotif);
   }, [badgeCounts, badgeKeys]);
 
   useEffect(() => {
@@ -92,10 +98,11 @@ export default function Navbar() {
       setHasChatBadge(false);
     }
     if (pathname?.startsWith("/notifications") || pathname?.startsWith("/requests")) {
-      writeBadgeValue(badgeKeys.notifications, badgeCounts.pending_requests);
+      const notificationCount = badgeCounts.pending_requests + badgeCounts.match_count;
+      writeBadgeValue(badgeKeys.notifications, notificationCount);
       setHasNotificationBadge(false);
     }
-  }, [badgeCounts.pending_requests, badgeCounts.unread_chats, badgeKeys, pathname]);
+  }, [badgeCounts.pending_requests, badgeCounts.unread_chats, badgeCounts.match_count, badgeKeys, pathname]);
 
   const isActive = (href: string, aliases: string[] = []) =>
     pathname === href ||

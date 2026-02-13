@@ -1,13 +1,16 @@
 import math
+from datetime import datetime, timezone
 from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import and_, exists
+from sqlalchemy import and_, exists, or_
 from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
 from app.api import deps
 from app.core.matching import compute_match_score, is_profile_visible, _haversine_km
 from app.models.swipe_history import SwipeAction, SwipeHistory, SwipeTargetType
+from app.models.group import CostType, GroupCategory, GroupVisibility
+from app.models.membership import JoinStatus, MembershipRole
 from app.models.match_request import MatchInviteStatus
 from app.core.push import get_push_tokens, send_expo_push
 
@@ -23,6 +26,10 @@ def _to_list(value: Any) -> list:
     if isinstance(value, str):
         return [item.strip() for item in value.split(",") if item.strip()]
     return [value]
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _extract_distance_km(criteria: list[dict]) -> float | None:
@@ -79,6 +86,75 @@ def _record_swipe(
             )
         )
     db.commit()
+
+
+def _label_user(user: models.User | None, user_id: int) -> str:
+    if not user:
+        return f"User {user_id}"
+    return user.full_name or user.username or f"User {user_id}"
+
+
+def _get_or_create_direct_thread(
+    db: Session,
+    *,
+    user_id_a: int,
+    user_id_b: int,
+) -> models.DirectThread:
+    a_id, b_id = (user_id_a, user_id_b) if user_id_a < user_id_b else (user_id_b, user_id_a)
+    existing = (
+        db.query(models.DirectThread)
+        .filter(
+            models.DirectThread.user_a_id == a_id,
+            models.DirectThread.user_b_id == b_id,
+            models.DirectThread.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if existing:
+        return existing
+
+    user_a = crud.user.get(db, id=a_id)
+    user_b = crud.user.get(db, id=b_id)
+    title = f"{_label_user(user_a, a_id)} & {_label_user(user_b, b_id)}"
+    description = "Private chat for a mutual match."
+
+    group = models.Group(
+        creator_id=a_id,
+        title=title,
+        description=description,
+        activity_type="direct_chat",
+        category=GroupCategory.FRIENDSHIP.value,
+        min_participants=2,
+        max_participants=2,
+        cost_type=CostType.FREE,
+        offerings=[],
+        expectations=None,
+        tags=["direct", "match"],
+        visibility=GroupVisibility.INVITE_ONLY,
+    )
+    db.add(group)
+    db.commit()
+    db.refresh(group)
+
+    for member_id, role in ((a_id, MembershipRole.CREATOR), (b_id, MembershipRole.MEMBER)):
+        existing_membership = crud.membership.get_by_user_and_group(db, user_id=member_id, group_id=group.id)
+        if existing_membership:
+            continue
+        crud.membership.create(
+            db,
+            obj_in=schemas.MembershipCreate(
+                user_id=member_id,
+                group_id=group.id,
+                role=role,
+                join_status=JoinStatus.APPROVED,
+            ),
+        )
+
+    thread = models.DirectThread(user_a_id=a_id, user_b_id=b_id, group_id=group.id)
+    db.add(thread)
+    db.commit()
+    db.refresh(thread)
+    return thread
 
 
 def _apply_distance_filter(
@@ -337,6 +413,7 @@ def send_match_request(
         )
 
     matched = False
+    chat_group_id: int | None = None
     if reciprocal and reciprocal.status not in {
         MatchInviteStatus.REJECTED.value,
         MatchInviteStatus.CANCELLED.value,
@@ -361,10 +438,85 @@ def send_match_request(
             body=f"You and {target_label} liked each other.",
             data={"type": "profile_match", "user_id": user_id},
         )
+        thread = _get_or_create_direct_thread(db, user_id_a=current_user.id, user_id_b=user_id)
+        chat_group_id = thread.group_id
     _record_swipe(db, user_id=current_user.id, target_id=user_id, action=SwipeAction.LIKE)
     return schemas.MatchInvite.model_validate(invite).model_copy(
-        update={"matched": matched, "match_user_id": user_id if matched else None}
+        update={
+            "matched": matched,
+            "match_user_id": user_id if matched else None,
+            "chat_group_id": chat_group_id if matched else None,
+        }
     )
+
+
+@router.get("/notifications", response_model=List[schemas.MatchNotification])
+def list_match_notifications(
+    *,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    invites = (
+        db.query(models.MatchRequestInvite)
+        .filter(
+            models.MatchRequestInvite.status == MatchInviteStatus.ACCEPTED.value,
+            models.MatchRequestInvite.deleted_at.is_(None),
+            or_(
+                models.MatchRequestInvite.requester_id == current_user.id,
+                models.MatchRequestInvite.target_user_id == current_user.id,
+            ),
+        )
+        .order_by(models.MatchRequestInvite.updated_at.desc())
+        .all()
+    )
+
+    pairs: dict[tuple[int, int], datetime] = {}
+    for invite in invites:
+        a_id, b_id = (
+            (invite.requester_id, invite.target_user_id)
+            if invite.requester_id < invite.target_user_id
+            else (invite.target_user_id, invite.requester_id)
+        )
+        matched_at = invite.updated_at or invite.created_at
+        current = pairs.get((a_id, b_id))
+        if current is None or (matched_at and matched_at > current):
+            pairs[(a_id, b_id)] = matched_at
+
+    threads: list[models.DirectThread] = []
+    for (a_id, b_id), _matched_at in pairs.items():
+        thread = _get_or_create_direct_thread(db, user_id_a=a_id, user_id_b=b_id)
+        threads.append(thread)
+
+    if not threads:
+        return []
+
+    other_ids = []
+    matched_at_map: dict[int, datetime] = {}
+    for thread in threads:
+        other_id = thread.user_b_id if thread.user_a_id == current_user.id else thread.user_a_id
+        other_ids.append(other_id)
+        matched_at_map[thread.group_id] = pairs.get((thread.user_a_id, thread.user_b_id))
+
+    users = db.query(models.User).filter(models.User.id.in_(other_ids)).all()
+    user_map = {user.id: user for user in users}
+
+    notifications: list[schemas.MatchNotification] = []
+    for thread in threads:
+        other_id = thread.user_b_id if thread.user_a_id == current_user.id else thread.user_a_id
+        other_user = user_map.get(other_id)
+        notifications.append(
+            schemas.MatchNotification(
+                id=f"match:{thread.id}",
+                matched_at=matched_at_map.get(thread.group_id),
+                user=schemas.NotificationUser.model_validate(other_user)
+                if other_user
+                else schemas.NotificationUser(id=other_id),
+                chat_group_id=thread.group_id,
+            )
+        )
+
+    notifications.sort(key=lambda item: item.matched_at or _utcnow(), reverse=True)
+    return notifications
 
 
 @router.post("/swipes/{user_id}")

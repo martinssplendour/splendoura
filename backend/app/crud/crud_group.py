@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import and_, exists, or_
 from sqlalchemy.orm import Session
 from app.models.group import AppliesTo, Group, GroupRequirement
+from app.models.direct_thread import DirectThread
 from app.models.swipe_history import SwipeAction, SwipeHistory, SwipeTargetType
 from app.schemas.group import GroupCreate
 
@@ -21,6 +22,7 @@ class CRUDGroup:
         *,
         creator_id: int | None = None,
         exclude_creator_id: int | None = None,
+        exclude_direct: bool = False,
         location: str | None = None,
         activity_type: str | None = None,
         category: str | None = None,
@@ -39,6 +41,15 @@ class CRUDGroup:
         limit: int = 100,
     ):
         query = db.query(Group).filter(Group.deleted_at.is_(None))
+        if exclude_direct:
+            query = query.filter(
+                ~exists().where(
+                    and_(
+                        DirectThread.group_id == Group.id,
+                        DirectThread.deleted_at.is_(None),
+                    )
+                )
+            )
         if exclude_swipe_user_id is not None:
             query = query.filter(
                 ~exists().where(

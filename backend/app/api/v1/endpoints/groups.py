@@ -359,6 +359,7 @@ def read_groups(
     groups = crud.group.get_multi_filtered(
         db,
         creator_id=creator_id,
+        exclude_direct=True,
         location=location,
         activity_type=activity_type,
         category=category,
@@ -511,6 +512,7 @@ def discover_groups(
         cost_type=cost_type,
         tags=tag_list,
         search=search,
+        exclude_direct=True,
         exclude_swipe_user_id=current_user.id,
         exclude_creator_id=current_user.id,
         cursor=cursor_payload,

@@ -1,36 +1,40 @@
-﻿"use client";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
 import { SignedImage } from "@/components/signed-media";
 
-interface MembershipItem {
-  id: number;
-  user_id: number;
-  group_id: number;
-  join_status: "requested" | "approved" | "rejected";
-  role: "creator" | "member";
-  request_message?: string | null;
-  request_tier?: string | null;
-}
+type GroupNotificationType = "join_request" | "join_approved" | "group_invite" | "new_message";
 
-interface UserSummary {
+interface NotificationUser {
   id: number;
   full_name?: string;
-  email: string;
-  profile_image_url?: string;
+  username?: string;
+  profile_image_url?: string | null;
 }
 
-interface RequestItem {
-  group_id: number;
-  group_title: string;
-  user_id: number;
-  user?: UserSummary;
-  request_message?: string | null;
+interface NotificationGroup {
+  id: number;
+  title: string;
+  cover_image_url?: string | null;
+}
+
+interface GroupNotification {
+  id: string;
+  type: GroupNotificationType;
+  created_at?: string | null;
+  group: NotificationGroup;
+  actor?: NotificationUser | null;
+  message?: string | null;
   request_tier?: string | null;
+  unread_count?: number | null;
+}
+
+interface MatchNotification {
+  id: string;
+  matched_at?: string | null;
+  user: NotificationUser;
+  chat_group_id?: number | null;
 }
 
 type SystemNotice = {
@@ -41,39 +45,54 @@ type SystemNotice = {
   ctaHref?: string;
 };
 
-const REQUESTS_CACHE_PREFIX = "notificationRequestsCache:v1:";
+const GROUP_CACHE_PREFIX = "notificationGroupsCache:v1:";
+const MATCH_CACHE_PREFIX = "notificationMatchesCache:v1:";
 
-function readRequestsCache(userId: number) {
+function readCache<T>(key: string) {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(`${REQUESTS_CACHE_PREFIX}${userId}`);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { savedAt: number; requests: RequestItem[] };
-    if (!parsed?.requests || !Array.isArray(parsed.requests)) return null;
-    return parsed.requests;
+    const parsed = JSON.parse(raw) as { savedAt: number; items: T };
+    if (!parsed?.items) return null;
+    return parsed.items;
   } catch {
     return null;
   }
 }
 
-function writeRequestsCache(userId: number, requests: RequestItem[]) {
+function writeCache<T>(key: string, items: T) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(
-      `${REQUESTS_CACHE_PREFIX}${userId}`,
-      JSON.stringify({ savedAt: Date.now(), requests })
-    );
+    localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), items }));
   } catch {
     // ignore cache write errors
   }
 }
 
+function formatTime(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function displayName(user?: NotificationUser | null) {
+  if (!user) return "Someone";
+  return user.full_name || user.username || `User ${user.id}`;
+}
+
 export default function NotificationsPage() {
   const { accessToken, user } = useAuth();
-  const [requests, setRequests] = useState<RequestItem[]>([]);
-  const [loadingRequests, setLoadingRequests] = useState(true);
-  const [requestError, setRequestError] = useState<string | null>(null);
-  const hasCachedRequestsRef = useRef(false);
+  const [activeTab, setActiveTab] = useState<"groups" | "matches">("groups");
+  const [groupNotifications, setGroupNotifications] = useState<GroupNotification[]>([]);
+  const [matchNotifications, setMatchNotifications] = useState<MatchNotification[]>([]);
+  const [groupLoading, setGroupLoading] = useState(true);
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [groupError, setGroupError] = useState<string | null>(null);
+  const [matchError, setMatchError] = useState<string | null>(null);
+  const groupLoadedRef = useRef(false);
+  const matchLoadedRef = useRef(false);
 
   const systemNotices = useMemo<SystemNotice[]>(() => {
     if (!user) return [];
@@ -117,94 +136,78 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     if (!user?.id) return;
-    const cached = readRequestsCache(user.id);
-    if (cached && cached.length >= 0) {
-      setRequests(cached);
-      setLoadingRequests(false);
-      hasCachedRequestsRef.current = true;
+    const cachedGroups = readCache<GroupNotification[]>(`${GROUP_CACHE_PREFIX}${user.id}`);
+    if (cachedGroups) {
+      setGroupNotifications(cachedGroups);
+      setGroupLoading(false);
+      groupLoadedRef.current = true;
+    }
+    const cachedMatches = readCache<MatchNotification[]>(`${MATCH_CACHE_PREFIX}${user.id}`);
+    if (cachedMatches) {
+      setMatchNotifications(cachedMatches);
+      matchLoadedRef.current = true;
     }
   }, [user?.id]);
 
   useEffect(() => {
-    async function loadRequests() {
-      setRequestError(null);
-      if (!hasCachedRequestsRef.current) {
-        setLoadingRequests(true);
+    async function loadGroupNotifications() {
+      if (!accessToken || !user?.id) return;
+      setGroupError(null);
+      if (!groupLoadedRef.current) {
+        setGroupLoading(true);
       }
       try {
-        if (!accessToken || !user?.id) {
-          setLoadingRequests(false);
-          return;
+        const res = await apiFetch("/users/me/notifications/groups", { token: accessToken });
+        if (!res.ok) {
+          const message = await res.text().catch(() => "");
+          throw new Error(message || "Unable to load group notifications.");
         }
-
-        const groupsRes = await apiFetch(`/groups/?creator_id=${user.id}`, { token: accessToken });
-        if (!groupsRes.ok) {
-          const message = await groupsRes.text().catch(() => "");
-          setRequestError(message || "Unable to load your groups.");
-          setLoadingRequests(false);
-          return;
-        }
-        const groupData: { id: number; title: string }[] = await groupsRes.json();
-
-        const nextUsers: Record<number, UserSummary> = {};
-        const nextRequests: RequestItem[] = [];
-
-        for (const group of groupData) {
-          const membersRes = await apiFetch(`/groups/${group.id}/members`, { token: accessToken });
-          if (!membersRes.ok) {
-            continue;
-          }
-          const members: MembershipItem[] = await membersRes.json();
-          const requestedMembers = members.filter((m) => m.join_status === "requested");
-
-          for (const member of requestedMembers) {
-            if (nextUsers[member.user_id]) {
-              nextRequests.push({
-                group_id: group.id,
-                group_title: group.title,
-                user_id: member.user_id,
-                user: nextUsers[member.user_id],
-                request_message: member.request_message,
-                request_tier: member.request_tier,
-              });
-              continue;
-            }
-            const userRes = await apiFetch(`/users/${member.user_id}`, { token: accessToken });
-            if (userRes.ok) {
-              const userSummary = await userRes.json();
-              nextUsers[member.user_id] = userSummary;
-              nextRequests.push({
-                group_id: group.id,
-                group_title: group.title,
-                user_id: member.user_id,
-                user: userSummary,
-                request_message: member.request_message,
-                request_tier: member.request_tier,
-              });
-            } else {
-              nextRequests.push({
-                group_id: group.id,
-                group_title: group.title,
-                user_id: member.user_id,
-                request_message: member.request_message,
-                request_tier: member.request_tier,
-              });
-            }
-          }
-        }
-
-        setRequests(nextRequests);
-        writeRequestsCache(user.id, nextRequests);
-        setLoadingRequests(false);
+        const data: GroupNotification[] = await res.json();
+        setGroupNotifications(data);
+        writeCache(`${GROUP_CACHE_PREFIX}${user.id}`, data);
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Unable to load join requests.";
-        setRequestError(message);
-        setLoadingRequests(false);
+        const message = err instanceof Error ? err.message : "Unable to load group notifications.";
+        setGroupError(message);
+      } finally {
+        setGroupLoading(false);
+        groupLoadedRef.current = true;
       }
     }
 
-    loadRequests();
-  }, [accessToken, user?.id]);
+    if (activeTab === "groups") {
+      loadGroupNotifications();
+    }
+  }, [accessToken, activeTab, user?.id]);
+
+  useEffect(() => {
+    async function loadMatchNotifications() {
+      if (!accessToken || !user?.id) return;
+      setMatchError(null);
+      if (!matchLoadedRef.current) {
+        setMatchLoading(true);
+      }
+      try {
+        const res = await apiFetch("/match/notifications", { token: accessToken });
+        if (!res.ok) {
+          const message = await res.text().catch(() => "");
+          throw new Error(message || "Unable to load match notifications.");
+        }
+        const data: MatchNotification[] = await res.json();
+        setMatchNotifications(data);
+        writeCache(`${MATCH_CACHE_PREFIX}${user.id}`, data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unable to load match notifications.";
+        setMatchError(message);
+      } finally {
+        setMatchLoading(false);
+        matchLoadedRef.current = true;
+      }
+    }
+
+    if (activeTab === "matches") {
+      loadMatchNotifications();
+    }
+  }, [accessToken, activeTab, user?.id]);
 
   if (!accessToken) {
     return (
@@ -222,9 +225,7 @@ export default function NotificationsPage() {
     <div className="mx-auto max-w-5xl space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Notifications</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Updates from your groups plus system reminders.
-        </p>
+        <p className="mt-2 text-sm text-slate-600">Updates from your groups and matches.</p>
       </div>
 
       <section className="rounded-none border-0 bg-white p-6 sm:rounded-3xl sm:border sm:border-slate-200">
@@ -251,89 +252,194 @@ export default function NotificationsPage() {
       </section>
 
       <section className="rounded-none border-0 bg-white p-6 sm:rounded-3xl sm:border sm:border-slate-200">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Join requests</h2>
-            <p className="text-sm text-slate-600">People asking to join groups you created.</p>
+            <h2 className="text-lg font-semibold text-slate-900">Activity</h2>
+            <p className="text-sm text-slate-600">
+              Switch between group updates and profile matches.
+            </p>
           </div>
-          <Link href="/requests" className="text-sm font-semibold text-blue-600">
-            Manage requests
-          </Link>
+          <div className="flex items-center rounded-full bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("groups")}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+                activeTab === "groups"
+                  ? "bg-white text-slate-900 shadow"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Group notifications
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("matches")}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+                activeTab === "matches"
+                  ? "bg-white text-slate-900 shadow"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Match notifications
+            </button>
+          </div>
         </div>
 
-        {loadingRequests ? (
-          <div className="mt-5 h-40 w-full animate-pulse rounded-2xl bg-slate-200" />
-        ) : requestError ? (
-          <div className="mt-5 rounded-2xl border border-rose-100 bg-rose-50 p-4">
-            <p className="text-sm font-semibold text-rose-700">Unable to load join requests</p>
-            <p className="text-xs text-rose-600">{requestError}</p>
-          </div>
-        ) : requests.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-600">No pending requests right now.</p>
-        ) : (
-          <div className="mt-5 space-y-4">
-            {requests.map((request) => {
-              const displayName =
-                request.user?.full_name || request.user?.email || `User ${request.user_id}`;
-              return (
-                <div
-                  key={`${request.group_id}-${request.user_id}`}
-                  className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    {request.user?.profile_image_url ? (
-                      <SignedImage
-                        src={request.user.profile_image_url}
-                        alt={displayName}
-                        className="h-12 w-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded-full bg-slate-200" />
-                    )}
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">
-                        {displayName} wants to join <span className="text-slate-900">{request.group_title}</span>
-                      </p>
-                      {request.request_tier === "superlike" ? (
-                        <span className="mt-2 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                          Superlike
-                        </span>
-                      ) : null}
-                      {request.request_message ? (
-                        <p className="mt-2 text-xs text-slate-600">{request.request_message}</p>
-                      ) : null}
-                      <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
-                        <Link href={`/groups/${request.group_id}`} className="text-blue-600">
-                          View group
-                        </Link>
-                        <span className="text-xs text-slate-400">|</span>
-                        <Link href={`/users/${request.user_id}`} className="text-blue-600">
-                          View profile
-                        </Link>
+        {activeTab === "groups" ? (
+          <div className="mt-6 space-y-4">
+            {groupLoading ? (
+              <div className="h-32 w-full animate-pulse rounded-2xl bg-slate-200" />
+            ) : groupError ? (
+              <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4">
+                <p className="text-sm font-semibold text-rose-700">Unable to load group notifications</p>
+                <p className="text-xs text-rose-600">{groupError}</p>
+              </div>
+            ) : groupNotifications.length === 0 ? (
+              <p className="text-sm text-slate-600">No new group updates right now.</p>
+            ) : (
+              groupNotifications.map((item) => {
+                const actorName = displayName(item.actor);
+                const title =
+                  item.type === "join_request"
+                    ? `${actorName} wants to join ${item.group.title}`
+                    : item.type === "join_approved"
+                    ? `You were approved to join ${item.group.title}`
+                    : item.type === "group_invite"
+                    ? `You were invited to ${item.group.title}`
+                    : `New message in ${item.group.title}`;
+                const subtitle =
+                  item.type === "join_request"
+                    ? item.message || "Tap to review their request."
+                    : item.type === "join_approved"
+                    ? "You can start chatting with the group."
+                    : item.type === "group_invite"
+                    ? "Open the group to see the details."
+                    : item.message || `${item.unread_count || 0} new messages`;
+                const meta = formatTime(item.created_at);
+                const avatarUrl = item.actor?.profile_image_url || item.group.cover_image_url;
+                return (
+                  <div
+                    key={item.id}
+                    className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      {avatarUrl ? (
+                        <SignedImage
+                          src={avatarUrl}
+                          alt={actorName}
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-slate-200" />
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{title}</p>
+                        {item.request_tier === "superlike" ? (
+                          <span className="mt-2 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                            Superlike
+                          </span>
+                        ) : null}
+                        <p className="mt-1 text-xs text-slate-600">{subtitle}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          {meta ? <span>{meta}</span> : null}
+                          <span className="text-slate-300">•</span>
+                          <Link href={`/groups/${item.group.id}`} className="text-blue-600">
+                            View group
+                          </Link>
+                          {item.type === "join_request" ? (
+                            <>
+                              <span className="text-slate-300">•</span>
+                              <Link href="/requests" className="text-blue-600">
+                                Manage requests
+                              </Link>
+                              {item.actor ? (
+                                <>
+                                  <span className="text-slate-300">•</span>
+                                  <Link href={`/users/${item.actor.id}`} className="text-blue-600">
+                                    View profile
+                                  </Link>
+                                </>
+                              ) : null}
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-slate-300">•</span>
+                              <Link href={`/chat/${item.group.id}`} className="text-blue-600">
+                                Open chat
+                              </Link>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <div className="mt-6 space-y-4">
+            {matchLoading ? (
+              <div className="h-32 w-full animate-pulse rounded-2xl bg-slate-200" />
+            ) : matchError ? (
+              <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4">
+                <p className="text-sm font-semibold text-rose-700">Unable to load match notifications</p>
+                <p className="text-xs text-rose-600">{matchError}</p>
+              </div>
+            ) : matchNotifications.length === 0 ? (
+              <p className="text-sm text-slate-600">No new matches yet.</p>
+            ) : (
+              matchNotifications.map((item) => {
+                const name = displayName(item.user);
+                const matchedAt = formatTime(item.matched_at);
+                return (
+                  <div
+                    key={item.id}
+                    className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      {item.user.profile_image_url ? (
+                        <SignedImage
+                          src={item.user.profile_image_url}
+                          alt={name}
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-slate-200" />
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">You matched with {name}</p>
+                        <p className="mt-1 text-xs text-slate-600">
+                          {matchedAt ? `Matched ${matchedAt}` : "It’s a match!"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {item.chat_group_id ? (
+                        <Link
+                          href={`/chat/${item.chat_group_id}`}
+                          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-300"
+                        >
+                          Message
+                        </Link>
+                      ) : (
+                        <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-400">
+                          Chat pending
+                        </span>
+                      )}
+                      <Link
+                        href={`/users/${item.user.id}`}
+                        className="rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                      >
+                        View profile
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
-      </section>
-
-      <section className="rounded-none border-0 bg-white p-6 sm:rounded-3xl sm:border sm:border-slate-200">
-        <h2 className="text-lg font-semibold text-slate-900">General updates</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          We will surface match invites and group announcements here next.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/groups" className="text-xs font-semibold text-blue-600">
-            Browse groups
-          </Link>
-          <span className="text-xs text-slate-400">|</span>
-          <Link href="/profile" className="text-xs font-semibold text-blue-600">
-            Update profile
-          </Link>
-        </div>
       </section>
     </div>
   );

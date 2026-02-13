@@ -109,7 +109,12 @@ export default function SettingsPage() {
     setStatus(null);
     try {
       const exactKeys = ["signedMediaCache:v1", "chatThreadsCache:v1", "onboarding_skipped"];
-      const prefixKeys = ["chatMessagesCache:v1:", "notificationRequestsCache:v1:"];
+      const prefixKeys = [
+        "chatMessagesCache:v1:",
+        "notificationRequestsCache:v1:",
+        "notificationGroupsCache:v1:",
+        "notificationMatchesCache:v1:",
+      ];
       Object.keys(localStorage).forEach((key) => {
         if (exactKeys.includes(key) || prefixKeys.some((prefix) => key.startsWith(prefix))) {
           localStorage.removeItem(key);
