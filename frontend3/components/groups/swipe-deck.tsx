@@ -459,7 +459,7 @@ export default function SwipeDeck({
             onInfoClick={handleOpenDetails}
             footer={
               <div className="flex flex-col gap-3">
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-[clamp(4px,1.4vw,8px)]">
                   <button
                     type="button"
                     onClick={(event) => {
@@ -467,9 +467,9 @@ export default function SwipeDeck({
                       handleRewind();
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
-                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-indigo-200 bg-indigo-50 px-2 py-2 text-[10px] font-semibold uppercase text-indigo-700"
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-indigo-200 bg-indigo-50 px-[clamp(6px,1.9vw,8px)] py-[clamp(6px,1.9vw,8px)] text-[clamp(8px,2.35vw,10px)] font-semibold uppercase text-indigo-700"
                   >
-                    <span className="text-sm">&lt;</span>
+                    <span className="text-[clamp(12px,3.25vw,14px)]">&lt;</span>
                     Undo
                   </button>
                   <button
@@ -479,9 +479,9 @@ export default function SwipeDeck({
                       handleReject();
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
-                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-rose-200 bg-rose-50 px-2 py-2 text-[10px] font-semibold uppercase text-rose-600"
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-rose-200 bg-rose-50 px-[clamp(6px,1.9vw,8px)] py-[clamp(6px,1.9vw,8px)] text-[clamp(8px,2.35vw,10px)] font-semibold uppercase text-rose-600"
                   >
-                    <span className="text-sm">X</span>
+                    <span className="text-[clamp(12px,3.25vw,14px)]">X</span>
                     Nope
                   </button>
                   <button
@@ -492,9 +492,9 @@ export default function SwipeDeck({
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
                     disabled={isJoining}
-                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-amber-200 bg-amber-50 px-2 py-2 text-[10px] font-semibold uppercase text-amber-700 disabled:opacity-70"
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-amber-200 bg-amber-50 px-[clamp(6px,1.9vw,8px)] py-[clamp(6px,1.9vw,8px)] text-[clamp(8px,2.35vw,10px)] font-semibold uppercase text-amber-700 disabled:opacity-70"
                   >
-                    <span className="text-sm">*</span>
+                    <span className="text-[clamp(12px,3.25vw,14px)]">*</span>
                     Super
                   </button>
                   <button
@@ -505,9 +505,9 @@ export default function SwipeDeck({
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
                     disabled={isJoining}
-                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-emerald-200 bg-emerald-50 px-2 py-2 text-[10px] font-semibold uppercase text-emerald-700 disabled:opacity-70"
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-emerald-200 bg-emerald-50 px-[clamp(6px,1.9vw,8px)] py-[clamp(6px,1.9vw,8px)] text-[clamp(8px,2.35vw,10px)] font-semibold uppercase text-emerald-700 disabled:opacity-70"
                   >
-                    <span className="text-sm">+</span>
+                    <span className="text-[clamp(12px,3.25vw,14px)]">+</span>
                     Like
                   </button>
                 </div>

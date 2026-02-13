@@ -123,12 +123,12 @@ const EventCard = forwardRef<HTMLDivElement, EventCardProps>(
           {hasTopLeftMeta ? (
             <div className="absolute left-3 top-6 z-10 max-w-[70%] text-white drop-shadow">
               {creatorName ? (
-                <p className="text-[30px] font-semibold leading-none">
+                <p className="text-[clamp(24px,7.01vw,30px)] font-semibold leading-none">
                   {creatorName}
                 </p>
               ) : null}
               {locationLabel ? (
-                <p className="text-[13px] text-white/85 leading-none">
+                <p className="text-[clamp(11px,3.04vw,13px)] text-white/85 leading-none">
                   {locationLabel}
                 </p>
               ) : null}
