@@ -484,11 +484,11 @@ export default function BrowseGroups() {
   ];
 
   return (
-    <div className="relative -mt-4 overflow-hidden bg-white px-4 pb-4 pt-2 sm:mt-0 sm:rounded-[40px] sm:border sm:border-white/70 sm:bg-white/70 sm:p-10 sm:shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
+    <div className="relative -mt-4 flex h-full min-h-0 flex-col overflow-hidden bg-white px-4 pb-4 pt-2 sm:mt-0 sm:rounded-[40px] sm:border sm:border-white/70 sm:bg-white/70 sm:p-10 sm:shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_#e2f4ff_0%,_#f8fbff_38%,_#fff1ea_100%)] opacity-80" />
       <div className="pointer-events-none absolute inset-x-10 top-10 h-24 rounded-full bg-[radial-gradient(circle,_rgba(255,255,255,0.7)_0%,_rgba(255,255,255,0)_70%)] blur-2xl" />
 
-      <div className="relative grid gap-4 sm:gap-8 lg:grid-cols-[260px_1fr]">
+      <div className="relative grid min-h-0 flex-1 gap-4 sm:gap-8 lg:grid-cols-[minmax(0,16.25rem)_minmax(0,1fr)]">
         <div className="hidden lg:block">
           <FiltersSidebar
             filters={filters}
@@ -500,7 +500,7 @@ export default function BrowseGroups() {
           />
         </div>
 
-        <div className="space-y-4 sm:space-y-8">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-8">
           {groupsError && (
             <p className="text-sm text-rose-600">{groupsError}</p>
           )}
@@ -528,14 +528,14 @@ export default function BrowseGroups() {
             </div>
           </div>
 
-          <div className="space-y-4 sm:space-y-6">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6">
             <div className="flex flex-nowrap items-center gap-1 overflow-x-auto sm:flex-wrap sm:gap-2 sm:overflow-visible">
               {categoryConfig.map((category) => (
                 <button
                   key={category.id}
                   type="button"
                   onClick={() => handleTabChange(category.id as TabKey)}
-                  className={`whitespace-nowrap rounded-md border px-[clamp(8px,2.6vw,12px)] py-[clamp(4px,1.4vw,6px)] text-[clamp(9px,2.6vw,11px)] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${
+                  className={`whitespace-nowrap rounded-md border px-[clamp(0.5rem,2.6vw,0.75rem)] py-[clamp(0.25rem,1.4vw,0.375rem)] text-[clamp(0.5625rem,2.6vw,0.6875rem)] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${
                     activeCategory === category.id
                       ? "border-slate-900 bg-slate-900 text-white"
                       : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -550,7 +550,7 @@ export default function BrowseGroups() {
               {categoryConfig.find((category) => category.id === activeCategory)?.description}
             </div>
 
-            <div className="-mx-4 -mt-4 sm:mx-0 sm:-mt-5">
+            <div className="flex min-h-0 flex-1">
               {activeCategory === "profiles" ? (
                 profilesLoading ? (
                   <SwipeDeckSkeleton />

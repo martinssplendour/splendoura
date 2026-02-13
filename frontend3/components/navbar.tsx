@@ -129,12 +129,12 @@ export default function Navbar() {
                 height={18}
                 className="h-[18px] w-[18px]"
               />
-              <span className="text-[18px] font-extrabold uppercase leading-none tracking-[0.07em] text-indigo-700">
+              <span className="text-[1.125rem] font-extrabold uppercase leading-none tracking-[0.07em] text-indigo-700">
                 Splendoure
               </span>
             </Link>
             {pathname?.startsWith("/groups") ? (
-              <p className="text-[10px] font-semibold text-slate-600/70">
+              <p className="text-[0.625rem] font-semibold text-slate-600/70">
                 Discover plans and swipe to join
               </p>
             ) : null}
@@ -146,20 +146,20 @@ export default function Navbar() {
                 <div className="flex items-center gap-2">
                   <Link
                     href="/groups?filters=open"
-                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm sm:px-4 sm:py-2 sm:text-sm"
+                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[0.6875rem] font-semibold text-slate-600 shadow-sm sm:px-4 sm:py-2 sm:text-sm"
                   >
                     Filters
                   </Link>
                   <Link
                     href="/groups/create"
-                    className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:px-4 sm:py-2 sm:text-sm"
+                    className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-[0.6875rem] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:px-4 sm:py-2 sm:text-sm"
                   >
                     Create group
                   </Link>
                 </div>
                 <Link
                   href="/groups?findType=open"
-                  className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 sm:px-4 sm:py-2 sm:text-sm"
+                  className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-[0.6875rem] font-semibold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 sm:px-4 sm:py-2 sm:text-sm"
                 >
                   Find my type
                 </Link>
@@ -215,8 +215,8 @@ export default function Navbar() {
       ) : null}
 
       {user ? (
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white md:hidden">
-          <div className="flex h-[var(--ui-bottom-nav-height)] items-center justify-around px-3">
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+          <div className="flex min-h-[var(--ui-bottom-nav-height)] items-center justify-around px-3">
             <Link
               href="/groups"
               className={`rounded-full px-3 py-2 text-xs font-semibold ${

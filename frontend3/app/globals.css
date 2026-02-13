@@ -51,6 +51,8 @@
 /* Light Mode Variables */
 :root {
   --app-height: 100vh;
+  --ui-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ui-safe-top: env(safe-area-inset-top, 0px);
   /* Glass Effect - Light */
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.3);
@@ -183,6 +185,28 @@
 
 /* Base resets */
 @layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
