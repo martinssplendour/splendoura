@@ -529,7 +529,7 @@ export default function BrowseGroups() {
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-2 sm:gap-6">
-            <div className="flex flex-nowrap items-center gap-1 overflow-x-auto pt-0.5 sm:flex-wrap sm:gap-2 sm:overflow-visible">
+            <div className="mt-1 flex flex-nowrap items-center gap-1 overflow-x-auto pt-0.5 sm:flex-wrap sm:gap-2 sm:overflow-visible">
               {categoryConfig.map((category) => (
                 <button
                   key={category.id}
