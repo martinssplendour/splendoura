@@ -30,6 +30,13 @@ type GroupMessage = {
   read_by?: number[];
 };
 
+type MemberProfile = {
+  id: number;
+  username?: string | null;
+  full_name?: string | null;
+  profile_image_url?: string | null;
+};
+
 const PAGE_SIZE = 30;
 const TOP_FETCH_THRESHOLD = 120;
 const BOTTOM_SNAP_THRESHOLD = 120;
@@ -75,6 +82,10 @@ export default function ChatDMPage() {
   const [activeMedia, setActiveMedia] = useState<{
     type: "image" | "video";
     src: string;
+  } | null>(null);
+  const [dmParticipant, setDmParticipant] = useState<{
+    name: string;
+    avatarUrl: string | null;
   } | null>(null);
   const [layoutInsets, setLayoutInsets] = useState<{ top: number; bottom: number }>({
     top: 0,
@@ -293,10 +304,45 @@ export default function ChatDMPage() {
     setHasMore(false);
     setShowNewPill(false);
     setNewMessageCount(0);
+    setDmParticipant(null);
     allMessagesRef.current = [];
     pendingReadIdsRef.current.clear();
     hasInitialScrollRef.current = false;
   }, [groupId]);
+
+  useEffect(() => {
+    if (!accessToken || !groupId || !group || group.activity_type !== "direct_chat" || !user?.id) {
+      setDmParticipant(null);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await apiFetch(`/groups/${groupId}/approved-members`, { token: accessToken });
+        if (!res.ok || cancelled) return;
+        const data: MemberProfile[] = await res.json();
+        const other = data.find((member) => member.id !== user.id);
+        if (!other) {
+          if (!cancelled) setDmParticipant(null);
+          return;
+        }
+        const label = (other.full_name || other.username || `User ${other.id}`).trim();
+        if (!cancelled) {
+          setDmParticipant({
+            name: label || `User ${other.id}`,
+            avatarUrl: other.profile_image_url || null,
+          });
+        }
+      } catch {
+        if (!cancelled) setDmParticipant(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, group, groupId, user?.id]);
 
   useEffect(() => {
     if (!groupId) return;
@@ -454,7 +500,13 @@ export default function ChatDMPage() {
     };
   }, [activeMedia]);
 
-  const headerTitle = group?.title || "Chat";
+  const headerTitle = dmParticipant?.name || group?.title || "Chat";
+  const headerAvatar = dmParticipant?.avatarUrl || group?.cover_image_url || null;
+  const headerMeta = group
+    ? group.activity_type === "direct_chat"
+      ? "Direct message"
+      : `${group.approved_members ?? 0} members`
+    : "Loading chat details...";
 
   const showSend = Boolean(draft.trim()) || Boolean(attachment);
 
@@ -469,9 +521,9 @@ export default function ChatDMPage() {
     >
       <header className="shrink-0 border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 pt-0 pb-2">
-          {group?.cover_image_url ? (
+          {headerAvatar ? (
             <SignedImage
-              src={group.cover_image_url}
+              src={headerAvatar}
               alt={headerTitle}
               className="h-11 w-11 rounded-full object-cover"
             />
@@ -482,11 +534,9 @@ export default function ChatDMPage() {
           )}
           <div className="flex-1">
             <p className="text-base font-semibold leading-tight text-slate-900">{headerTitle}</p>
-            <p className="text-xs leading-tight text-slate-500">
-              {group ? `${group.approved_members ?? 0} members` : "Loading chat details..."}
-            </p>
+            <p className="text-xs leading-tight text-slate-500">{headerMeta}</p>
           </div>
-          {groupId ? (
+          {groupId && group?.activity_type !== "direct_chat" ? (
             <Link
               href={`/groups/${groupId}`}
               className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-slate-300"

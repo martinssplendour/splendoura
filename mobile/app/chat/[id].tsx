@@ -53,6 +53,7 @@ interface MemberProfile {
   id: number;
   username?: string | null;
   full_name?: string | null;
+  profile_image_url?: string | null;
 }
 
 type MessageListItem =
@@ -83,6 +84,7 @@ export default function ChatThreadScreen() {
   const [showWarning, setShowWarning] = useState(false);
   const [warningText, setWarningText] = useState("");
   const [memberNames, setMemberNames] = useState<Record<number, string>>({});
+  const [dmParticipantName, setDmParticipantName] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Record<number, boolean>>({});
   const wsRef = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -169,11 +171,26 @@ export default function ChatThreadScreen() {
       next[user.id] = user.username || user.full_name || "You";
     }
     setMemberNames(next);
-  }, [accessToken, groupId, user?.full_name, user?.id, user?.username]);
+    if (group?.activity_type === "direct_chat" && user?.id) {
+      const other = data.find((member) => member.id !== user.id);
+      if (other) {
+        const label = (other.full_name || other.username || `User ${other.id}`).trim();
+        setDmParticipantName(label || `User ${other.id}`);
+      } else {
+        setDmParticipantName(null);
+      }
+      return;
+    }
+    setDmParticipantName(null);
+  }, [accessToken, group?.activity_type, groupId, user?.full_name, user?.id, user?.username]);
 
   useEffect(() => {
     loadMemberNames();
   }, [loadMemberNames]);
+
+  useEffect(() => {
+    setDmParticipantName(null);
+  }, [groupId]);
 
   useEffect(() => {
     if (!accessToken || !groupId) return;
@@ -570,11 +587,13 @@ export default function ChatThreadScreen() {
                       groupId ? styles.headerTitleLink : styles.headerTitleDisabled,
                     ]}
                   >
-                    {group?.title || "Loading..."}
+                    {dmParticipantName || group?.title || "Loading..."}
                   </Text>
                 </Pressable>
                 <Text style={styles.headerMeta}>
-                  {group?.approved_members ?? 0}/{group?.max_participants ?? "--"} members
+                  {group?.activity_type === "direct_chat"
+                    ? "Direct message"
+                    : `${group?.approved_members ?? 0}/${group?.max_participants ?? "--"} members`}
                 </Text>
               </View>
               <View style={styles.headerActions}>
