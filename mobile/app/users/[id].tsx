@@ -42,6 +42,134 @@ interface UserProfile {
   profile_details?: Record<string, unknown> | null;
 }
 
+interface ProfileDetailItem {
+  key: string;
+  label: string;
+  value: string;
+}
+
+const PROFILE_DETAIL_LABELS: Record<string, string> = {
+  availability_windows: "Availability",
+  show_orientation: "Show orientation",
+  looking_for: "Looking for",
+  dob: "Date of birth",
+  height_cm: "Height (cm)",
+  weight_kg: "Weight (kg)",
+  income_bracket: "Income bracket",
+  job_title: "Job title",
+  body_type: "Body type",
+  hair_color: "Hair color",
+  eye_color: "Eye color",
+  education_level: "Education",
+  political_views: "Political views",
+  zodiac_sign: "Zodiac sign",
+  personality_type: "Personality type",
+  travel_frequency: "Travel frequency",
+  communication_style: "Communication style",
+  relationship_preference: "Relationship preference",
+  casual_dating: "Open to casual dating",
+  kink_friendly: "Kink friendly",
+  wants_children: "Wants children",
+  has_children: "Has children",
+  "safety_settings.block_nudity": "Block nudity",
+  safety_contacts: "Trusted contacts",
+  demo_profile: "Demo profile",
+  demo_label: "Profile label",
+};
+
+const OMIT_PROFILE_DETAIL_KEYS = new Set(["id_verified", "id_verification_status"]);
+
+function startCase(value: string) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function primitiveToText(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : null;
+  }
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+  return null;
+}
+
+function getObjectSummary(value: Record<string, unknown>) {
+  const name = primitiveToText(value.name);
+  const contact = primitiveToText(value.contact);
+  if (name && contact) return `${name} (${contact})`;
+  if (name) return name;
+  if (contact) return contact;
+  return null;
+}
+
+function mapProfileDetails(details: Record<string, unknown>): ProfileDetailItem[] {
+  const items: ProfileDetailItem[] = [];
+  const seen = new Set<string>();
+
+  const pushItem = (path: string, rawValue: unknown) => {
+    if (seen.has(path)) return;
+    const value = primitiveToText(rawValue);
+    if (!value) return;
+    const leaf = path.split(".").pop() || path;
+    const label = PROFILE_DETAIL_LABELS[path] || PROFILE_DETAIL_LABELS[leaf] || startCase(leaf);
+    items.push({ key: path, label, value });
+    seen.add(path);
+  };
+
+  const visit = (input: Record<string, unknown>, prefix = "") => {
+    Object.entries(input).forEach(([key, raw]) => {
+      const path = prefix ? `${prefix}.${key}` : key;
+      if (OMIT_PROFILE_DETAIL_KEYS.has(key) || OMIT_PROFILE_DETAIL_KEYS.has(path)) {
+        return;
+      }
+      if (raw == null) return;
+
+      if (Array.isArray(raw)) {
+        if (raw.length === 0) return;
+        const primitiveItems = raw
+          .map((entry) => primitiveToText(entry))
+          .filter((entry): entry is string => Boolean(entry));
+        if (primitiveItems.length === raw.length) {
+          pushItem(path, primitiveItems.join(", "));
+          return;
+        }
+        const objectItems = raw
+          .map((entry) =>
+            typeof entry === "object" && entry !== null
+              ? getObjectSummary(entry as Record<string, unknown>)
+              : null
+          )
+          .filter((entry): entry is string => Boolean(entry));
+        if (objectItems.length > 0) {
+          pushItem(path, objectItems.join(", "));
+        }
+        return;
+      }
+
+      const primitive = primitiveToText(raw);
+      if (primitive) {
+        pushItem(path, primitive);
+        return;
+      }
+
+      if (typeof raw === "object") {
+        visit(raw as Record<string, unknown>, path);
+      }
+    });
+  };
+
+  visit(details);
+  return items;
+}
+
 const formatLastActive = (value?: string | null) => {
   if (!value) return "Active recently";
   const date = new Date(value);
@@ -127,6 +255,7 @@ export default function UserProfileScreen() {
 
   const details = profile.profile_details || {};
   const photos = profile.profile_media?.photos || [];
+  const detailItems = mapProfileDetails(details as Record<string, unknown>);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -223,16 +352,20 @@ export default function UserProfileScreen() {
           </View>
         ) : null}
 
-        {Object.keys(details).length > 0 ? (
+        {detailItems.length > 0 ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Profile details</Text>
-            {Array.isArray((details as Record<string, unknown>).availability_windows) ? (
-              <Text style={styles.detailText}>
-                Availability:{" "}
-                {((details as Record<string, unknown>).availability_windows as string[]).join(", ")}
-              </Text>
+            <View style={styles.detailList}>
+              {detailItems.map((item) => (
+                <View key={item.key} style={styles.detailItem}>
+                  <Text style={styles.detailItemLabel}>{item.label}</Text>
+                  <Text style={styles.detailItemValue}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
+            {Boolean((details as Record<string, unknown>).demo_profile) ? (
+              <Text style={styles.demoBadge}>Demo profile</Text>
             ) : null}
-            <Text style={styles.detailJson}>{JSON.stringify(details, null, 2)}</Text>
           </View>
         ) : null}
       </ScrollView>
@@ -411,9 +544,40 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 18,
   },
-  detailJson: {
-    fontSize: 12,
-    color: "#64748b",
+  detailList: {
+    gap: 8,
+  },
+  detailItem: {
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 14,
+    backgroundColor: "#f8fafc",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+  },
+  detailItemLabel: {
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    color: "#94a3b8",
+  },
+  detailItemValue: {
+    fontSize: 13,
+    color: "#334155",
+  },
+  demoBadge: {
+    marginTop: 2,
+    alignSelf: "flex-start",
+    backgroundColor: "#ffedd5",
+    color: "#c2410c",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
   centered: {
     flex: 1,
