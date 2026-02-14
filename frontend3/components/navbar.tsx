@@ -116,50 +116,60 @@ export default function Navbar() {
   return (
     <nav className="bg-slate-50">
       {!isChatDetail ? (
-        <div className="container mx-auto flex items-start justify-between gap-2 px-4 py-2">
+        <div
+          className={`container mx-auto flex items-start justify-between gap-2 ${
+            isGroups ? "px-3 py-1" : "px-4 py-2"
+          }`}
+        >
           <div className="flex flex-col gap-0.5">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 shadow-[0_2px_6px_rgba(99,102,241,0.15)]"
+              className={`inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 shadow-[0_2px_6px_rgba(99,102,241,0.15)] ${
+                isGroups ? "gap-1.5 px-2 py-0.5" : "gap-2 px-2.5 py-1"
+              }`}
             >
               <Image
                 src="/brand/icon.png"
                 alt="Splendoure"
                 width={18}
                 height={18}
-                className="h-[18px] w-[18px]"
+                className={isGroups ? "h-[14px] w-[14px]" : "h-[18px] w-[18px]"}
               />
-              <span className="text-[1.125rem] font-extrabold uppercase leading-none tracking-[0.07em] text-indigo-700">
+              <span
+                className={`font-extrabold uppercase leading-none tracking-[0.07em] text-indigo-700 ${
+                  isGroups ? "text-[1rem]" : "text-[1.125rem]"
+                }`}
+              >
                 Splendoure
               </span>
             </Link>
             {pathname?.startsWith("/groups") ? (
-              <p className="text-[0.85rem] font-semibold text-slate-600/70">
+              <p className="text-[0.72rem] font-semibold text-slate-600/70">
                 Discover plans and swipe to join
               </p>
             ) : null}
           </div>
           {/* Right Side Actions */}
-          <div className="mt-0 flex items-start gap-3">
+          <div className={`mt-0 flex items-start ${isGroups ? "gap-2" : "gap-3"}`}>
             {isGroups ? (
-              <div className="flex flex-col items-end gap-1.5">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col items-end gap-1">
+                <div className="flex items-center gap-1.5">
                   <Link
                     href="/groups?filters=open"
-                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[0.82rem] font-semibold text-slate-600 shadow-sm sm:px-4 sm:py-2 sm:text-sm"
+                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[0.72rem] font-semibold text-slate-600 shadow-sm sm:px-4 sm:py-2 sm:text-sm"
                   >
                     Filters
                   </Link>
                   <Link
                     href="/groups/create"
-                    className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-[0.82rem] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:px-4 sm:py-2 sm:text-sm"
+                    className="inline-flex items-center rounded-full bg-blue-600 px-2.5 py-0.5 text-[0.72rem] font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:px-4 sm:py-2 sm:text-sm"
                   >
                     Create group
                   </Link>
                 </div>
                 <Link
                   href="/groups?findType=open"
-                  className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-[0.82rem] font-semibold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 sm:px-4 sm:py-2 sm:text-sm"
+                  className="inline-flex items-center rounded-full bg-slate-900 px-2.5 py-0.5 text-[0.72rem] font-semibold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 sm:px-4 sm:py-2 sm:text-sm"
                 >
                   Find my type
                 </Link>
@@ -216,10 +226,10 @@ export default function Navbar() {
 
       {user ? (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
-          <div className="grid min-h-[var(--ui-bottom-nav-height)] grid-cols-4 items-center gap-1 px-[clamp(0.35rem,2vw,0.75rem)]">
+          <div className="grid min-h-[var(--ui-bottom-nav-height)] grid-cols-4 items-center gap-1 px-[clamp(0.35rem,2vw,0.65rem)]">
             <Link
               href="/groups"
-              className={`justify-self-center rounded-full px-[clamp(0.5rem,2.2vw,0.8rem)] py-[clamp(0.45rem,1.4vh,0.65rem)] text-[clamp(0.72rem,2.5vw,0.9rem)] font-semibold leading-none whitespace-nowrap ${
+              className={`justify-self-center rounded-full px-[clamp(0.48rem,2.1vw,0.72rem)] py-[clamp(0.32rem,1.1vh,0.5rem)] text-[clamp(0.7rem,2.4vw,0.84rem)] font-semibold leading-none whitespace-nowrap ${
                 isActive("/groups") ? "bg-slate-200 text-slate-900" : "text-slate-500"
               }`}
             >
@@ -227,7 +237,7 @@ export default function Navbar() {
             </Link>
             <Link
               href="/chat"
-              className={`relative justify-self-center rounded-full px-[clamp(0.5rem,2.2vw,0.8rem)] py-[clamp(0.45rem,1.4vh,0.65rem)] text-[clamp(0.72rem,2.5vw,0.9rem)] font-semibold leading-none whitespace-nowrap ${
+              className={`relative justify-self-center rounded-full px-[clamp(0.48rem,2.1vw,0.72rem)] py-[clamp(0.32rem,1.1vh,0.5rem)] text-[clamp(0.7rem,2.4vw,0.84rem)] font-semibold leading-none whitespace-nowrap ${
                 isActive("/chat") ? "bg-slate-200 text-slate-900" : "text-slate-500"
               }`}
             >
@@ -238,7 +248,7 @@ export default function Navbar() {
             </Link>
             <Link
               href="/notifications"
-              className={`relative justify-self-center rounded-full px-[clamp(0.5rem,2.2vw,0.8rem)] py-[clamp(0.45rem,1.4vh,0.65rem)] text-[clamp(0.72rem,2.5vw,0.9rem)] font-semibold leading-none whitespace-nowrap ${
+              className={`relative justify-self-center rounded-full px-[clamp(0.48rem,2.1vw,0.72rem)] py-[clamp(0.32rem,1.1vh,0.5rem)] text-[clamp(0.7rem,2.4vw,0.84rem)] font-semibold leading-none whitespace-nowrap ${
                 isActive("/notifications", ["/requests"])
                   ? "bg-slate-200 text-slate-900"
                   : "text-slate-500"
@@ -251,7 +261,7 @@ export default function Navbar() {
             </Link>
             <Link
               href="/profile"
-              className={`justify-self-center rounded-full px-[clamp(0.5rem,2.2vw,0.8rem)] py-[clamp(0.45rem,1.4vh,0.65rem)] text-[clamp(0.72rem,2.5vw,0.9rem)] font-semibold leading-none whitespace-nowrap ${
+              className={`justify-self-center rounded-full px-[clamp(0.48rem,2.1vw,0.72rem)] py-[clamp(0.32rem,1.1vh,0.5rem)] text-[clamp(0.7rem,2.4vw,0.84rem)] font-semibold leading-none whitespace-nowrap ${
                 isActive("/profile") ? "bg-slate-200 text-slate-900" : "text-slate-500"
               }`}
             >

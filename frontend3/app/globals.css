@@ -64,7 +64,7 @@
   --ui-event-image-height: clamp(260px, 55vh, 480px);
   --ui-profile-card-height: clamp(360px, 62vh, 520px);
   --ui-avatar-size: clamp(56px, 14vw, 80px);
-  --ui-bottom-nav-height: clamp(56px, 9vh, 72px);
+  --ui-bottom-nav-height: clamp(42px, 6.8vh, 54px);
 
   /* Shadcn Colors (OKLCH) */
   --background: oklch(1 0 0);

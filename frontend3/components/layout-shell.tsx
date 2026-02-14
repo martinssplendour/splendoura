@@ -59,7 +59,7 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
           : isChat
             ? "flex-1 min-h-0 overflow-hidden px-0 py-0"
             : isDiscoverIndex
-              ? "flex-1 min-h-0 overflow-hidden container mx-auto px-4 pt-2 pb-[calc(var(--ui-bottom-nav-height)+env(safe-area-inset-bottom))] md:pb-0"
+              ? "flex-1 min-h-0 overflow-hidden container mx-auto px-4 pt-1 pb-[calc(var(--ui-bottom-nav-height)+env(safe-area-inset-bottom)+0.75rem)] md:pb-0"
               : "flex-1 min-h-0 container mx-auto px-4 py-8 pb-24 md:pb-8"
       }
     >
