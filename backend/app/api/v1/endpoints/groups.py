@@ -63,10 +63,6 @@ def _cache_key(prefix: str, user_id: int | None, params: dict[str, Any]) -> str:
 def _cache_get(key: str) -> tuple[list[dict], str | None] | None:
     if GROUP_FEED_CACHE_TTL <= 0:
         return None
-    # Do not cache personalized discover feeds. They must reflect per-user swipe state immediately,
-    # and in-process caching can go stale (and is not shared across multi-worker deployments).
-    if key.startswith("discover|"):
-        return None
     entry = _GROUP_FEED_CACHE.get(key)
     if not entry:
         return None
@@ -80,8 +76,6 @@ def _cache_get(key: str) -> tuple[list[dict], str | None] | None:
 
 def _cache_set(key: str, payload: list[dict], next_cursor: str | None) -> None:
     if GROUP_FEED_CACHE_TTL <= 0:
-        return
-    if key.startswith("discover|"):
         return
     _GROUP_FEED_CACHE[key] = (time.time(), payload, next_cursor)
     _GROUP_FEED_CACHE.move_to_end(key)

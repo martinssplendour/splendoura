@@ -17,7 +17,6 @@ interface SwipeDeckProps {
   resetKey?: string;
   onMarkSeen?: (groupId: number) => void;
   onUnmarkSeen?: (groupId: number) => void;
-  isActive?: boolean;
 }
 
 const SWIPE_RATIO = 0.3;
@@ -37,7 +36,6 @@ export default function SwipeDeck({
   resetKey,
   onMarkSeen,
   onUnmarkSeen,
-  isActive = true,
 }: SwipeDeckProps) {
   const [index, setIndex] = useState(0);
   const [drag, setDrag] = useState({ x: 0, y: 0 });
@@ -65,7 +63,6 @@ export default function SwipeDeck({
   }, [user?.location_city, user?.location_country]);
 
   useEffect(() => {
-    if (!isActive) return;
     let active = true;
 
     const loadMedia = async () => {
@@ -97,10 +94,9 @@ export default function SwipeDeck({
     return () => {
       active = false;
     };
-  }, [current?.cover_image_url, current?.id, isActive]);
+  }, [current?.cover_image_url, current?.id]);
 
   useEffect(() => {
-    if (!isActive) return;
     let active = true;
     const loadCreator = async () => {
       if (!current?.creator_id) {
@@ -141,7 +137,7 @@ export default function SwipeDeck({
     return () => {
       active = false;
     };
-  }, [accessToken, current?.creator_id, isActive]);
+  }, [accessToken, current?.creator_id]);
 
   useEffect(() => {
     const updateWidth = () => {
@@ -179,13 +175,12 @@ export default function SwipeDeck({
   }, [groups.length, index, resetDrag]);
 
   useEffect(() => {
-    if (!isActive) return;
     if (!onNearEnd) return;
     if (!groups.length) return;
     if (groups.length - index <= nearEndThreshold) {
       onNearEnd();
     }
-  }, [groups.length, index, isActive, nearEndThreshold, onNearEnd]);
+  }, [groups.length, index, nearEndThreshold, onNearEnd]);
 
   const animateOut = useCallback(
     (direction: "left" | "right", groupId: number) => {
@@ -253,9 +248,8 @@ export default function SwipeDeck({
           token: accessToken,
           body: JSON.stringify({ action }),
         });
-        return true;
       } catch {
-        return false;
+        // Best-effort only.
       }
     },
     [accessToken, current]
@@ -294,20 +288,14 @@ export default function SwipeDeck({
     }
   }, [animateOut, attemptJoin, current?.id, onMarkSeen, recordSwipe]);
 
-  const handleReject = useCallback(async () => {
+  const handleReject = useCallback(() => {
     setStatus(null);
+    void recordSwipe("nope");
     if (current?.id) {
-      if (accessToken) {
-        const ok = await recordSwipe("nope");
-        if (!ok) {
-          toast.error("Couldn't save your swipe. Check your connection and try again.");
-          return;
-        }
-      }
       onMarkSeen?.(current.id);
       animateOut("left", current.id);
     }
-  }, [accessToken, animateOut, current?.id, onMarkSeen, recordSwipe]);
+  }, [animateOut, current?.id, onMarkSeen, recordSwipe]);
 
   const handleRewind = useCallback(() => {
     if (isAnimating || isJoining) return;
@@ -362,7 +350,6 @@ export default function SwipeDeck({
       const ok = await attemptJoin("like");
       if (ok) {
         if (current?.id) {
-          onMarkSeen?.(current.id);
           animateOut("right", current.id);
         }
       } else {
@@ -371,25 +358,15 @@ export default function SwipeDeck({
       return;
     }
     if (current?.id) {
-      if (accessToken) {
-        const ok = await recordSwipe("nope");
-        if (!ok) {
-          toast.error("Couldn't save your swipe. Check your connection and try again.");
-          resetDrag();
-          return;
-        }
-      }
-      onMarkSeen?.(current.id);
       animateOut("left", current.id);
     }
   };
 
   useEffect(() => {
-    if (!isActive) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (!current || isAnimating) return;
       if (event.key === "ArrowLeft") {
-        void handleReject();
+        handleReject();
       }
       if (event.key === "ArrowRight") {
         void handleApprove();
@@ -403,7 +380,7 @@ export default function SwipeDeck({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [current, handleApprove, handleReject, handleRewind, handleSuperlike, isActive, isAnimating]);
+  }, [current, handleApprove, handleReject, handleRewind, handleSuperlike, isAnimating]);
 
   const overlayOpacity = Math.min(Math.abs(drag.x) / ((cardWidth || 600) * SWIPE_RATIO), 1);
   const overlayLabel =
