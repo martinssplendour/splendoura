@@ -1,32 +1,45 @@
 // lib/api.ts
+import { getAccessTokenMemory, setAccessTokenMemory } from "@/lib/token-store";
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 export const API_HOST = BASE_URL.replace(/\/api\/v1\/?$/, "");
-const ACCESS_TOKEN_KEY = "access_token";
-const REFRESH_TOKEN_KEY = "refresh_token";
 
 interface RequestOptions extends RequestInit {
   token?: string | null;
 }
 
-const readStoredAccessToken = () => {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
-};
+let refreshPromise: Promise<string | null> | null = null;
 
 const refreshAccessToken = async () => {
-  if (typeof window === "undefined") return null;
-  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-  if (!refreshToken) return null;
-  const res = await fetch(`${BASE_URL}/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: refreshToken }),
-  });
-  if (!res.ok) return null;
-  const data: { access_token: string; refresh_token: string } = await res.json();
-  localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
-  localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
-  return data.access_token;
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      setAccessTokenMemory(null);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("auth:session-expired"));
+      }
+      return null;
+    }
+    const data: { access_token: string; refresh_token?: string | null } = await res.json();
+    setAccessTokenMemory(data.access_token);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("auth:token-refreshed", {
+          detail: { access_token: data.access_token, refresh_token: data.refresh_token ?? null },
+        })
+      );
+    }
+    return data.access_token;
+  })();
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
 };
 
 export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
@@ -43,9 +56,10 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
     return headers;
   };
 
-  const initialToken = token || readStoredAccessToken();
+  const initialToken = token || getAccessTokenMemory();
   let response = await fetch(`${BASE_URL}${endpoint}`, {
     ...rest,
+    credentials: "include",
     headers: buildHeaders(initialToken),
   });
 
@@ -54,6 +68,7 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
     if (refreshed) {
       response = await fetch(`${BASE_URL}${endpoint}`, {
         ...rest,
+        credentials: "include",
         headers: buildHeaders(refreshed),
       });
     }

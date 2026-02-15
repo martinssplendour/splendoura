@@ -1,19 +1,24 @@
 from typing import Dict, Generator
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
+from jose import JWTError
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from sqlalchemy import text
 from app.core.config import settings
+from app.core import security
+from app.models.auth_session import UserRefreshSession
 from app.models.user import User, VerificationStatus, UserRole
 from app import crud
 
 # This tells FastAPI where to look for the token to login
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/auth/login",
+    auto_error=False,
+)
 
 _rate_limit_bucket: Dict[str, list[float]] = {}
 
@@ -44,25 +49,49 @@ def get_db() -> Generator:
         db.close()
 
 def get_current_user(
-    db: Session = Depends(get_db), 
-    token: str = Depends(oauth2_scheme)
+    request: Request,
+    db: Session = Depends(get_db),
+    token: str | None = Depends(oauth2_scheme),
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    resolved_token = token
+    if not resolved_token:
+        resolved_token = request.cookies.get(settings.AUTH_ACCESS_COOKIE_NAME)
+    if not resolved_token:
+        raise credentials_exception
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
+        payload = security.decode_token(resolved_token, expected_type="access")
         user_id: str = payload.get("sub")
+        session_id: str | None = payload.get("sid")
         if user_id is None:
+            raise credentials_exception
+        if not session_id:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-        
-    user = crud.user.get(db, id=int(user_id))
+    try:
+        user_id_int = int(user_id)
+    except ValueError:
+        raise credentials_exception
+
+    session = (
+        db.query(UserRefreshSession)
+        .filter(
+            UserRefreshSession.id == session_id,
+            UserRefreshSession.user_id == user_id_int,
+            UserRefreshSession.revoked_at.is_(None),
+            UserRefreshSession.expires_at > datetime.now(timezone.utc),
+        )
+        .first()
+    )
+    if not session:
+        raise credentials_exception
+
+    user = crud.user.get(db, id=user_id_int)
     if not user:
         raise credentials_exception
     user.last_active_at = datetime.utcnow()
@@ -72,21 +101,40 @@ def get_current_user(
 
 
 def get_current_user_id(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    db: Session = Depends(get_db),
+    token: str | None = Depends(oauth2_scheme),
 ) -> int:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    resolved_token = token or request.cookies.get(settings.AUTH_ACCESS_COOKIE_NAME)
+    if not resolved_token:
+        raise credentials_exception
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
+        payload = security.decode_token(resolved_token, expected_type="access")
         user_id: str | None = payload.get("sub")
+        session_id: str | None = payload.get("sid")
         if user_id is None:
             raise credentials_exception
-        return int(user_id)
+        if not session_id:
+            raise credentials_exception
+        user_id_int = int(user_id)
+        session = (
+            db.query(UserRefreshSession)
+            .filter(
+                UserRefreshSession.id == session_id,
+                UserRefreshSession.user_id == user_id_int,
+                UserRefreshSession.revoked_at.is_(None),
+                UserRefreshSession.expires_at > datetime.now(timezone.utc),
+            )
+            .first()
+        )
+        if not session:
+            raise credentials_exception
+        return user_id_int
     except (JWTError, ValueError):
         raise credentials_exception
 

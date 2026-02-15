@@ -50,8 +50,11 @@ class ConnectionManager:
         if task:
             task.cancel()
 
-    async def connect(self, group_id: int, websocket: WebSocket) -> None:
-        await websocket.accept()
+    async def connect(self, group_id: int, websocket: WebSocket, subprotocol: str | None = None) -> None:
+        if subprotocol:
+            await websocket.accept(subprotocol=subprotocol)
+        else:
+            await websocket.accept()
         async with self._lock:
             self._groups.setdefault(group_id, set()).add(websocket)
         await self._ensure_subscription(group_id)
