@@ -164,8 +164,9 @@ export default function BrowseGroups() {
   const seenGroupsKey = useMemo(() => `${groupsCacheKey}:seen`, [groupsCacheKey]);
 
   const deckResetKey = useMemo(
-    () => `${accessToken ? "auth" : "guest"}|${baseQueryParams.toString()}|${activeCategory}`,
-    [accessToken, activeCategory, baseQueryParams]
+    // Reset decks when filters/auth change, but not when switching tabs.
+    () => `${accessToken ? "auth" : "guest"}|${baseQueryParams.toString()}`,
+    [accessToken, baseQueryParams]
   );
 
   const readSeenGroupIds = useCallback(() => {
@@ -551,41 +552,53 @@ export default function BrowseGroups() {
             </div>
 
             <div className="-mt-1 flex min-h-0 flex-1">
-              {activeCategory === "profiles" ? (
-                profilesLoading ? (
+              {/* Keep group decks mounted so switching tabs doesn't reset your progress. */}
+              <div className={`${activeCategory === "profiles" ? "hidden" : "flex"} w-full min-h-0 flex-1`}>
+                {loading ? (
                   <SwipeDeckSkeleton />
-                ) : accessToken ? (
+                ) : (
                   <>
-                    <ProfileSwipeDeck
-                      profiles={profileMatches}
-                      requestId={profileRequestId}
-                    />
-                    {profilesError ? (
-                      <p className="mt-3 text-center text-xs text-rose-500">{profilesError}</p>
+                    {(["mutual_benefits", "friendship", "dating"] as const).map((category) => (
+                      <div
+                        key={category}
+                        className={`${activeCategory === category ? "flex" : "hidden"} w-full min-h-0 flex-1`}
+                      >
+                        <SwipeDeck
+                          groups={grouped[category]}
+                          onNearEnd={activeCategory === category ? handleLoadMore : undefined}
+                          nearEndThreshold={PREFETCH_THRESHOLD}
+                          resetKey={deckResetKey}
+                          onMarkSeen={markGroupSeen}
+                          onUnmarkSeen={unmarkGroupSeen}
+                          isActive={activeCategory === category}
+                        />
+                      </div>
+                    ))}
+                    {loadingMore ? (
+                      <p className="mt-3 text-center text-xs text-slate-500">Loading more groups...</p>
                     ) : null}
                   </>
-                ) : (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
-                    Sign in to see profile matches.
-                  </div>
-                )
-              ) : loading ? (
-                <SwipeDeckSkeleton />
-              ) : (
-                <>
-                  <SwipeDeck
-                    groups={grouped[activeCategory]}
-                    onNearEnd={handleLoadMore}
-                    nearEndThreshold={PREFETCH_THRESHOLD}
-                    resetKey={deckResetKey}
-                    onMarkSeen={markGroupSeen}
-                    onUnmarkSeen={unmarkGroupSeen}
-                  />
-                  {loadingMore ? (
-                    <p className="mt-3 text-center text-xs text-slate-500">Loading more groups…</p>
-                  ) : null}
-                </>
-              )}
+                )}
+              </div>
+
+              <div className={`${activeCategory === "profiles" ? "flex" : "hidden"} w-full min-h-0 flex-1`}>
+                {activeCategory === "profiles" ? (
+                  profilesLoading ? (
+                    <SwipeDeckSkeleton />
+                  ) : accessToken ? (
+                    <>
+                      <ProfileSwipeDeck profiles={profileMatches} requestId={profileRequestId} />
+                      {profilesError ? (
+                        <p className="mt-3 text-center text-xs text-rose-500">{profilesError}</p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+                      Sign in to see profile matches.
+                    </div>
+                  )
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
