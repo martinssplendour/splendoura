@@ -548,28 +548,37 @@ def _split_location(label: str | None) -> tuple[str, str]:
     return "", ""
 
 
-def _parse_locations(raw: str | None) -> list[tuple[str, str, float | None, float | None]]:
+def _parse_locations(
+    raw: str | None,
+    *,
+    fallback_to_default: bool = True,
+) -> list[tuple[str, str, float | None, float | None]]:
     if not raw:
-        return DEFAULT_LOCATIONS
+        return DEFAULT_LOCATIONS if fallback_to_default else []
     fallback = {
         (city.lower(), country.lower()): (lat, lng)
         for city, country, lat, lng in DEFAULT_LOCATIONS
     }
     parsed: list[tuple[str, str, float | None, float | None]] = []
-    for entry in raw.split(";"):
+    normalized = raw.replace("\r\n", "\n").replace("\n", ";")
+    for entry in normalized.split(";"):
         entry = entry.strip()
         if not entry:
             continue
+        for sep in (" - ", " – ", " — "):
+            if sep in entry:
+                entry = entry.split(sep, 1)[0].strip()
+                break
         if "|" in entry:
-            parts = [part.strip() for part in entry.split("|")]
+            parts = [part.strip() for part in entry.split("|") if part.strip()]
         elif "," in entry:
-            parts = [part.strip() for part in entry.split(",")]
+            parts = [part.strip() for part in entry.split(",") if part.strip()]
         else:
-            continue
-        if len(parts) < 2:
+            parts = [entry]
+        if not parts:
             continue
         city = parts[0]
-        country = parts[1]
+        country = parts[1] if len(parts) >= 2 else ""
         lat = None
         lng = None
         if len(parts) >= 4:
@@ -581,11 +590,13 @@ def _parse_locations(raw: str | None) -> list[tuple[str, str, float | None, floa
                 lng = float(parts[3])
             except (TypeError, ValueError):
                 lng = None
-        else:
+        elif country:
             lat, lng = fallback.get((city.lower(), country.lower()), (None, None))
-        if city and country:
+        if city:
             parsed.append((city, country, lat, lng))
-    return parsed or DEFAULT_LOCATIONS
+    if parsed:
+        return parsed
+    return DEFAULT_LOCATIONS if fallback_to_default else []
 
 
 def _openai_image(prompt: str) -> tuple[bytes, str] | None:
@@ -729,16 +740,28 @@ def _portrait_prompt(gender: Gender, age: int) -> str:
 
 
 def _group_prompt(activity: str, city: str, country: str, title: str | None = None) -> str:
+    location = f"{city}, {country}" if country else city
     if title:
         return (
             f"High-quality photo that matches the group theme '{title}'. "
-            f"{activity} setting in {city}, {country}. "
+            f"{activity} setting in {location}. "
             "Vibrant, inviting, real-life style."
         )
     return (
-        f"High-quality photo of a {activity} location in {city}, {country}. "
+        f"High-quality photo of a {activity} location in {location}. "
         "Vibrant, inviting, real-life style."
     )
+
+
+def _creator_location(user: User) -> tuple[str, str, float | None, float | None] | None:
+    city = (user.location_city or "").strip()
+    country = (user.location_country or "").strip()
+    if not city and not country:
+        return None
+    if not city:
+        city = country
+        country = ""
+    return city, country, user.location_lat, user.location_lng
 
 
 def seed_demo_profiles(
@@ -845,7 +868,10 @@ def seed_demo_groups(
     creators: list[User],
     count: int,
     category_mode: str,
-    locations: list[tuple[str, str, float | None, float | None]],
+    profile_locations: list[tuple[str, str, float | None, float | None]],
+    group_locations: list[tuple[str, str, float | None, float | None]],
+    location_mode: str,
+    list_weight: float,
     provider_mode: str,
     seed_value: int | None,
 ) -> int:
@@ -858,7 +884,33 @@ def seed_demo_groups(
 
     for _ in range(count):
         creator = random.choice(creators)
-        city, country, lat, lng = random.choice(locations)
+        creator_loc = _creator_location(creator)
+        has_creator_loc = creator_loc is not None
+        group_pool = group_locations or []
+        profile_pool = profile_locations or DEFAULT_LOCATIONS
+
+        mode = (location_mode or "auto").lower()
+        use_list = False
+        if mode == "list":
+            use_list = True
+        elif mode == "mixed":
+            clamped = max(0.0, min(float(list_weight), 1.0))
+            use_list = bool(group_pool) and random.random() < clamped
+        elif mode == "auto":
+            use_list = bool(group_pool)
+        elif mode == "creator":
+            use_list = False
+        else:
+            use_list = bool(group_pool)
+
+        if use_list and group_pool:
+            city, country, lat, lng = random.choice(group_pool)
+        elif has_creator_loc:
+            city, country, lat, lng = creator_loc  # type: ignore[misc]
+        else:
+            city, country, lat, lng = random.choice(profile_pool)
+
+        location_label = f"{city}, {country}" if country else city
         category = _pick_category(category_mode)
         scenario = random.choice(GROUP_SCENARIOS.get(category, [])) if GROUP_SCENARIOS else None
         activity = scenario["activity"] if scenario else random.choice(GROUP_ACTIVITY_TYPES)
@@ -875,7 +927,7 @@ def seed_demo_groups(
             title=title,
             description=description,
             activity_type=activity,
-            location=f"{city}, {country}",
+            location=location_label,
             location_lat=lat,
             location_lng=lng,
             destination=city,
@@ -1083,7 +1135,39 @@ def main() -> None:
         "--profile-locations",
         type=str,
         default="",
-        help="Semicolon-separated list of City|Country or City|Country|lat|lng for profile locations.",
+        help=(
+            "Semicolon or newline-separated list of locations for demo profiles. "
+            "Formats supported: City|Country, City|Country|lat|lng, or City, Country. "
+            "You can also paste lines like 'Paris, France - ...' and the description will be ignored."
+        ),
+    )
+    parser.add_argument(
+        "--group-locations",
+        type=str,
+        default="",
+        help=(
+            "Optional semicolon or newline-separated list of locations to use for demo groups. "
+            "If omitted, groups use the creator's profile location."
+        ),
+    )
+    parser.add_argument(
+        "--group-location-mode",
+        type=str,
+        default="auto",
+        choices=["auto", "creator", "list", "mixed"],
+        help=(
+            "How to choose demo group locations: "
+            "auto=use --group-locations if provided else creator location; "
+            "creator=always creator location; "
+            "list=always --group-locations; "
+            "mixed=use --group-locations sometimes."
+        ),
+    )
+    parser.add_argument(
+        "--group-location-list-weight",
+        type=float,
+        default=0.7,
+        help="In mixed mode, probability of using --group-locations instead of creator location.",
     )
     parser.add_argument(
         "--photos-per-user",
@@ -1141,7 +1225,8 @@ def main() -> None:
             )
             print(f"Backfilled demo media: profiles={updated_profiles}, groups={updated_groups}.")
         else:
-            location_pool = _parse_locations(args.profile_locations)
+            profile_location_pool = _parse_locations(args.profile_locations, fallback_to_default=True)
+            group_location_pool = _parse_locations(args.group_locations, fallback_to_default=False)
             users = seed_demo_profiles(
                 db=db,
                 count=args.profiles,
@@ -1149,7 +1234,7 @@ def main() -> None:
                 gender_mode=args.gender,
                 min_age=args.age_min,
                 max_age=args.age_max,
-                locations=location_pool,
+                locations=profile_location_pool,
                 provider_mode=args.provider,
                 seed_value=args.seed,
             )
@@ -1158,7 +1243,10 @@ def main() -> None:
                 creators=users,
                 count=args.groups,
                 category_mode=args.group_category,
-                locations=location_pool,
+                profile_locations=profile_location_pool,
+                group_locations=group_location_pool,
+                location_mode=args.group_location_mode,
+                list_weight=args.group_location_list_weight,
                 provider_mode=args.provider,
                 seed_value=args.seed,
             )
