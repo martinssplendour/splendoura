@@ -5,21 +5,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DATABASE_URL: str
-    # Must be overridden in production.
-    SECRET_KEY: str = Field(default="change-me-in-production", validation_alias="JWT_SECRET")
+    # Change this to a long random string for production!
+    SECRET_KEY: str = Field(default="12345678910", validation_alias="JWT_SECRET")
     ALGORITHM: str = "HS256"
-    JWT_ISSUER: str = "splendoure-api"
-    JWT_AUDIENCE: str = "splendoure-clients"
-    # Token expiry defaults (short-lived access + rotating refresh)
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    # Token expire time (60 minutes * 24 hours * 8 days)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30
-    MAX_ACTIVE_SESSIONS_PER_USER: int = 10
-    REQUIRE_STRONG_SECRET_KEY: bool = True
-    AUTH_ACCESS_COOKIE_NAME: str = "spl_access"
-    AUTH_REFRESH_COOKIE_NAME: str = "spl_refresh"
-    AUTH_COOKIE_SECURE: bool | None = None
-    AUTH_COOKIE_SAMESITE: str = "lax"
-    AUTH_REFRESH_COOKIE_PATH: str = "/api/v1/auth"
     RESET_TOKEN_EXPIRE_MINUTES: int = 30
     RATE_LIMIT_PER_MINUTE: int = 60
     REDIS_URL: str | None = None

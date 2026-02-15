@@ -241,10 +241,7 @@ export default function ChatPage() {
 
     activeIds.forEach((groupId) => {
       if (sockets[groupId]) return;
-      const socket = new WebSocket(
-        `${base}/api/v1/ws/groups/${groupId}`,
-        [`bearer.${accessToken}`]
-      );
+      const socket = new WebSocket(`${base}/api/v1/ws/groups/${groupId}?token=${accessToken}`);
       sockets[groupId] = socket;
 
       socket.onmessage = (event) => {

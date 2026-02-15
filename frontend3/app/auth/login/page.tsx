@@ -47,6 +47,10 @@ export default function LoginPage() {
     }, 60000);
 
     try {
+      console.log("Login request start", {
+        apiBaseUrl: API_BASE_URL,
+        email,
+      });
       const body = new URLSearchParams();
       body.set("username", email);
       body.set("password", password);
@@ -55,9 +59,10 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body,
-        credentials: "include",
         signal: controller.signal,
       });
+      console.log("Login response status", response.status);
+
       if (!response.ok) {
         const data = await response.json().catch(() => null);
         const detail = (data?.detail || "Login failed.") as string;
@@ -82,17 +87,19 @@ export default function LoginPage() {
       }
 
       const tokenData: { access_token: string; refresh_token: string } = await response.json();
+      console.log("Login token received");
       const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
-        credentials: "include",
         signal: controller.signal,
       });
+      console.log("User profile response status", userResponse.status);
 
       if (!userResponse.ok) {
         throw new Error("Login succeeded, but user profile could not be loaded.");
       }
 
       const user = await userResponse.json();
+      console.log("User profile loaded", user?.id);
       const skipped = localStorage.getItem("onboarding_skipped");
       const prompts = (user?.profile_media as Record<string, unknown> | null)?.prompts;
       const hasPrompts = Array.isArray(prompts) && prompts.length > 0;
@@ -123,6 +130,7 @@ export default function LoginPage() {
           ? "Sign in timed out after 60 seconds. Please try again."
           : message
       );
+      console.error("Login request failed", err);
       setIsSubmitting(false);
     } finally {
       window.clearTimeout(timeoutId);

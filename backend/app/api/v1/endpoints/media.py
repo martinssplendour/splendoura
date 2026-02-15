@@ -66,7 +66,7 @@ def get_storage_object(
 
 
 @router.get("/debug/storage")
-def debug_storage_settings(current_user=Depends(deps.get_current_admin_user)):
+def debug_storage_settings(current_user=Depends(deps.get_current_user)):
     service_role_key = settings.SUPABASE_SERVICE_ROLE_KEY or ""
     service_role_claims: dict[str, str | int | None] = {}
     service_role_hash: str | None = None
@@ -103,7 +103,7 @@ def debug_storage_sign(
     *,
     object_key: str,
     full_response: bool = False,
-    current_user=Depends(deps.get_current_admin_user),
+    current_user=Depends(deps.get_current_user),
 ):
     if not storage.supabase_storage_enabled():
         raise HTTPException(status_code=400, detail="Supabase storage is not configured.")

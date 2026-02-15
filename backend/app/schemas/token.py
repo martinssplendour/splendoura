@@ -10,7 +10,7 @@ class TokenPayload(BaseModel):
     sub: Optional[int] = None
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str | None = None
+    refresh_token: str
 
 class PasswordResetRequest(BaseModel):
     email: str
