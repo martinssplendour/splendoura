@@ -84,7 +84,9 @@ export default function ChatThreadScreen() {
   const [showWarning, setShowWarning] = useState(false);
   const [warningText, setWarningText] = useState("");
   const [memberNames, setMemberNames] = useState<Record<number, string>>({});
+  const [dmParticipantId, setDmParticipantId] = useState<number | null>(null);
   const [dmParticipantName, setDmParticipantName] = useState<string | null>(null);
+  const [dmParticipantAvatar, setDmParticipantAvatar] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Record<number, boolean>>({});
   const wsRef = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -175,13 +177,19 @@ export default function ChatThreadScreen() {
       const other = data.find((member) => member.id !== user.id);
       if (other) {
         const label = (other.full_name || other.username || `User ${other.id}`).trim();
+        setDmParticipantId(other.id);
         setDmParticipantName(label || `User ${other.id}`);
+        setDmParticipantAvatar(other.profile_image_url || null);
       } else {
+        setDmParticipantId(null);
         setDmParticipantName(null);
+        setDmParticipantAvatar(null);
       }
       return;
     }
+    setDmParticipantId(null);
     setDmParticipantName(null);
+    setDmParticipantAvatar(null);
   }, [accessToken, group?.activity_type, groupId, user?.full_name, user?.id, user?.username]);
 
   useEffect(() => {
@@ -189,7 +197,9 @@ export default function ChatThreadScreen() {
   }, [loadMemberNames]);
 
   useEffect(() => {
+    setDmParticipantId(null);
     setDmParticipantName(null);
+    setDmParticipantAvatar(null);
   }, [groupId]);
 
   useEffect(() => {
@@ -562,6 +572,20 @@ export default function ChatThreadScreen() {
     );
   }
 
+  const isDirectChat = group?.activity_type === "direct_chat";
+  const canOpenHeaderTarget = isDirectChat ? Boolean(dmParticipantId) : Boolean(groupId);
+  const handleOpenHeaderTarget = () => {
+    if (isDirectChat && dmParticipantId) {
+      router.push(`/users/${dmParticipantId}`);
+      return;
+    }
+    if (groupId) {
+      router.push(`/groups/${groupId}`);
+    }
+  };
+  const headerTargetLabel = isDirectChat ? "View user profile" : "View group details";
+  const headerInitial = (dmParticipantName || group?.title || "U").slice(0, 1).toUpperCase();
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.page}>
@@ -572,29 +596,50 @@ export default function ChatThreadScreen() {
           <View style={styles.container}>
             <View style={styles.header}>
               <View style={styles.headerLeft}>
-                <Pressable
-                  onPress={() => {
-                    if (groupId) router.push(`/groups/${groupId}`);
-                  }}
-                  disabled={!groupId}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel="View group details"
-                >
-                  <Text
-                    style={[
-                      styles.headerTitle,
-                      groupId ? styles.headerTitleLink : styles.headerTitleDisabled,
-                    ]}
+                <View style={styles.headerIdentity}>
+                  <Pressable
+                    onPress={handleOpenHeaderTarget}
+                    disabled={!canOpenHeaderTarget}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={headerTargetLabel}
                   >
-                    {dmParticipantName || group?.title || "Loading..."}
-                  </Text>
-                </Pressable>
-                <Text style={styles.headerMeta}>
-                  {group?.activity_type === "direct_chat"
-                    ? "Direct message"
-                    : `${group?.approved_members ?? 0}/${group?.max_participants ?? "--"} members`}
-                </Text>
+                    {dmParticipantAvatar ? (
+                      <Image
+                        source={{ uri: resolveMediaUrl(dmParticipantAvatar) }}
+                        style={styles.headerAvatar}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.headerAvatarFallback}>
+                        <Text style={styles.headerAvatarFallbackText}>{headerInitial}</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                  <View style={styles.headerTextWrap}>
+                    <Pressable
+                      onPress={handleOpenHeaderTarget}
+                      disabled={!canOpenHeaderTarget}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={headerTargetLabel}
+                    >
+                      <Text
+                        style={[
+                          styles.headerTitle,
+                          canOpenHeaderTarget ? styles.headerTitleLink : styles.headerTitleDisabled,
+                        ]}
+                      >
+                        {dmParticipantName || group?.title || "Loading..."}
+                      </Text>
+                    </Pressable>
+                    <Text style={styles.headerMeta}>
+                      {isDirectChat
+                        ? "Direct message"
+                        : `${group?.approved_members ?? 0}/${group?.max_participants ?? "--"} members`}
+                    </Text>
+                  </View>
+                </View>
               </View>
               <View style={styles.headerActions}>
                 <Pressable
@@ -1017,6 +1062,32 @@ const styles = StyleSheet.create({
   headerLeft: {
     flex: 1,
     paddingRight: 8,
+  },
+  headerIdentity: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  headerAvatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#dbeafe",
+  },
+  headerAvatarFallbackText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1d4ed8",
+  },
+  headerTextWrap: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 18,

@@ -25,8 +25,8 @@ export default function ChatCallPage() {
     return (
       <div className="mx-auto max-w-3xl rounded-none border-0 bg-white p-6 sm:rounded-2xl sm:border sm:border-slate-200">
         <p className="text-sm text-slate-600">Call not available.</p>
-        <Button className="mt-4" onClick={() => router.push("/chat")}>
-          Back to chats
+        <Button className="mt-4" onClick={() => router.back()}>
+          Back
         </Button>
       </div>
     );

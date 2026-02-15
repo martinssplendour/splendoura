@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import JoinRequestButton, { GroupRequirement } from "@/components/groups/join-request-button";
@@ -190,6 +190,7 @@ const toIsoStringOrNull = (value: string) => {
 
 export default function GroupDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<MemberItem[]>([]);
@@ -1059,9 +1060,9 @@ export default function GroupDetailPage() {
     return (
       <div className="text-center">
         <p className="text-lg font-semibold text-slate-700">Group not found.</p>
-        <Link href="/groups" className="mt-2 inline-block text-sm text-blue-600">
-          Back to groups
-        </Link>
+        <Button variant="outline" className="mt-2" onClick={() => router.back()}>
+          Back
+        </Button>
       </div>
     );
   }
@@ -1069,9 +1070,9 @@ export default function GroupDetailPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <div>
-        <Link href="/groups" className="text-sm text-blue-600">
-          &lt;- Back to swipe
-        </Link>
+        <Button variant="outline" size="sm" onClick={() => router.back()}>
+          Back
+        </Button>
         <h1 className="mt-3 text-3xl font-bold text-slate-900">{group.title}</h1>
         <p className="mt-2 text-slate-600">{group.description}</p>
         {displayTags.length ? (

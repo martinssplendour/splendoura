@@ -84,6 +84,7 @@ export default function ChatDMPage() {
     src: string;
   } | null>(null);
   const [dmParticipant, setDmParticipant] = useState<{
+    id: number;
     name: string;
     avatarUrl: string | null;
   } | null>(null);
@@ -330,6 +331,7 @@ export default function ChatDMPage() {
         const label = (other.full_name || other.username || `User ${other.id}`).trim();
         if (!cancelled) {
           setDmParticipant({
+            id: other.id,
             name: label || `User ${other.id}`,
             avatarUrl: other.profile_image_url || null,
           });
@@ -502,6 +504,10 @@ export default function ChatDMPage() {
 
   const headerTitle = dmParticipant?.name || group?.title || "Chat";
   const headerAvatar = dmParticipant?.avatarUrl || group?.cover_image_url || null;
+  const dmProfileHref =
+    group?.activity_type === "direct_chat" && dmParticipant?.id
+      ? `/users/${dmParticipant.id}`
+      : null;
   const headerMeta = group
     ? group.activity_type === "direct_chat"
       ? "Direct message"
@@ -521,19 +527,43 @@ export default function ChatDMPage() {
     >
       <header className="shrink-0 border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 pt-0 pb-2">
-          {headerAvatar ? (
+          {headerAvatar ? dmProfileHref ? (
+            <Link href={dmProfileHref} className="block h-11 w-11 overflow-hidden rounded-full">
+              <SignedImage
+                src={headerAvatar}
+                alt={headerTitle}
+                className="h-11 w-11 rounded-full object-cover"
+              />
+            </Link>
+          ) : (
             <SignedImage
               src={headerAvatar}
               alt={headerTitle}
               className="h-11 w-11 rounded-full object-cover"
             />
+          ) : dmProfileHref ? (
+            <Link
+              href={dmProfileHref}
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-base font-semibold text-emerald-700"
+            >
+              {headerTitle.slice(0, 1).toUpperCase()}
+            </Link>
           ) : (
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-base font-semibold text-emerald-700">
               {headerTitle.slice(0, 1).toUpperCase()}
             </div>
           )}
           <div className="flex-1">
-            <p className="text-base font-semibold leading-tight text-slate-900">{headerTitle}</p>
+            {dmProfileHref ? (
+              <Link
+                href={dmProfileHref}
+                className="text-base font-semibold leading-tight text-slate-900 hover:underline"
+              >
+                {headerTitle}
+              </Link>
+            ) : (
+              <p className="text-base font-semibold leading-tight text-slate-900">{headerTitle}</p>
+            )}
             <p className="text-xs leading-tight text-slate-500">{headerMeta}</p>
           </div>
           {groupId && group?.activity_type !== "direct_chat" ? (

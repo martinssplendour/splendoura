@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -177,6 +177,7 @@ const formatLastActive = (value?: string | null) => {
 
 export default function UserProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const { accessToken } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -218,9 +219,9 @@ export default function UserProfilePage() {
     return (
       <div className="text-center">
         <p className="text-lg font-semibold text-slate-700">User not found.</p>
-        <Link href="/notifications" className="text-sm text-blue-600">
-          Back to notifications
-        </Link>
+        <Button variant="outline" className="mt-2" onClick={() => router.back()}>
+          Back
+        </Button>
       </div>
     );
   }
@@ -234,9 +235,9 @@ export default function UserProfilePage() {
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <div className="flex items-center justify-between">
-        <Link href="/notifications" className="text-sm text-blue-600">
-          &lt;- Back to notifications
-        </Link>
+        <Button variant="outline" onClick={() => router.back()}>
+          Back
+        </Button>
         <Button asChild className="bg-blue-600 text-white hover:bg-blue-700">
           <Link href={`/groups?creator_id=${profile.id}`}>View user groups</Link>
         </Button>

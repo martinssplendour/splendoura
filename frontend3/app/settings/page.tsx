@@ -250,12 +250,13 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Profile & preferences</h1>
           <p className="text-sm text-slate-600">Control privacy, discovery, and notifications.</p>
         </div>
-        <Link
-          href="/profile"
+        <Button
+          variant="outline"
+          onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
         >
-          <ArrowLeft size={16} /> Back to profile
-        </Link>
+          <ArrowLeft size={16} /> Back
+        </Button>
       </div>
 
       <SettingsSection title="Account" description="Profile basics and verification status.">
