@@ -10,6 +10,7 @@ import uuid
 from typing import Any, Dict, List
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Response, UploadFile, status
 from fastapi.encoders import jsonable_encoder
+from pydantic import ValidationError
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -420,29 +421,138 @@ def read_groups(
 def create_group(
     *,
     db: Session = Depends(deps.get_db),
-    group_in: schemas.GroupCreate,
+    payload: str = Form(...),
+    cover: UploadFile = File(...),
     current_user: models.User = Depends(deps.get_current_user),
 ) -> Any:
-    """Create new group."""
+    """Create new group (requires a cover photo upload)."""
     if not current_user.profile_image_url:
         raise HTTPException(status_code=403, detail="Upload a profile photo before creating a group.")
-    if group_in.min_participants < 1:
-        raise HTTPException(status_code=400, detail="Minimum participants must be at least 1.")
-    if group_in.max_participants < group_in.min_participants:
-        raise HTTPException(status_code=400, detail="Max participants must be >= min participants.")
-    if group_in.category == GroupCategory.DATING and group_in.max_participants != 2:
-        raise HTTPException(status_code=400, detail="Dating groups must have max participants set to 2.")
-    group = crud.group.create_with_owner(db, obj_in=group_in, owner_id=current_user.id)
-    crud.membership.create(
-        db,
-        obj_in=schemas.MembershipCreate(
-            user_id=current_user.id,
-            group_id=group.id,
-            role=MembershipRole.CREATOR,
-            join_status=JoinStatus.APPROVED,
-        ),
-    )
-    return group
+    try:
+        try:
+            payload_dict = json.loads(payload)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Invalid group payload.") from exc
+
+        try:
+            group_in = schemas.GroupCreate.model_validate(payload_dict)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+        if group_in.min_participants < 1:
+            raise HTTPException(status_code=400, detail="Minimum participants must be at least 1.")
+        if group_in.max_participants < group_in.min_participants:
+            raise HTTPException(status_code=400, detail="Max participants must be >= min participants.")
+        if group_in.category == GroupCategory.DATING and group_in.max_participants != 2:
+            raise HTTPException(status_code=400, detail="Dating groups must have max participants set to 2.")
+
+        content_type = cover.content_type or ""
+        if not content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Cover photo must be an image.")
+
+        cover_bytes = cover.file.read()
+        try:
+            cover_bytes, content_type = normalize_group_image_bytes(cover_bytes, target_size=1024)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid cover image file.") from exc
+
+        group = Group(
+            title=group_in.title,
+            description=group_in.description,
+            activity_type=group_in.activity_type,
+            location=group_in.location,
+            location_lat=group_in.location_lat,
+            location_lng=group_in.location_lng,
+            destination=group_in.destination,
+            start_date=group_in.start_date,
+            end_date=group_in.end_date,
+            min_participants=group_in.min_participants,
+            cost_type=group_in.cost_type,
+            offerings=group_in.offerings,
+            rules=group_in.rules,
+            expectations=group_in.expectations,
+            tags=group_in.tags,
+            creator_intro=group_in.creator_intro,
+            creator_intro_video_url=group_in.creator_intro_video_url,
+            category=group_in.category,
+            visibility=group_in.visibility,
+            max_participants=group_in.max_participants,
+            creator_id=current_user.id,
+        )
+        db.add(group)
+        db.flush()
+
+        for req in group_in.requirements or []:
+            db.add(
+                GroupRequirement(
+                    group_id=group.id,
+                    applies_to=req.applies_to,
+                    min_age=req.min_age,
+                    max_age=req.max_age,
+                    additional_requirements=req.additional_requirements,
+                    consent_flags=req.consent_flags,
+                )
+            )
+
+        db.add(
+            models.Membership(
+                user_id=current_user.id,
+                group_id=group.id,
+                role=MembershipRole.CREATOR,
+                join_status=JoinStatus.APPROVED,
+            )
+        )
+
+        stem = os.path.splitext(cover.filename or "group-cover")[0] or "group-cover"
+        upload_filename = f"{stem}.jpg"
+        thumb_url = None
+        if supabase_public_storage_enabled():
+            url, thumb_url = upload_public_image_with_thumbnail(
+                prefix=f"groups/{group.id}",
+                filename=upload_filename,
+                content_type=content_type,
+                data=cover_bytes,
+            )
+        elif supabase_storage_enabled():
+            url = upload_bytes_to_supabase(
+                prefix=f"groups/{group.id}",
+                filename=upload_filename,
+                content_type=content_type,
+                data=cover_bytes,
+                public=False,
+            )
+        else:
+            blob = MediaBlob(
+                content_type=content_type or "image/jpeg",
+                filename=upload_filename,
+                data=cover_bytes,
+                created_by=current_user.id,
+            )
+            db.add(blob)
+            db.flush()
+            url = f"/api/v1/media/{blob.id}"
+
+        db.add(
+            GroupMedia(
+                group_id=group.id,
+                uploader_id=current_user.id,
+                url=url,
+                thumb_url=thumb_url,
+                media_type=GroupMediaType.IMAGE,
+                is_cover=True,
+            )
+        )
+
+        db.commit()
+        db.refresh(group)
+        group.cover_image_url = thumb_url or url
+        return group
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Unable to create group.")
 
 @router.get("/discover", response_model=List[schemas.Group])
 def discover_groups(

@@ -31,6 +31,7 @@ const MIN_OFFERINGS = 2;
 export default function CreateGroupScreen() {
   const router = useRouter();
   const { accessToken, user, isLoading } = useAuth();
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [activityType, setActivityType] = useState("");
@@ -51,6 +52,12 @@ export default function CreateGroupScreen() {
   const [maxAge, setMaxAge] = useState("99");
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isImageAsset = (asset: UploadAsset) => {
+    if (asset.mimeType) return asset.mimeType.startsWith("image/");
+    const hint = (asset.name || asset.uri || "").toLowerCase();
+    return /\.(jpe?g|png|webp|heic|heif)$/.test(hint);
+  };
 
   const handlePickMedia = async () => {
     setStatus(null);
@@ -81,6 +88,7 @@ export default function CreateGroupScreen() {
 
   const handleSubmit = async () => {
     setStatus(null);
+    setFieldErrors({});
     if (!accessToken) {
       setStatus("Please sign in before publishing a group.");
       return;
@@ -91,21 +99,56 @@ export default function CreateGroupScreen() {
     }
     const trimmedTitle = title.trim();
     const trimmedDescription = description.trim();
+    const trimmedActivityType = activityType.trim();
+    const trimmedLocation = location.trim();
     const normalizedOfferings = offerings
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean);
 
+    const errors: Record<string, string> = {};
     if (trimmedTitle.length < MIN_TITLE_LENGTH) {
-      setStatus(`Title must be at least ${MIN_TITLE_LENGTH} characters.`);
-      return;
+      errors.title = `Title must be at least ${MIN_TITLE_LENGTH} characters.`;
     }
     if (trimmedDescription.length < MIN_DESCRIPTION_LENGTH) {
-      setStatus(`Description must be at least ${MIN_DESCRIPTION_LENGTH} characters.`);
-      return;
+      errors.description = `Description must be at least ${MIN_DESCRIPTION_LENGTH} characters.`;
+    }
+    if (!trimmedActivityType) {
+      errors.activityType = "Activity type is required.";
+    }
+    if (!trimmedLocation) {
+      errors.location = "Location is required.";
+    }
+    const minP = Number(minParticipants);
+    const maxP = Number(maxParticipants);
+    if (!Number.isFinite(minP) || minP < 1) {
+      errors.minParticipants = "Min participants must be at least 1.";
+    }
+    if (!Number.isFinite(maxP) || maxP < 1) {
+      errors.maxParticipants = "Max participants must be at least 1.";
+    } else if (Number.isFinite(minP) && maxP < minP) {
+      errors.maxParticipants = "Max participants must be >= min participants.";
     }
     if (normalizedOfferings.length < MIN_OFFERINGS) {
-      setStatus("List at least two offerings (comma separated).");
+      errors.offerings = "List at least two offerings (comma separated).";
+    }
+    const minAgeNum = Number(minAge);
+    const maxAgeNum = Number(maxAge);
+    if (!Number.isFinite(minAgeNum) || minAgeNum < 18) {
+      errors.minAge = "Min age must be at least 18.";
+    }
+    if (!Number.isFinite(maxAgeNum) || maxAgeNum < 18) {
+      errors.maxAge = "Max age must be at least 18.";
+    } else if (Number.isFinite(minAgeNum) && maxAgeNum < minAgeNum) {
+      errors.maxAge = "Max age must be >= min age.";
+    }
+    const coverIndex = selectedMedia.findIndex(isImageAsset);
+    if (coverIndex < 0) {
+      errors.media = "Add at least one photo (cover image required).";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setStatus("Please fix the highlighted fields and try again.");
       return;
     }
 
@@ -119,12 +162,12 @@ export default function CreateGroupScreen() {
       const payload = {
         title: trimmedTitle,
         description: trimmedDescription,
-        activity_type: activityType.trim(),
+        activity_type: trimmedActivityType,
         category,
-        location: location.trim(),
+        location: trimmedLocation,
         cost_type: costType,
-        min_participants: Number(minParticipants),
-        max_participants: Number(maxParticipants),
+        min_participants: minP,
+        max_participants: maxP,
         offerings: normalizedOfferings,
         expectations: expectations || undefined,
         tags: normalizedTags.length > 0 ? normalizedTags : undefined,
@@ -140,10 +183,15 @@ export default function CreateGroupScreen() {
         ],
       };
 
-      const res = await apiFetch("/groups", {
+      const formData = new FormData();
+      formData.append("payload", JSON.stringify(payload));
+      const cover = selectedMedia[coverIndex];
+      formData.append("cover", buildFormFile(cover) as unknown as Blob);
+
+      const res = await apiFetch("/groups/", {
         method: "POST",
         token: accessToken,
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       if (!res.ok) {
@@ -152,8 +200,9 @@ export default function CreateGroupScreen() {
       }
       const createdGroup = await res.json();
       let uploadFailures = 0;
-      if (selectedMedia.length > 0) {
-        for (const media of selectedMedia) {
+      const remainingMedia = selectedMedia.filter((_, idx) => idx !== coverIndex);
+      if (remainingMedia.length > 0) {
+        for (const media of remainingMedia) {
           const formData = new FormData();
           formData.append("file", buildFormFile(media) as unknown as Blob);
           const uploadRes = await apiFetch(`/groups/${createdGroup.id}/media`, {
@@ -215,20 +264,35 @@ export default function CreateGroupScreen() {
         <View style={styles.card}>
           <View style={styles.field}>
             <Text style={styles.label}>Title</Text>
-            <TextInput value={title} onChangeText={setTitle} style={styles.input} />
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              style={[styles.input, fieldErrors.title ? styles.inputError : null]}
+            />
+            {fieldErrors.title ? <Text style={styles.errorText}>{fieldErrors.title}</Text> : null}
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Description</Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
-              style={[styles.input, styles.multiline]}
+              style={[styles.input, styles.multiline, fieldErrors.description ? styles.inputError : null]}
               multiline
             />
+            {fieldErrors.description ? (
+              <Text style={styles.errorText}>{fieldErrors.description}</Text>
+            ) : null}
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Activity type</Text>
-            <TextInput value={activityType} onChangeText={setActivityType} style={styles.input} />
+            <TextInput
+              value={activityType}
+              onChangeText={setActivityType}
+              style={[styles.input, fieldErrors.activityType ? styles.inputError : null]}
+            />
+            {fieldErrors.activityType ? (
+              <Text style={styles.errorText}>{fieldErrors.activityType}</Text>
+            ) : null}
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Category</Text>
@@ -246,7 +310,14 @@ export default function CreateGroupScreen() {
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Location</Text>
-            <TextInput value={location} onChangeText={setLocation} style={styles.input} />
+            <TextInput
+              value={location}
+              onChangeText={setLocation}
+              style={[styles.input, fieldErrors.location ? styles.inputError : null]}
+            />
+            {fieldErrors.location ? (
+              <Text style={styles.errorText}>{fieldErrors.location}</Text>
+            ) : null}
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Cost type</Text>
@@ -269,8 +340,11 @@ export default function CreateGroupScreen() {
                 keyboardType="number-pad"
                 value={minParticipants}
                 onChangeText={setMinParticipants}
-                style={styles.input}
+                style={[styles.input, fieldErrors.minParticipants ? styles.inputError : null]}
               />
+              {fieldErrors.minParticipants ? (
+                <Text style={styles.errorText}>{fieldErrors.minParticipants}</Text>
+              ) : null}
             </View>
             <View style={styles.fieldFlex}>
               <Text style={styles.label}>Max participants</Text>
@@ -278,13 +352,23 @@ export default function CreateGroupScreen() {
                 keyboardType="number-pad"
                 value={maxParticipants}
                 onChangeText={setMaxParticipants}
-                style={styles.input}
+                style={[styles.input, fieldErrors.maxParticipants ? styles.inputError : null]}
               />
+              {fieldErrors.maxParticipants ? (
+                <Text style={styles.errorText}>{fieldErrors.maxParticipants}</Text>
+              ) : null}
             </View>
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Offerings (comma separated, 2+)</Text>
-            <TextInput value={offerings} onChangeText={setOfferings} style={styles.input} />
+            <TextInput
+              value={offerings}
+              onChangeText={setOfferings}
+              style={[styles.input, fieldErrors.offerings ? styles.inputError : null]}
+            />
+            {fieldErrors.offerings ? (
+              <Text style={styles.errorText}>{fieldErrors.offerings}</Text>
+            ) : null}
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Expectations</Text>
@@ -308,12 +392,13 @@ export default function CreateGroupScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Group media (images or videos)</Text>
+            <Text style={styles.label}>Group cover photo (required) and media</Text>
             <Text style={styles.helper}>
               {selectedMedia.length > 0
                 ? `${selectedMedia.length} file(s) selected`
-                : "Add photos or short clips to showcase the group."}
+                : "Add at least one photo (used as the cover). Videos are optional."}
             </Text>
+            {fieldErrors.media ? <Text style={styles.errorText}>{fieldErrors.media}</Text> : null}
             <View style={styles.mediaActions}>
               <Button variant="outline" size="sm" onPress={handlePickMedia}>
                 Pick media
@@ -386,8 +471,9 @@ export default function CreateGroupScreen() {
                   keyboardType="number-pad"
                   value={minAge}
                   onChangeText={setMinAge}
-                  style={styles.input}
+                  style={[styles.input, fieldErrors.minAge ? styles.inputError : null]}
                 />
+                {fieldErrors.minAge ? <Text style={styles.errorText}>{fieldErrors.minAge}</Text> : null}
               </View>
               <View style={styles.fieldFlex}>
                 <Text style={styles.label}>Max age</Text>
@@ -395,8 +481,9 @@ export default function CreateGroupScreen() {
                   keyboardType="number-pad"
                   value={maxAge}
                   onChangeText={setMaxAge}
-                  style={styles.input}
+                  style={[styles.input, fieldErrors.maxAge ? styles.inputError : null]}
                 />
+                {fieldErrors.maxAge ? <Text style={styles.errorText}>{fieldErrors.maxAge}</Text> : null}
               </View>
             </View>
           </View>
@@ -458,6 +545,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     backgroundColor: "#ffffff",
+  },
+  inputError: {
+    borderColor: "#f43f5e",
+  },
+  errorText: {
+    fontSize: 12,
+    color: "#f43f5e",
   },
   multiline: {
     minHeight: 90,
