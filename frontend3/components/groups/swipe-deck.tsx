@@ -15,6 +15,7 @@ interface SwipeDeckProps {
   onNearEnd?: () => void;
   nearEndThreshold?: number;
   resetKey?: string;
+  getSeenGroupIds?: () => Set<number>;
   onMarkSeen?: (groupId: number) => void;
   onUnmarkSeen?: (groupId: number) => void;
 }
@@ -34,6 +35,7 @@ export default function SwipeDeck({
   onNearEnd,
   nearEndThreshold = 5,
   resetKey,
+  getSeenGroupIds,
   onMarkSeen,
   onUnmarkSeen,
 }: SwipeDeckProps) {
@@ -156,13 +158,16 @@ export default function SwipeDeck({
 
   useEffect(() => {
     if (!resetKey) return;
-    setIndex(0);
+    const seen = getSeenGroupIds?.() ?? new Set<number>();
+    const nextIndex =
+      seen.size > 0 ? Math.max(0, groups.findIndex((group) => !seen.has(group.id))) : 0;
+    setIndex(nextIndex >= 0 ? nextIndex : 0);
     resetDrag();
     setImageIndex(0);
     setHistory([]);
     setHistoryIds([]);
     setStatus(null);
-  }, [resetKey, resetDrag]);
+  }, [getSeenGroupIds, resetDrag, resetKey]);
 
   useEffect(() => {
     if (!groups.length) return;
@@ -350,6 +355,8 @@ export default function SwipeDeck({
       const ok = await attemptJoin("like");
       if (ok) {
         if (current?.id) {
+          await recordSwipe("like");
+          onMarkSeen?.(current.id);
           animateOut("right", current.id);
         }
       } else {
@@ -358,6 +365,8 @@ export default function SwipeDeck({
       return;
     }
     if (current?.id) {
+      void recordSwipe("nope");
+      onMarkSeen?.(current.id);
       animateOut("left", current.id);
     }
   };

@@ -578,6 +578,7 @@ export default function BrowseGroups() {
                     onNearEnd={handleLoadMore}
                     nearEndThreshold={PREFETCH_THRESHOLD}
                     resetKey={deckResetKey}
+                    getSeenGroupIds={readSeenGroupIds}
                     onMarkSeen={markGroupSeen}
                     onUnmarkSeen={unmarkGroupSeen}
                   />
