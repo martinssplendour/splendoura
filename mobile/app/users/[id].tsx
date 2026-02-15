@@ -71,13 +71,16 @@ const PROFILE_DETAIL_LABELS: Record<string, string> = {
   kink_friendly: "Kink friendly",
   wants_children: "Wants children",
   has_children: "Has children",
-  "safety_settings.block_nudity": "Block nudity",
   safety_contacts: "Trusted contacts",
   demo_profile: "Demo profile",
   demo_label: "Profile label",
 };
 
-const OMIT_PROFILE_DETAIL_KEYS = new Set(["id_verified", "id_verification_status"]);
+const OMIT_PROFILE_DETAIL_KEYS = new Set([
+  "id_verified",
+  "id_verification_status",
+  "safety_settings.block_nudity",
+]);
 
 function startCase(value: string) {
   return value
