@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -38,14 +38,6 @@ interface MatchNotification {
   user: NotificationUser;
   chat_group_id?: number | null;
 }
-
-type SystemNotice = {
-  id: string;
-  title: string;
-  description: string;
-  ctaLabel?: string;
-  ctaHref?: string;
-};
 
 const GROUP_CACHE_PREFIX = "notificationGroupsCache:v1:";
 const MATCH_CACHE_PREFIX = "notificationMatchesCache:v1:";
@@ -95,46 +87,6 @@ export default function NotificationsPage() {
   const [matchError, setMatchError] = useState<string | null>(null);
   const groupLoadedRef = useRef(false);
   const matchLoadedRef = useRef(false);
-
-  const systemNotices = useMemo<SystemNotice[]>(() => {
-    if (!user) return [];
-    const notices: SystemNotice[] = [];
-    if (!user.profile_image_url) {
-      notices.push({
-        id: "add-photo",
-        title: "Add a profile photo",
-        description: "Profiles with a photo get more matches and can create groups.",
-        ctaLabel: "Upload photo",
-        ctaHref: "/profile",
-      });
-    }
-    if (!user.bio) {
-      notices.push({
-        id: "add-bio",
-        title: "Introduce yourself",
-        description: "A short bio helps people know what you are about.",
-        ctaLabel: "Edit bio",
-        ctaHref: "/profile",
-      });
-    }
-    if (user.verification_status !== "verified") {
-      notices.push({
-        id: "verify",
-        title: "Verify your profile",
-        description: "Verified profiles get more trust and visibility.",
-        ctaLabel: "Start verification",
-        ctaHref: "/profile",
-      });
-    }
-    if (notices.length === 0) {
-      notices.push({
-        id: "all-good",
-        title: "You are all caught up",
-        description: "No new system updates right now.",
-      });
-    }
-    return notices;
-  }, [user]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -231,60 +183,29 @@ export default function NotificationsPage() {
       </div>
 
       <section className="rounded-none border-0 bg-white p-6 sm:rounded-3xl sm:border sm:border-slate-200">
-        <h2 className="text-lg font-semibold text-slate-900">System updates</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {systemNotices.map((notice) => (
-            <div
-              key={notice.id}
-              className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4"
-            >
-              <p className="text-sm font-semibold text-slate-800">{notice.title}</p>
-              <p className="text-xs text-slate-600">{notice.description}</p>
-              {notice.ctaHref ? (
-                <Link
-                  href={notice.ctaHref}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                >
-                  {notice.ctaLabel || "View"}
-                </Link>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-none border-0 bg-white p-6 sm:rounded-3xl sm:border sm:border-slate-200">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">Activity</h2>
-            <p className="text-sm text-slate-600">
-              Switch between group updates and profile matches.
-            </p>
-          </div>
-          <div className="flex items-center rounded-full bg-slate-100 p-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab("groups")}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
-                activeTab === "groups"
-                  ? "bg-white text-slate-900 shadow"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Group notifications
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("matches")}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
-                activeTab === "matches"
-                  ? "bg-white text-slate-900 shadow"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Match notifications
-            </button>
-          </div>
+        <div className="flex items-center rounded-full bg-slate-100 p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("groups")}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+              activeTab === "groups"
+                ? "bg-white text-slate-900 shadow"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Group notifications
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("matches")}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+              activeTab === "matches"
+                ? "bg-white text-slate-900 shadow"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Match notifications
+          </button>
         </div>
 
         {activeTab === "groups" ? (

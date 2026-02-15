@@ -66,6 +66,12 @@ interface CreatedGroup {
   category?: "mutual_benefits" | "friendship" | "dating" | null;
 }
 
+interface PreviewDetailItem {
+  key: string;
+  label: string;
+  value: string;
+}
+
 const parseList = (value: string) =>
   value
     .split(",")
@@ -93,6 +99,142 @@ const calculateAge = (dob: string) => {
   }
   return age;
 };
+
+const PREVIEW_DETAIL_LABELS: Record<string, string> = {
+  looking_for: "Looking for",
+  height_cm: "Height (cm)",
+  weight_kg: "Weight (kg)",
+  income_bracket: "Income bracket",
+  workout_habits: "Workout habits",
+  smoking: "Smoking",
+  drinking: "Drinking",
+  education_level: "Education",
+  job_title: "Job title",
+  company: "Company",
+  school: "School",
+  body_type: "Body type",
+  hair_color: "Hair color",
+  eye_color: "Eye color",
+  religion: "Religion",
+  political_views: "Political views",
+  zodiac_sign: "Zodiac sign",
+  personality_type: "Personality type",
+  languages: "Languages",
+  ethnicity: "Ethnicity",
+  pets: "Pets",
+  diet: "Diet",
+  sleep_habits: "Sleep habits",
+  social_energy: "Social energy",
+  travel_frequency: "Travel frequency",
+  communication_style: "Communication style",
+  love_languages: "Love languages",
+  has_children: "Has children",
+  wants_children: "Wants children",
+  relationship_preference: "Relationship preference",
+  casual_dating: "Open to casual dating",
+  kink_friendly: "Kink friendly",
+  availability_windows: "Availability",
+  safety_contacts: "Trusted contacts",
+};
+
+const PREVIEW_OMIT_KEYS = new Set([
+  "dob",
+  "show_orientation",
+  "income",
+  "safety_settings",
+  "safety_settings.block_nudity",
+  "id_verified",
+  "id_verification_status",
+]);
+
+function startCase(value: string) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function primitiveToText(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : null;
+  }
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+  return null;
+}
+
+function objectSummary(value: Record<string, unknown>) {
+  const name = primitiveToText(value.name);
+  const contact = primitiveToText(value.contact);
+  if (name && contact) return `${name} (${contact})`;
+  if (name) return name;
+  if (contact) return contact;
+  return null;
+}
+
+function mapPreviewDetails(details: Record<string, unknown>): PreviewDetailItem[] {
+  const items: PreviewDetailItem[] = [];
+  const seen = new Set<string>();
+
+  const pushItem = (path: string, rawValue: unknown) => {
+    if (seen.has(path)) return;
+    const value = primitiveToText(rawValue);
+    if (!value) return;
+    const leaf = path.split(".").pop() || path;
+    const label = PREVIEW_DETAIL_LABELS[path] || PREVIEW_DETAIL_LABELS[leaf] || startCase(leaf);
+    items.push({ key: path, label, value });
+    seen.add(path);
+  };
+
+  const visit = (input: Record<string, unknown>, prefix = "") => {
+    Object.entries(input).forEach(([key, raw]) => {
+      const path = prefix ? `${prefix}.${key}` : key;
+      if (PREVIEW_OMIT_KEYS.has(key) || PREVIEW_OMIT_KEYS.has(path)) return;
+      if (raw == null) return;
+
+      if (Array.isArray(raw)) {
+        if (raw.length === 0) return;
+        const primitiveItems = raw
+          .map((entry) => primitiveToText(entry))
+          .filter((entry): entry is string => Boolean(entry));
+        if (primitiveItems.length === raw.length) {
+          pushItem(path, primitiveItems.join(", "));
+          return;
+        }
+        const objectItems = raw
+          .map((entry) =>
+            typeof entry === "object" && entry !== null
+              ? objectSummary(entry as Record<string, unknown>)
+              : null
+          )
+          .filter((entry): entry is string => Boolean(entry));
+        if (objectItems.length > 0) {
+          pushItem(path, objectItems.join(", "));
+        }
+        return;
+      }
+
+      const primitive = primitiveToText(raw);
+      if (primitive) {
+        pushItem(path, primitive);
+        return;
+      }
+
+      if (typeof raw === "object") {
+        visit(raw as Record<string, unknown>, path);
+      }
+    });
+  };
+
+  visit(details);
+  return items;
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -419,6 +561,47 @@ export default function ProfilePage() {
   const previewCountry = locationCountry || user?.location_country || "";
   const previewLocation = [previewCity, previewCountry].filter(Boolean).join(", ");
   const previewImages = photos.length > 0 ? photos : heroPhoto ? [heroPhoto] : [];
+  const previewInterests = parseList(interests);
+  const previewPrompts = prompts.map((prompt) => prompt.trim()).filter(Boolean);
+  const previewGenderLabel = gender ? gender.replace(/_/g, " ") : "";
+  const previewProfileDetails = {
+    looking_for: lookingFor || undefined,
+    height_cm: heightCm ? Number(heightCm) : undefined,
+    weight_kg: weightKg ? Number(weightKg) : undefined,
+    income: income ? Number(income) : undefined,
+    workout_habits: workoutHabits || undefined,
+    smoking: smoking || undefined,
+    drinking: drinking || undefined,
+    education_level: educationLevel || undefined,
+    job_title: jobTitle || undefined,
+    company: company || undefined,
+    school: school || undefined,
+    body_type: bodyType || undefined,
+    hair_color: hairColor || undefined,
+    eye_color: eyeColor || undefined,
+    income_bracket: incomeBracket || undefined,
+    religion: religion || undefined,
+    political_views: politicalViews || undefined,
+    zodiac_sign: zodiacSign || undefined,
+    personality_type: personalityType || undefined,
+    languages: parseList(languages),
+    ethnicity: ethnicity || undefined,
+    pets: parseList(pets),
+    diet: diet || undefined,
+    sleep_habits: sleepHabits || undefined,
+    social_energy: socialEnergy || undefined,
+    travel_frequency: travelFrequency || undefined,
+    communication_style: communicationStyle || undefined,
+    love_languages: parseList(loveLanguages),
+    has_children: hasChildren || undefined,
+    wants_children: wantsChildren || undefined,
+    relationship_preference: relationshipPreference || undefined,
+    casual_dating: casualDating,
+    kink_friendly: kinkFriendly,
+    availability_windows: parseList(availabilityWindows),
+    safety_contacts: trustedContacts,
+  };
+  const previewDetailItems = mapPreviewDetails(previewProfileDetails as Record<string, unknown>);
 
   useEffect(() => {
     if (selectedFiles.length === 0) {
@@ -964,6 +1147,76 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+          </div>
+          <div className="mx-auto mt-6 w-full max-w-3xl space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-400">Basics</p>
+                <p className="mt-2 text-sm text-slate-700">
+                  Age: {displayAge ?? "n/a"} | Gender: {previewGenderLabel || "n/a"}
+                </p>
+                {showOrientation && sexualOrientation ? (
+                  <p className="text-sm text-slate-700">Orientation: {sexualOrientation}</p>
+                ) : null}
+                {lookingFor ? (
+                  <p className="text-sm text-slate-700">Looking for: {lookingFor}</p>
+                ) : null}
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-400">Location</p>
+                <p className="mt-2 text-sm text-slate-700">{previewLocation || "Location hidden"}</p>
+              </div>
+            </div>
+
+            {bio.trim() ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-400">Bio</p>
+                <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{bio.trim()}</p>
+              </div>
+            ) : null}
+
+            {previewInterests.length > 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-400">Interests</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {previewInterests.map((interest) => (
+                    <span
+                      key={interest}
+                      className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
+                    >
+                      {interest}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {previewPrompts.length > 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-400">Prompts</p>
+                <div className="mt-2 space-y-2">
+                  {previewPrompts.map((prompt, index) => (
+                    <p key={`${prompt}-${index}`} className="text-sm text-slate-700">
+                      {prompt}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {previewDetailItems.length > 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-400">Profile details</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {previewDetailItems.map((item) => (
+                    <div key={item.key} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">{item.label}</p>
+                      <p className="mt-1 text-sm text-slate-700 break-words">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : (
