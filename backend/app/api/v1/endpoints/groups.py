@@ -17,6 +17,7 @@ from app import crud, models, schemas
 from app.api import deps
 from app.core.push import get_group_member_ids, get_push_tokens, send_expo_push
 from app.core.storage import (
+    normalize_group_image_bytes,
     supabase_public_storage_enabled,
     supabase_storage_enabled,
     upload_bytes_to_supabase,
@@ -1015,6 +1016,14 @@ def upload_group_media(
         raise HTTPException(status_code=400, detail="Only image or video uploads are allowed.")
     file_bytes = file.file.read()
     media_type = GroupMediaType.VIDEO if content_type.startswith("video/") else GroupMediaType.IMAGE
+    upload_filename = file.filename
+    if media_type == GroupMediaType.IMAGE:
+        try:
+            file_bytes, content_type = normalize_group_image_bytes(file_bytes, target_size=1024)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid image file.")
+        stem = os.path.splitext(file.filename or "group-image")[0] or "group-image"
+        upload_filename = f"{stem}.jpg"
     if is_cover:
         db.query(GroupMedia).filter(
             GroupMedia.group_id == id,
@@ -1026,21 +1035,21 @@ def upload_group_media(
         if media_type == GroupMediaType.IMAGE:
             url, thumb_url = upload_public_image_with_thumbnail(
                 prefix=f"groups/{id}",
-                filename=file.filename,
+                filename=upload_filename,
                 content_type=content_type,
                 data=file_bytes,
             )
         else:
             url = upload_public_bytes_to_supabase(
                 prefix=f"groups/{id}",
-                filename=file.filename,
+                filename=upload_filename,
                 content_type=content_type,
                 data=file_bytes,
             )
     elif supabase_storage_enabled():
         url = upload_bytes_to_supabase(
             prefix=f"groups/{id}",
-            filename=file.filename,
+            filename=upload_filename,
             content_type=content_type,
             data=file_bytes,
             public=False,
@@ -1048,7 +1057,7 @@ def upload_group_media(
     elif media_type == GroupMediaType.IMAGE:
         blob = MediaBlob(
             content_type=content_type or "image/jpeg",
-            filename=file.filename,
+            filename=upload_filename,
             data=file_bytes,
             created_by=current_user.id,
         )
@@ -1058,7 +1067,7 @@ def upload_group_media(
     else:
         uploads_dir = os.path.join(os.getcwd(), "uploads", "groups")
         os.makedirs(uploads_dir, exist_ok=True)
-        ext = os.path.splitext(file.filename or "")[1] or ".bin"
+        ext = os.path.splitext(upload_filename or "")[1] or ".bin"
         filename = f"{uuid.uuid4().hex}{ext}"
         filepath = os.path.join(uploads_dir, filename)
         with open(filepath, "wb") as buffer:

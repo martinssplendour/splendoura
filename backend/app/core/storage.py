@@ -5,7 +5,7 @@ import uuid
 from urllib.parse import quote
 
 import httpx
-from PIL import Image
+from PIL import Image, ImageOps
 
 from app.core.config import settings
 
@@ -116,6 +116,33 @@ def upload_bytes_to_supabase(
     if is_public:
         return f"{base_url}/storage/v1/object/public/{bucket}/{encoded_key}"
     return f"/api/v1/storage/{encoded_key}"
+
+
+def normalize_group_image_bytes(image_bytes: bytes, *, target_size: int = 1024) -> tuple[bytes, str]:
+    if target_size <= 0:
+        raise ValueError("target_size must be positive")
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as image:
+            # Respect EXIF orientation before resizing/cropping.
+            image = ImageOps.exif_transpose(image).convert("RGB")
+            width, height = image.size
+            if width <= 0 or height <= 0:
+                raise ValueError("invalid image dimensions")
+
+            scale = max(target_size / width, target_size / height)
+            resized_width = max(target_size, int(round(width * scale)))
+            resized_height = max(target_size, int(round(height * scale)))
+            image = image.resize((resized_width, resized_height), Image.LANCZOS)
+
+            left = max((resized_width - target_size) // 2, 0)
+            top = 0  # Keep the top of the image and crop overflow from the bottom.
+            image = image.crop((left, top, left + target_size, top + target_size))
+
+            out = io.BytesIO()
+            image.save(out, format="JPEG", quality=90, optimize=True)
+            return out.getvalue(), "image/jpeg"
+    except Exception as exc:
+        raise ValueError("invalid image bytes") from exc
 
 
 def _create_thumbnail_bytes(image_bytes: bytes, *, max_size: int) -> tuple[bytes, str] | None:
