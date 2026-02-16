@@ -205,8 +205,8 @@ export default function ChatThreadScreen() {
   useEffect(() => {
     if (!accessToken || !groupId) return;
     const base = API_HOST.replace(/^http/, "ws");
-    const wsUrl = `${base}/api/v1/ws/groups/${groupId}?token=${accessToken}`;
-    const socket = new WebSocket(wsUrl);
+    const wsUrl = `${base}/api/v1/ws/groups/${groupId}`;
+    const socket = new WebSocket(wsUrl, [`bearer.${accessToken}`]);
     wsRef.current = socket;
 
     socket.onmessage = (event) => {

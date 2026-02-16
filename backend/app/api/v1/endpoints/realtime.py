@@ -1,13 +1,16 @@
 import json
+from datetime import datetime, timezone
 from typing import Iterable
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
-from jose import JWTError, jwt
+from jose import JWTError
 from sqlalchemy.orm import Session
 
 from app import crud, models
 from app.core.config import settings
+from app.core import security
 from app.core.realtime import realtime_manager
 from app.db.session import SessionLocal
+from app.models.auth_session import UserRefreshSession
 from app.models.membership import JoinStatus
 from app.models.user import VerificationStatus
 from app.models.message import GroupMessageRead
@@ -17,13 +20,32 @@ router = APIRouter()
 
 def _get_current_user(db: Session, token: str) -> models.User | None:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = security.decode_token(token, expected_type="access")
         user_id = payload.get("sub")
+        session_id = payload.get("sid")
         if not user_id:
+            return None
+        if not session_id:
             return None
     except JWTError:
         return None
-    return crud.user.get(db, id=int(user_id))
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        return None
+    session = (
+        db.query(UserRefreshSession)
+        .filter(
+            UserRefreshSession.id == session_id,
+            UserRefreshSession.user_id == user_id_int,
+            UserRefreshSession.revoked_at.is_(None),
+            UserRefreshSession.expires_at > datetime.now(timezone.utc),
+        )
+        .first()
+    )
+    if not session:
+        return None
+    return crud.user.get(db, id=user_id_int)
 
 
 def _is_group_member(db: Session, group_id: int, user_id: int) -> bool:
@@ -83,9 +105,25 @@ def _record_reads(db: Session, group_id: int, user_id: int, message_ids: list[in
     return new_ids
 
 
+def _extract_token_from_subprotocol(websocket: WebSocket) -> tuple[str | None, str | None]:
+    raw = websocket.headers.get("sec-websocket-protocol") or ""
+    if not raw:
+        return None, None
+    offered = [part.strip() for part in raw.split(",") if part.strip()]
+    for protocol in offered:
+        if protocol.startswith("bearer."):
+            return protocol[len("bearer."):], protocol
+    return None, None
+
+
 @router.websocket("/ws/groups/{group_id}")
 async def group_realtime(websocket: WebSocket, group_id: int) -> None:
     token = websocket.query_params.get("token")
+    accepted_subprotocol = None
+    if not token:
+        token, accepted_subprotocol = _extract_token_from_subprotocol(websocket)
+    if not token:
+        token = websocket.cookies.get(settings.AUTH_ACCESS_COOKIE_NAME)
     if not token:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
@@ -99,7 +137,7 @@ async def group_realtime(websocket: WebSocket, group_id: int) -> None:
         ):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
-        await realtime_manager.connect(group_id, websocket)
+        await realtime_manager.connect(group_id, websocket, subprotocol=accepted_subprotocol)
         while True:
             raw = await websocket.receive_text()
             try:

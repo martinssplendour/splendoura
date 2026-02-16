@@ -27,8 +27,6 @@ export default function GroupFormWizard() {
   const { accessToken, user } = useAuth();
   const router = useRouter();
   
-  // 2. FIX: Remove <GroupFormData> generic here. 
-  // Let the resolver strictly infer the types for you.
   const { register, handleSubmit, trigger, formState: { errors } } = useForm({
     resolver: zodResolver(groupSchema),
     defaultValues: {
@@ -46,6 +44,15 @@ export default function GroupFormWizard() {
       ],
     }
   });
+
+  type FieldErrorLike = { message?: unknown } | undefined;
+  type RequirementErrorsLike = {
+    applies_to?: FieldErrorLike;
+    min_age?: FieldErrorLike;
+    max_age?: FieldErrorLike;
+  };
+  const requirementErrors = (errors as unknown as { requirements?: RequirementErrorsLike[] })
+    .requirements?.[0];
 
   const inputClass = (hasError: boolean) =>
     `w-full rounded-2xl border p-3 text-sm outline-none focus:ring-2 ${
@@ -240,7 +247,7 @@ export default function GroupFormWizard() {
       4: ["requirements.0.applies_to", "requirements.0.min_age", "requirements.0.max_age"],
     };
     const fields = fieldsByStep[step] || [];
-    const ok = await trigger(fields as any);
+    const ok = await trigger(fields as unknown as Parameters<typeof trigger>[0]);
     if (!ok) {
       setSubmitError("Please complete all required fields before continuing.");
       return;
@@ -383,7 +390,7 @@ export default function GroupFormWizard() {
           <h2 className="text-2xl font-semibold text-slate-900">Requirements</h2>
           <select
             {...register("requirements.0.applies_to")}
-            className={inputClass(Boolean((errors as any).requirements?.[0]?.applies_to))}
+            className={inputClass(Boolean(requirementErrors?.applies_to))}
           >
             <option value="all">All</option>
             <option value="female">Female</option>
@@ -395,23 +402,23 @@ export default function GroupFormWizard() {
               type="number"
               {...register("requirements.0.min_age")}
               placeholder="Minimum age"
-              className={inputClass(Boolean((errors as any).requirements?.[0]?.min_age))}
+              className={inputClass(Boolean(requirementErrors?.min_age))}
             />
             <input
               type="number"
               {...register("requirements.0.max_age")}
               placeholder="Maximum age"
-              className={inputClass(Boolean((errors as any).requirements?.[0]?.max_age))}
+              className={inputClass(Boolean(requirementErrors?.max_age))}
             />
           </div>
-          {(errors as any).requirements?.[0]?.min_age ? (
+          {requirementErrors?.min_age ? (
             <p className="text-red-500 text-sm">
-              {(errors as any).requirements?.[0]?.min_age?.message as string}
+              {requirementErrors.min_age?.message as string}
             </p>
           ) : null}
-          {(errors as any).requirements?.[0]?.max_age ? (
+          {requirementErrors?.max_age ? (
             <p className="text-red-500 text-sm">
-              {(errors as any).requirements?.[0]?.max_age?.message as string}
+              {requirementErrors.max_age?.message as string}
             </p>
           ) : null}
         </div>

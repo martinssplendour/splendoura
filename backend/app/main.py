@@ -60,6 +60,11 @@ app.add_middleware(
     expose_headers=["X-Next-Cursor"],
 )
 
+if settings.REQUIRE_STRONG_SECRET_KEY:
+    secret = settings.SECRET_KEY or ""
+    if secret == "change-me-in-production" or len(secret) < 32:
+        raise RuntimeError("JWT_SECRET must be set to a strong value (at least 32 chars).")
+
 # Serve uploaded profile images
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

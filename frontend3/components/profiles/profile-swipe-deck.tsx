@@ -586,7 +586,7 @@ export default function ProfileSwipeDeck({ profiles, requestId }: ProfileSwipeDe
                 </div>
               )}
             </div>
-            <p className="mt-4 text-2xl font-semibold text-slate-900">It's a match!</p>
+            <p className="mt-4 text-2xl font-semibold text-slate-900">It&apos;s a match!</p>
             <p className="mt-2 text-sm text-slate-600">
               You and {matchModal.name} liked each other.
             </p>

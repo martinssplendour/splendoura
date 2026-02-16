@@ -1,7 +1,7 @@
 // components/navbar.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+	import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -15,25 +15,19 @@ const notificationBadgeKey = (userId: number) => `navBadge:lastNotif:${userId}`;
 export default function Navbar() {
   // Assuming your useAuth hook returns a user object and a logout function
   // If not, you can remove these lines for now
-  const { user, logout, accessToken } = useAuth() || {};
+  const { user, logout, accessToken } = useAuth();
   const pathname = usePathname();
   const isGroups = pathname?.startsWith("/groups");
   const isChatDetail = pathname?.startsWith("/chat/") && pathname !== "/chat";
+  const userId = user?.id ?? null;
   const [badgeCounts, setBadgeCounts] = useState({
     unread_chats: 0,
     pending_requests: 0,
     match_count: 0,
   });
-  const [hasChatBadge, setHasChatBadge] = useState(false);
-  const [hasNotificationBadge, setHasNotificationBadge] = useState(false);
-
-  const badgeKeys = useMemo(() => {
-    if (!user?.id) return null;
-    return {
-      chat: chatBadgeKey(user.id),
-      notifications: notificationBadgeKey(user.id),
-    };
-  }, [user?.id]);
+  const badgeKeys = userId
+    ? { chat: chatBadgeKey(userId), notifications: notificationBadgeKey(userId) }
+    : null;
 
   const readBadgeValue = (key: string) => {
     if (typeof window === "undefined") return 0;
@@ -52,12 +46,7 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    if (!accessToken || !user?.id) {
-      setBadgeCounts({ unread_chats: 0, pending_requests: 0, match_count: 0 });
-      setHasChatBadge(false);
-      setHasNotificationBadge(false);
-      return;
-    }
+    if (!accessToken || !userId) return;
     let active = true;
     const loadBadges = async () => {
       try {
@@ -80,29 +69,35 @@ export default function Navbar() {
       active = false;
       window.clearInterval(interval);
     };
-  }, [accessToken, user?.id]);
+  }, [accessToken, userId]);
 
-  useEffect(() => {
-    if (!badgeKeys) return;
-    const lastChat = readBadgeValue(badgeKeys.chat);
-    const lastNotif = readBadgeValue(badgeKeys.notifications);
-    const notificationCount = badgeCounts.pending_requests + badgeCounts.match_count;
-    setHasChatBadge(badgeCounts.unread_chats > lastChat);
-    setHasNotificationBadge(notificationCount > lastNotif);
-  }, [badgeCounts, badgeKeys]);
+  const effectiveBadges = accessToken && userId
+    ? badgeCounts
+    : { unread_chats: 0, pending_requests: 0, match_count: 0 };
+
+  const lastChat = badgeKeys ? readBadgeValue(badgeKeys.chat) : 0;
+  const lastNotif = badgeKeys ? readBadgeValue(badgeKeys.notifications) : 0;
+  const notificationCount = effectiveBadges.pending_requests + effectiveBadges.match_count;
+
+  const hasChatBadge =
+    Boolean(badgeKeys) &&
+    !pathname?.startsWith("/chat") &&
+    effectiveBadges.unread_chats > lastChat;
+
+  const hasNotificationBadge =
+    Boolean(badgeKeys) &&
+    !(pathname?.startsWith("/notifications") || pathname?.startsWith("/requests")) &&
+    notificationCount > lastNotif;
 
   useEffect(() => {
     if (!badgeKeys) return;
     if (pathname?.startsWith("/chat")) {
-      writeBadgeValue(badgeKeys.chat, badgeCounts.unread_chats);
-      setHasChatBadge(false);
+      writeBadgeValue(badgeKeys.chat, effectiveBadges.unread_chats);
     }
     if (pathname?.startsWith("/notifications") || pathname?.startsWith("/requests")) {
-      const notificationCount = badgeCounts.pending_requests + badgeCounts.match_count;
       writeBadgeValue(badgeKeys.notifications, notificationCount);
-      setHasNotificationBadge(false);
     }
-  }, [badgeCounts.pending_requests, badgeCounts.unread_chats, badgeCounts.match_count, badgeKeys, pathname]);
+  }, [effectiveBadges.match_count, effectiveBadges.pending_requests, effectiveBadges.unread_chats, badgeKeys, notificationCount, pathname]);
 
   const isActive = (href: string, aliases: string[] = []) =>
     pathname === href ||

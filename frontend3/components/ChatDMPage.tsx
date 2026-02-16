@@ -457,7 +457,10 @@ export default function ChatDMPage() {
   useEffect(() => {
     if (!accessToken || !groupId) return;
     const base = API_HOST.replace(/^http/, "ws");
-    const socket = new WebSocket(`${base}/api/v1/ws/groups/${groupId}?token=${accessToken}`);
+    const socket = new WebSocket(
+      `${base}/api/v1/ws/groups/${groupId}`,
+      [`bearer.${accessToken}`]
+    );
     wsRef.current = socket;
 
     socket.onmessage = (event) => {

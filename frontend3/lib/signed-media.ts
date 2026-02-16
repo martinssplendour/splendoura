@@ -89,26 +89,29 @@ export function useSignedMediaUrl(rawUrl?: string | null) {
 
   useEffect(() => {
     loadPersistedCache();
+    const commitResolvedUrl = (next: string | null) => {
+      Promise.resolve().then(() => setResolvedUrl(next));
+    };
     const value = (rawUrl || "").trim();
     if (!value) {
-      setResolvedUrl(null);
+      commitResolvedUrl(null);
       return;
     }
 
     const storageKey = extractStorageKey(value);
     if (!storageKey) {
-      setResolvedUrl(resolveMediaUrl(value));
+      commitResolvedUrl(resolveMediaUrl(value));
       return;
     }
 
     const cached = readCache(storageKey);
     if (cached) {
-      setResolvedUrl(cached);
+      commitResolvedUrl(cached);
       return;
     }
 
     if (!accessToken) {
-      setResolvedUrl(null);
+      commitResolvedUrl(null);
       return;
     }
 

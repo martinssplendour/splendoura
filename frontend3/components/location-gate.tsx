@@ -81,7 +81,7 @@ export default function LocationGate({ children }: LocationGateProps) {
           ensureLocation(true);
         });
     } else {
-      ensureLocation(true);
+      Promise.resolve().then(() => ensureLocation(true));
     }
 
     return () => {

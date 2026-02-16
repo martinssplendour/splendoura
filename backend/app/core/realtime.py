@@ -1,10 +1,10 @@
-﻿import asyncio
+import asyncio
 import json
 import uuid
 from typing import Dict, Set
 
-from fastapi import WebSocket
 import redis.asyncio as redis_async
+from fastapi import WebSocket
 
 from app.core.config import settings
 
@@ -50,8 +50,16 @@ class ConnectionManager:
         if task:
             task.cancel()
 
-    async def connect(self, group_id: int, websocket: WebSocket) -> None:
-        await websocket.accept()
+    async def connect(
+        self,
+        group_id: int,
+        websocket: WebSocket,
+        subprotocol: str | None = None,
+    ) -> None:
+        if subprotocol:
+            await websocket.accept(subprotocol=subprotocol)
+        else:
+            await websocket.accept()
         async with self._lock:
             self._groups.setdefault(group_id, set()).add(websocket)
         await self._ensure_subscription(group_id)
@@ -155,3 +163,4 @@ def serialize_message(message, read_by: list[int] | None = None) -> dict:
         "created_at": message.created_at.isoformat() if message.created_at else None,
         "read_by": read_by or [],
     }
+

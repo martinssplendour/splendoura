@@ -68,10 +68,13 @@ function formatInboxTime(value?: string | null) {
 
 function describeMessage(message: GroupMessage | null) {
   if (!message) return "No messages yet.";
-  const callMeta = (message.meta as Record<string, any> | null)?.call;
-  if (callMeta?.mode) {
-    return callMeta.mode === "voice" ? "Voice call started" : "Video call started";
-  }
+  const callMeta = message.meta?.call;
+  const callMode =
+    callMeta && typeof callMeta === "object"
+      ? (callMeta as { mode?: unknown }).mode
+      : undefined;
+  if (callMode === "voice") return "Voice call started";
+  if (callMode === "video") return "Video call started";
   if (message.message_type === "system") {
     return message.content?.trim() || "System update";
   }
@@ -241,7 +244,10 @@ export default function ChatPage() {
 
     activeIds.forEach((groupId) => {
       if (sockets[groupId]) return;
-      const socket = new WebSocket(`${base}/api/v1/ws/groups/${groupId}?token=${accessToken}`);
+      const socket = new WebSocket(
+        `${base}/api/v1/ws/groups/${groupId}`,
+        [`bearer.${accessToken}`]
+      );
       sockets[groupId] = socket;
 
       socket.onmessage = (event) => {
