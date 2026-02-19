@@ -4,6 +4,17 @@ set -e
 PORT="${PORT:-8000}"
 WORKERS="${WEB_CONCURRENCY:-4}"
 LOG_LEVEL="${LOG_LEVEL:-info}"
+FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-*}"
+METRICS_ENABLED="${METRICS_ENABLED:-true}"
+PROMETHEUS_MULTIPROC_DIR="${PROMETHEUS_MULTIPROC_DIR:-/tmp/prometheus_multiproc}"
+
+export FORWARDED_ALLOW_IPS
+
+if [ "${METRICS_ENABLED}" = "true" ]; then
+  mkdir -p "${PROMETHEUS_MULTIPROC_DIR}"
+  rm -f "${PROMETHEUS_MULTIPROC_DIR}"/*.db 2>/dev/null || true
+  export PROMETHEUS_MULTIPROC_DIR
+fi
 
 echo "Running database migrations..."
 python - <<'PY'

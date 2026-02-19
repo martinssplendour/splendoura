@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from sqlalchemy import text
 from app.core.config import settings
+from app.core.request_meta import get_client_ip
 from app.core import security
 from app.models.auth_session import UserRefreshSession
 from app.models.user import User, VerificationStatus, UserRole
@@ -23,7 +24,8 @@ oauth2_scheme = OAuth2PasswordBearer(
 _rate_limit_bucket: Dict[str, list[float]] = {}
 
 def rate_limit(request: Request) -> None:
-    key = f"{request.client.host}:{request.url.path}"
+    client_ip = getattr(request.state, "client_ip", None) or get_client_ip(request) or "unknown"
+    key = f"{client_ip}:{request.url.path}"
     now = time.time()
     window_seconds = 60
     limit = settings.RATE_LIMIT_PER_MINUTE
@@ -94,6 +96,7 @@ def get_current_user(
     user = crud.user.get(db, id=user_id_int)
     if not user:
         raise credentials_exception
+    request.state.user_id = user_id_int
     user.last_active_at = datetime.utcnow()
     db.add(user)
     db.commit()
@@ -134,6 +137,7 @@ def get_current_user_id(
         )
         if not session:
             raise credentials_exception
+        request.state.user_id = user_id_int
         return user_id_int
     except (JWTError, ValueError):
         raise credentials_exception

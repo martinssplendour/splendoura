@@ -43,18 +43,28 @@ services:
       context: ./backend
     environment:
       DATABASE_URL: postgresql+psycopg2://splendoura:splendoura@db:5432/splendoura
-      JWT_SECRET: change_me
+      JWT_SECRET: local_dev_jwt_secret_change_this_2026_32_chars
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       REFRESH_TOKEN_EXPIRE_MINUTES: 43200
       RATE_LIMIT_PER_MINUTE: 60
       REDIS_URL: redis://redis:6379/0
+      FORWARDED_ALLOW_IPS: "*"
+      TRUST_PROXY_HEADERS: "true"
+      METRICS_ENABLED: "true"
+      REQUEST_ANALYTICS_ENABLED: "true"
+      REQUEST_ANALYTICS_API_ONLY: "true"
+      REQUEST_ANALYTICS_SAMPLE_RATE: "1.0"
+      REQUEST_ANALYTICS_RETENTION_DAYS: "30"
     volumes:
       - backend_uploads:/app/uploads
     ports:
       - "8000:8000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/').read()\""]
       interval: 10s
@@ -77,7 +87,8 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', res => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1));\""]
       interval: 10s
@@ -94,15 +105,57 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "nginx -t >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 6
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./ops/prometheus/secrets:/etc/prometheus/secrets:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
     logging:
       driver: "json-file"
       options:
@@ -113,3 +166,5 @@ volumes:
   db_data:
   backend_uploads:
   redis_data:
+  prometheus_data:
+  grafana_data:

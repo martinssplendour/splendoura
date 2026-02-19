@@ -3,11 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 from sqlalchemy import text
-from datetime import datetime
 import sentry_sdk
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from app.api.v1.api import api_router
 from app.core.config import settings
+from app.core.observability import register_observability
 from app.core.security import get_password_hash
 from app.db.session import engine
 from app.db.session import SessionLocal
@@ -32,6 +32,7 @@ app = FastAPI(
     description="Backend for the social activity platform",
     version="1.0.0"
 )
+register_observability(app)
 
 # CRITICAL: Configure CORS so your Next.js frontend (localhost:3000) 
 # can make requests to this FastAPI server (localhost:8000)
@@ -57,7 +58,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Next-Cursor"],
+    expose_headers=["X-Next-Cursor", "X-Request-ID"],
 )
 
 if settings.REQUIRE_STRONG_SECRET_KEY:

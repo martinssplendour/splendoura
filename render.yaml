@@ -22,12 +22,28 @@ services:
         value: "2"
       - key: LOG_LEVEL
         value: "info"
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
       - key: SENTRY_DSN
         sync: false
       - key: SENTRY_ENVIRONMENT
         value: "production"
       - key: SENTRY_TRACES_SAMPLE_RATE
         value: "0.05"
+      - key: METRICS_ENABLED
+        value: "true"
+      - key: METRICS_BEARER_TOKEN
+        sync: false
+      - key: REQUEST_ANALYTICS_ENABLED
+        value: "true"
+      - key: REQUEST_ANALYTICS_API_ONLY
+        value: "true"
+      - key: REQUEST_ANALYTICS_SAMPLE_RATE
+        value: "0.5"
+      - key: REQUEST_ANALYTICS_RETENTION_DAYS
+        value: "30"
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_USERNAME

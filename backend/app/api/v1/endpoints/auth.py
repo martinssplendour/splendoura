@@ -12,6 +12,7 @@ from app import crud, schemas, models
 from app.api import deps
 from app.core import security, email as email_utils
 from app.core.config import settings
+from app.core.request_meta import get_client_ip
 from app.models.auth_session import UserRefreshSession
 
 router = APIRouter()
@@ -196,12 +197,13 @@ def login_access_token(
     user.last_active_at = datetime.utcnow()
     db.add(user)
     db.commit()
+    request.state.user_id = user.id
 
     access_token, refresh_token = _issue_session_tokens(
         db=db,
         user=user,
         user_agent=request.headers.get("user-agent"),
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
     )
     _set_auth_cookies(response, access_token, refresh_token)
     return {
@@ -351,6 +353,7 @@ def refresh_access_token(
     user = crud.user.get(db, id=user_id_int)
     if not user:
         raise credentials_exception
+    request.state.user_id = user_id_int
 
     refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
     new_session_id = security.create_token_id()
@@ -366,7 +369,7 @@ def refresh_access_token(
         token_hash=security.hash_token(new_refresh_token),
         expires_at=new_refresh_expires_at,
         user_agent=(request.headers.get("user-agent") or "")[:512] or None,
-        ip_address=(request.client.host if request.client else "")[:64] or None,
+        ip_address=(get_client_ip(request) or "")[:64] or None,
     )
     current_session.last_used_at = now
     current_session.revoked_at = now

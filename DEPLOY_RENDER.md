@@ -23,6 +23,32 @@ This repo is ready to deploy on Render (Docker) with a Supabase Postgres databas
 
 Render will provide a `PORT` env var automatically. The API listens on that value.
 
+## Render Observability Baseline
+Use these for phase 1 visibility before external tools:
+
+1. In Render service settings, enable:
+   - Logs
+   - Service Metrics
+   - (Optional) Log Streams to your SIEM/log platform
+   - (Optional) Metrics Streams
+2. Set environment variables:
+   - `FORWARDED_ALLOW_IPS=*`
+   - `TRUST_PROXY_HEADERS=true`
+   - `METRICS_ENABLED=true`
+   - `METRICS_BEARER_TOKEN=<long-random-secret>`
+   - `REQUEST_ANALYTICS_ENABLED=true`
+   - `REQUEST_ANALYTICS_API_ONLY=true`
+   - `REQUEST_ANALYTICS_SAMPLE_RATE=0.5`
+   - `REQUEST_ANALYTICS_RETENTION_DAYS=30`
+3. Scrape backend Prometheus endpoint:
+   - `GET /metrics`
+   - Include header: `Authorization: Bearer <METRICS_BEARER_TOKEN>` if token is set.
+4. Build baseline alerts:
+   - 5xx rate spike
+   - p95 latency degradation
+   - container memory near limit
+   - request volume anomalies
+
 ## Supabase (Database)
 1. Create a Supabase project.
 2. Grab the **Session** connection string from Supabase and format it as:

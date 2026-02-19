@@ -42,6 +42,14 @@ class Settings(BaseSettings):
     SENTRY_DSN: str | None = None
     SENTRY_ENVIRONMENT: str = "production"
     SENTRY_TRACES_SAMPLE_RATE: float = 0.05
+    TRUST_PROXY_HEADERS: bool = True
+
+    METRICS_ENABLED: bool = True
+    METRICS_BEARER_TOKEN: str | None = None
+    REQUEST_ANALYTICS_ENABLED: bool = True
+    REQUEST_ANALYTICS_API_ONLY: bool = True
+    REQUEST_ANALYTICS_SAMPLE_RATE: float = Field(default=1.0, ge=0.0, le=1.0)
+    REQUEST_ANALYTICS_RETENTION_DAYS: int = Field(default=30, ge=0, le=3650)
     
     PROJECT_NAME: str = "splendoura"
     ADMIN_EMAIL: str | None = None

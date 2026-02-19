@@ -15,3 +15,5 @@ mobile/.expo/
 .expo/
 backend/.venv/
 mobile/assets/images/playstore-icon-512.png
+ops/prometheus/secrets/*
+!ops/prometheus/secrets/.gitkeep
