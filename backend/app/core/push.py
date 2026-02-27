@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app import models
 from app.models.membership import JoinStatus
 from app.models.push_token import UserPushToken
+from app.models.user import UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -75,3 +76,28 @@ def send_expo_push(
                 response.read()
         except Exception as exc:
             logger.warning("Expo push send failed: %s", exc)
+
+
+def notify_admins_new_user(db: Session, new_user: models.User) -> None:
+    admin_rows = (
+        db.query(models.User.id)
+        .filter(
+            models.User.role == UserRole.ADMIN,
+            models.User.deleted_at.is_(None),
+            models.User.id != new_user.id,
+        )
+        .all()
+    )
+    admin_ids = [row[0] for row in admin_rows]
+    if not admin_ids:
+        return
+    tokens = get_push_tokens(db, admin_ids)
+    if not tokens:
+        return
+    label = new_user.full_name or new_user.username or new_user.email
+    send_expo_push(
+        tokens,
+        title="New user signup",
+        body=f"{label} just joined Splendoura.",
+        data={"type": "new_user_signup", "user_id": new_user.id},
+    )

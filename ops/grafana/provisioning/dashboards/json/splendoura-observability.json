@@ -78,7 +78,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(splendoura_http_requests_total[5m]))",
+          "expr": "sum(rate(splendoura_http_requests_total{job=\"splendoura-prod\"}[5m]))",
           "legendFormat": "",
           "range": true,
           "refId": "A"
@@ -146,7 +146,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 * sum(rate(splendoura_http_requests_total{status_code=~\"5..\"}[5m])) / clamp_min(sum(rate(splendoura_http_requests_total[5m])), 0.0001)",
+          "expr": "100 * (sum(rate(splendoura_http_requests_total{job=\"splendoura-prod\",status_code=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(splendoura_http_requests_total{job=\"splendoura-prod\"}[5m])), 0.0001)",
           "legendFormat": "",
           "range": true,
           "refId": "A"
@@ -214,7 +214,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(splendoura_http_request_duration_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(splendoura_http_request_duration_seconds_bucket{job=\"splendoura-prod\"}[5m])))",
           "legendFormat": "",
           "range": true,
           "refId": "A"
@@ -282,7 +282,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(splendoura_http_requests_in_progress)",
+          "expr": "sum(splendoura_http_requests_in_progress{job=\"splendoura-prod\"})",
           "legendFormat": "",
           "range": true,
           "refId": "A"
@@ -339,7 +339,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "topk(10, sum by (route) (rate(splendoura_http_requests_total[5m])))",
+          "expr": "topk(10, sum by (route) (rate(splendoura_http_requests_total{job=\"splendoura-prod\"}[5m])))",
           "legendFormat": "{{route}}",
           "range": true,
           "refId": "A"
@@ -396,7 +396,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (status_code) (rate(splendoura_http_requests_total[5m]))",
+          "expr": "sum by (status_code) (rate(splendoura_http_requests_total{job=\"splendoura-prod\"}[5m]))",
           "legendFormat": "{{status_code}}",
           "range": true,
           "refId": "A"

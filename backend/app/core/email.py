@@ -65,3 +65,32 @@ def send_password_reset_email(to_email: str, reset_link: str, reset_code: str) -
     send_email(to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
 
 
+def send_new_user_alert_email(
+    *,
+    to_email: str,
+    user_id: int,
+    full_name: str | None,
+    username: str | None,
+    joined_email: str,
+) -> None:
+    display_name = full_name or username or joined_email
+    subject = "New user joined Splendoure"
+    text_body = (
+        "A new user just registered.\n\n"
+        f"Name: {display_name}\n"
+        f"Email: {joined_email}\n"
+        f"Username: {username or '-'}\n"
+        f"User ID: {user_id}\n"
+    )
+    html_body = f"""
+    <p>A new user just registered.</p>
+    <ul>
+      <li><strong>Name:</strong> {display_name}</li>
+      <li><strong>Email:</strong> {joined_email}</li>
+      <li><strong>Username:</strong> {username or '-'}</li>
+      <li><strong>User ID:</strong> {user_id}</li>
+    </ul>
+    """
+    send_email(to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
+
+

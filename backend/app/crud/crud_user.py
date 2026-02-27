@@ -5,6 +5,9 @@ from datetime import datetime
 from app.models.user import User, VerificationStatus
 from app.schemas.user import UserCreate
 from app.core.security import verify_password, get_password_hash
+from app.core import email as email_utils
+from app.core.config import settings
+from app.core.push import notify_admins_new_user
 
 class CRUDUser:
     def get(self, db: Session, id: int) -> Optional[User]:
@@ -53,6 +56,15 @@ class CRUDUser:
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
+        if settings.NEW_USER_ALERT_EMAIL:
+            email_utils.send_new_user_alert_email(
+                to_email=settings.NEW_USER_ALERT_EMAIL,
+                user_id=db_obj.id,
+                full_name=db_obj.full_name,
+                username=db_obj.username,
+                joined_email=db_obj.email,
+            )
+        notify_admins_new_user(db, db_obj)
         return db_obj
 
 user = CRUDUser()

@@ -20,6 +20,20 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Google Analytics (GA4)
+
+1. Create a GA4 Web Data Stream in Google Analytics.
+2. Copy your Measurement ID (format like `G-XXXXXXXXXX`).
+3. Set it in frontend env:
+
+```bash
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+4. Restart the frontend server.
+
+GA tracking is wired in `app/layout.tsx` and route pageviews are tracked on navigation.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

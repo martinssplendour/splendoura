@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     SMTP_USE_SSL: bool = False
     SMTP_FROM: str = "support@splendoure.com"
+    NEW_USER_ALERT_EMAIL: str | None = "martins.okhimhe@splendoure.com"
 
     model_config = SettingsConfigDict(
         case_sensitive=True,
